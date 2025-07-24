@@ -147,6 +147,10 @@ namespace NavegadorWeb
                 // Habilita las herramientas de desarrollador (F12)
                 currentWebView.CoreWebView2.Settings.AreDevToolsEnabled = true;
                 // currentWebView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = true; // Habilita atajos de teclado del navegador, incluyendo F12
+
+                // NUEVO: Suscribirse al evento DownloadStarting
+                currentWebView.CoreWebView2.DownloadStarting -= CoreWebView2_DownloadStarting; // Evitar duplicados
+                currentWebView.CoreWebView2.DownloadStarting += CoreWebView2_DownloadStarting;
             }
         }
 
@@ -162,6 +166,73 @@ namespace NavegadorWeb
                 e.Response = ((WebView2)sender).CoreWebView2.Environment.CreateWebResourceResponse(
                     null, 403, "Forbidden", "Content-Type: text/plain\nAccess-Control-Allow-Origin: *"
                 );
+            }
+        }
+
+        /// <summary>
+        /// Maneja el inicio de una descarga desde WebView2.
+        /// Permite al usuario elegir la ruta de guardado y actualiza el gestor de descargas.
+        /// </summary>
+        private async void CoreWebView2_DownloadStarting(object sender, CoreWebView2DownloadStartingEventArgs e)
+        {
+            // Cancelar la descarga predeterminada de WebView2 para manejarla manualmente
+            e.Handled = true;
+
+            // Crear una entrada de descarga inicial
+            DownloadEntry newDownload = new DownloadEntry
+            {
+                FileName = e.ResultFilePath.Split('\\').Last(), // Obtener solo el nombre del archivo
+                Url = e.DownloadOperation.Uri,
+                TotalBytes = e.DownloadOperation.TotalBytesToReceive,
+                TargetPath = e.ResultFilePath, // Ruta predeterminada
+                State = CoreWebView2DownloadState.InProgress,
+                Progress = 0
+            };
+
+            // Mostrar un diálogo para elegir la ubicación de guardado
+            Microsoft.Win32.SaveFileDialog saveFileDialog = new Microsoft.Win32.SaveFileDialog
+            {
+                FileName = newDownload.FileName,
+                Filter = "Todos los archivos (*.*)|*.*",
+                Title = "Guardar descarga como..."
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                newDownload.TargetPath = saveFileDialog.FileName; // Actualizar la ruta de guardado elegida
+                e.ResultFilePath = saveFileDialog.FileName; // Informar a WebView2 la nueva ruta
+
+                // Añadir/actualizar la descarga en el gestor
+                DownloadManager.AddOrUpdateDownload(newDownload);
+
+                // Suscribirse a los eventos de progreso y estado de la operación de descarga
+                e.DownloadOperation.BytesReceivedChanged += (s, args) =>
+                {
+                    newDownload.ReceivedBytes = e.DownloadOperation.BytesReceived;
+                    if (newDownload.TotalBytes > 0)
+                    {
+                        newDownload.Progress = (int)((double)newDownload.ReceivedBytes / newDownload.TotalBytes * 100);
+                    }
+                    DownloadManager.AddOrUpdateDownload(newDownload); // Actualizar progreso
+                };
+
+                e.DownloadOperation.StateChanged += (s, args) =>
+                {
+                    newDownload.State = e.DownloadOperation.State;
+                    newDownload.IsActive = (e.DownloadOperation.State == CoreWebView2DownloadState.InProgress);
+                    if (newDownload.State == CoreWebView2DownloadState.Completed || newDownload.State == CoreWebView2DownloadState.Interrupted)
+                    {
+                        newDownload.EndTime = DateTime.Now;
+                        MessageBox.Show($"Descarga de '{newDownload.FileName}' ha {newDownload.State}.", "Descarga Finalizada", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    DownloadManager.AddOrUpdateDownload(newDownload); // Actualizar estado final
+                };
+            }
+            else
+            {
+                // Si el usuario cancela el diálogo de guardado, cancelar la descarga
+                e.Cancel = true;
+                MessageBox.Show("Descarga cancelada por el usuario.", "Descarga Cancelada", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
@@ -416,6 +487,15 @@ namespace NavegadorWeb
         }
 
         /// <summary>
+        /// Maneja el clic en el botón "Descargas". Abre la ventana del gestor de descargas.
+        /// </summary>
+        private void DownloadsButton_Click(object sender, RoutedEventArgs e)
+        {
+            DownloadsWindow downloadsWindow = new DownloadsWindow();
+            downloadsWindow.Show(); // Mostrar la ventana de descargas (no modal, para que el usuario pueda seguir navegando)
+        }
+
+        /// <summary>
         /// Cierra una pestaña cuando se hace clic en su botón "X".
         /// </summary>
         private void CloseTabButton_Click(object sender, RoutedEventArgs e)
@@ -486,7 +566,7 @@ namespace NavegadorWeb
                         string originalHeaderText = browserTab.HeaderTextBlock.Text;
                         if (originalHeaderText.StartsWith("(Suspendida) ")) // Evitar duplicar el prefijo
                         {
-                            browserTab.HeaderTextBlock.Text = originalHeaderText.Replace("(Suspendida) ", "");
+                            tabItem.HeaderTextBlock.Text = originalHeaderText.Replace("(Suspendida) ", "");
                         }
                     }
                     else
