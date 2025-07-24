@@ -28,12 +28,15 @@ namespace NavegadorWeb
         private const string TabSuspensionSettingKey = "TabSuspensionEnabled"; // Clave para el estado de la suspensión de pestañas
         private const string RestoreSessionSettingKey = "RestoreSessionOnStartup"; // Clave para la configuración de restaurar sesión
         private const string LastSessionUrlsSettingKey = "LastSessionUrls"; // Clave para guardar las URLs de la última sesión
-        private const string TrackerProtectionSettingKey = "TrackerProtectionEnabled"; // NUEVO: Clave para el estado de la protección contra rastreadores
+        private const string TrackerProtectionSettingKey = "TrackerProtectionEnabled"; // Clave para el estado de la protección contra rastreadores
+        private const string PdfViewerSettingKey = "PdfViewerEnabled"; // NUEVO: Clave para el estado del visor de PDF
 
 
         private string _defaultSearchEngineUrl = "https://www.google.com/search?q="; // URL base del motor de búsqueda predeterminado
         private bool _isTabSuspensionEnabled = false; // Estado de la suspensión de pestañas
         private bool _restoreSessionOnStartup = true; // Estado de restaurar sesión al inicio (por defecto true)
+        private bool _isPdfViewerEnabled = true; // NUEVO: Estado del visor de PDF (por defecto true)
+
 
         // Lista para mantener un seguimiento de todas las pestañas abiertas
         private List<BrowserTabItem> _browserTabs = new List<BrowserTabItem>();
@@ -161,7 +164,7 @@ namespace NavegadorWeb
             string blockedDomainsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "blocked_domains.txt");
             AdBlocker.LoadBlockedDomainsFromFile(blockedDomainsFilePath);
 
-            // NUEVO: Cargar dominios de rastreo desde un archivo (ej: "tracker_domains.txt")
+            // Cargar dominios de rastreo desde un archivo (ej: "tracker_domains.txt")
             string trackerDomainsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tracker_domains.txt");
             TrackerBlocker.LoadBlockedTrackerDomainsFromFile(trackerDomainsFilePath);
 
@@ -354,6 +357,10 @@ namespace NavegadorWeb
 
                 // Habilita las herramientas de desarrollador (F12)
                 currentWebView.CoreWebView2.Settings.AreDevToolsEnabled = true;
+                // NUEVO: Habilitar zoom y pinch-zoom para PDFs
+                currentWebView.CoreWebView2.Settings.IsPinchZoomEnabled = true;
+                currentWebView.CoreWebView2.Settings.IsZoomControlEnabled = true;
+
 
                 // Suscribirse al evento DownloadStarting
                 currentWebView.CoreWebView2.DownloadStarting += CoreWebView2_DownloadStarting;
@@ -386,7 +393,7 @@ namespace NavegadorWeb
                 return; // Importante: si ya se bloqueó por anuncios, no seguir comprobando
             }
 
-            // NUEVO: Si la protección contra rastreadores está habilitada y la URL es un rastreador, cancela la solicitud.
+            // Si la protección contra rastreadores está habilitada y la URL es un rastreador, cancela la solicitud.
             if (TrackerBlocker.IsEnabled && TrackerBlocker.IsBlocked(e.Request.Uri))
             {
                 e.Response = ((WebView2)sender).CoreWebView2.Environment.CreateWebResourceResponse(
@@ -402,6 +409,16 @@ namespace NavegadorWeb
         /// </summary>
         private async void CoreWebView2_DownloadStarting(object sender, CoreWebView2DownloadStartingEventArgs e)
         {
+            // NUEVO: Si el visor de PDF está habilitado y es un PDF, abrirlo en el visor en lugar de descargar.
+            if (_isPdfViewerEnabled && e.DownloadOperation.Uri.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                e.Handled = true; // Indicar que manejaremos la descarga
+                // Abrir el PDF en la ventana del visor de PDF
+                PdfViewerWindow pdfViewer = new PdfViewerWindow(e.DownloadOperation.Uri, _defaultEnvironment);
+                pdfViewer.Show();
+                return; // Salir de la función, ya no necesitamos procesar la descarga
+            }
+
             // Cancelar la descarga predeterminada de WebView2 para manejarla manualmente
             e.Handled = true;
 
@@ -539,6 +556,15 @@ namespace NavegadorWeb
         private void WebView_NavigationStarting(object sender, CoreWebView2NavigationStartingEventArgs e)
         {
             LoadingProgressBar.Visibility = Visibility.Visible; // Mostrar el indicador de carga
+
+            // NUEVO: Si el visor de PDF está habilitado y la URL es un PDF, abrirlo en el visor en lugar de navegar en la pestaña actual.
+            if (_isPdfViewerEnabled && e.Uri.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                e.Cancel = true; // Cancelar la navegación en la pestaña actual
+                PdfViewerWindow pdfViewer = new PdfViewerWindow(e.Uri, _defaultEnvironment);
+                pdfViewer.Show();
+                return; // Salir de la función, ya no necesitamos navegar en esta pestaña
+            }
             // Aquí puedes añadir lógica para bloquear ciertas URLs o modificar la solicitud antes de que comience la navegación.
         }
 
@@ -573,7 +599,7 @@ namespace NavegadorWeb
                 // Si es la pestaña activa y es el WebView principal, actualiza también el título de la ventana principal.
                 if (BrowserTabControl.SelectedItem == tabItem?.Tab && tabItem.LeftWebView == currentWebView)
                 {
-                    this.Title = currentWebView.CoreWebView2.DocumentTitle + " - Mi Navegador Web";
+                    this.Title = currentWebView.CoreWebView2.DocumentTitle + " - Aurora Browser"; // Cambiado a Aurora Browser
                 }
             }
         }
@@ -1647,13 +1673,13 @@ namespace NavegadorWeb
             if (currentWebView != null && currentWebView.CoreWebView2 != null)
             {
                 UrlTextBox.Text = currentWebView.CoreWebView2.Source;
-                this.Title = currentWebView.CoreWebView2.DocumentTitle + " - Mi Navegador Web";
+                this.Title = currentWebView.CoreWebView2.DocumentTitle + " - Aurora Browser"; // Cambiado a Aurora Browser
             }
             else
             {
                 // Si no hay pestaña activa o el WebView principal no está listo, limpia la barra de URL y el título.
                 UrlTextBox.Text = string.Empty;
-                this.Title = "Mi Navegador Web";
+                this.Title = "Aurora Browser"; // Cambiado a Aurora Browser
             }
         }
 
@@ -1661,7 +1687,7 @@ namespace NavegadorWeb
         /// Obtiene la instancia de WebView2 principal (izquierda) de la pestaña actualmente seleccionada.
         /// </summary>
         /// <returns>El LeftWebView de la pestaña activa, o null si no hay una pestaña seleccionada o su contenido no es válido.</returns>
-        private WebView2 GetCurrentWebView()
+        public WebView2 GetCurrentWebView() // Cambiado a público para que PdfViewerWindow pueda usarlo si es necesario
         {
             return GetCurrentBrowserTabItem()?.LeftWebView;
         }
@@ -1685,7 +1711,7 @@ namespace NavegadorWeb
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
             // Pasa la página de inicio actual, el estado del bloqueador, la URL del motor de búsqueda y el estado de suspensión
-            SettingsWindow settingsWindow = new SettingsWindow(_defaultHomePage, AdBlocker.IsEnabled, _defaultSearchEngineUrl, _isTabSuspensionEnabled, _restoreSessionOnStartup, TrackerBlocker.IsEnabled); // NUEVO: Pasar el estado de TrackerBlocker
+            SettingsWindow settingsWindow = new SettingsWindow(_defaultHomePage, AdBlocker.IsEnabled, _defaultSearchEngineUrl, _isTabSuspensionEnabled, _restoreSessionOnStartup, TrackerBlocker.IsEnabled, _isPdfViewerEnabled); // NUEVO: Pasar el estado de PdfViewer
 
             // Suscribirse a los nuevos eventos de la ventana de configuración
             settingsWindow.OnClearBrowsingData += SettingsWindow_OnClearBrowsingData;
@@ -1700,7 +1726,8 @@ namespace NavegadorWeb
                 _defaultSearchEngineUrl = settingsWindow.DefaultSearchEngineUrl; // Actualiza la URL del motor de búsqueda
                 _isTabSuspensionEnabled = settingsWindow.IsTabSuspensionEnabled; // Actualiza el estado de suspensión
                 _restoreSessionOnStartup = settingsWindow.RestoreSessionOnStartup; // Actualiza el estado de restaurar sesión
-                TrackerBlocker.IsEnabled = settingsWindow.IsTrackerProtectionEnabled; // NUEVO: Actualiza el estado de TrackerBlocker
+                TrackerBlocker.IsEnabled = settingsWindow.IsTrackerProtectionEnabled; // Actualiza el estado de TrackerBlocker
+                _isPdfViewerEnabled = settingsWindow.IsPdfViewerEnabled; // NUEVO: Actualiza el estado del visor de PDF
                 SaveSettings(); // Guarda todas las configuraciones en App.config
                 MessageBox.Show("Configuración guardada. Los cambios se aplicarán al abrir nuevas pestañas o al hacer clic en 'Inicio'.", "Configuración Guardada", MessageBoxButton.OK, Image.Information);
             }
@@ -1797,7 +1824,7 @@ namespace NavegadorWeb
         }
 
         /// <summary>
-        /// Carga las configuraciones de la aplicación (página de inicio, estado del bloqueador, motor de búsqueda, suspensión de pestañas, restaurar sesión, protección contra rastreadores) desde App.config.
+        /// Carga las configuraciones de la aplicación (página de inicio, estado del bloqueador, motor de búsqueda, suspensión de pestañas, restaurar sesión, protección contra rastreadores, visor de PDF) desde App.config.
         /// </summary>
         private void LoadSettings()
         {
@@ -1849,7 +1876,7 @@ namespace NavegadorWeb
                 _restoreSessionOnStartup = true; // Por defecto habilitado
             }
 
-            // NUEVO: Cargar el estado de la protección contra rastreadores
+            // Cargar el estado de la protección contra rastreadores
             string savedTrackerProtectionState = ConfigurationManager.AppSettings[TrackerProtectionSettingKey];
             if (bool.TryParse(savedTrackerProtectionState, out bool isTrackerProtectionEnabled))
             {
@@ -1859,10 +1886,21 @@ namespace NavegadorWeb
             {
                 TrackerBlocker.IsEnabled = false; // Por defecto deshabilitado
             }
+
+            // NUEVO: Cargar el estado del visor de PDF
+            string savedPdfViewerState = ConfigurationManager.AppSettings[PdfViewerSettingKey];
+            if (bool.TryParse(savedPdfViewerState, out bool isPdfViewerEnabled))
+            {
+                _isPdfViewerEnabled = isPdfViewerEnabled;
+            }
+            else
+            {
+                _isPdfViewerEnabled = true; // Por defecto habilitado
+            }
         }
 
         /// <summary>
-        /// Guarda las configuraciones actuales (página de inicio, estado del bloqueador, motor de búsqueda, suspensión de pestañas, restaurar sesión, protección contra rastreadores) en App.config.
+        /// Guarda las configuraciones actuales (página de inicio, estado del bloqueador, motor de búsqueda, suspensión de pestañas, restaurar sesión, protección contra rastreadores, visor de PDF) en App.config.
         /// </summary>
         private void SaveSettings()
         {
@@ -1898,11 +1936,17 @@ namespace NavegadorWeb
             else
                 config.AppSettings.Settings[RestoreSessionSettingKey].Value = _restoreSessionOnStartup.ToString();
 
-            // NUEVO: Guardar estado de la protección contra rastreadores
+            // Guardar estado de la protección contra rastreadores
             if (config.AppSettings.Settings[TrackerProtectionSettingKey] == null)
                 config.AppSettings.Settings.Add(TrackerProtectionSettingKey, TrackerBlocker.IsEnabled.ToString());
             else
                 config.AppSettings.Settings[TrackerProtectionSettingKey].Value = TrackerBlocker.IsEnabled.ToString();
+
+            // NUEVO: Guardar estado del visor de PDF
+            if (config.AppSettings.Settings[PdfViewerSettingKey] == null)
+                config.AppSettings.Settings.Add(PdfViewerSettingKey, _isPdfViewerEnabled.ToString());
+            else
+                config.AppSettings.Settings[PdfViewerSettingKey].Value = _isPdfViewerEnabled.ToString();
 
 
             // Guardar las URLs de la sesión actual si la restauración está habilitada
