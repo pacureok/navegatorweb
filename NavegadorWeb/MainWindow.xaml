@@ -29,7 +29,8 @@
                     <Button x:Name="ReadAloudButton" Content="🔊" Width="30" Height="25" Margin="0,0,5,0" Click="ReadAloudButton_Click" ToolTip="Leer en Voz Alta"/>
                     <Button x:Name="SplitScreenButton" Content="↔️" Width="30" Height="25" Margin="0,0,5,0" Click="SplitScreenButton_Click" ToolTip="Pantalla Dividida"/>
                     <Button x:Name="AIButton" Content="🤖" Width="30" Height="25" Margin="0,0,5,0" Click="AIButton_Click" ToolTip="Abrir Gemini (IA) en Pantalla Dividida"/>
-                    <Button x:Name="ScreenshotButton" Content="📸" Width="30" Height="25" Margin="0,0,5,0" Click="ScreenshotButton_Click" ToolTip="Captura de Pantalla"/> <!-- NUEVO BOTÓN CAPTURA -->
+                    <Button x:Name="ScreenshotButton" Content="📸" Width="30" Height="25" Margin="0,0,5,0" Click="ScreenshotButton_Click" ToolTip="Captura de Pantalla"/>
+                    <Button x:Name="TabManagerButton" Content="🗂️" Width="30" Height="25" Margin="0,0,5,0" Click="TabManagerButton_Click" ToolTip="Administrador de Pestañas"/> <!-- NUEVO BOTÓN ADMINISTRADOR DE PESTAÑAS -->
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
@@ -61,9 +62,9 @@
 
 ---
 
-**2. Modificación del archivo: `MainWindow.xaml.cs`**
+**5. Modificación del archivo: `MainWindow.xaml.cs`**
 
-Este archivo tendrá el nuevo manejador de eventos para el botón de captura de pantalla.
+Este archivo tendrá el nuevo manejador de eventos para el botón del administrador de pestañas y los métodos públicos para que `TabManagerWindow` pueda interactuar.
 
 **Ruta:** `./NavegadorWeb/MainWindow.xaml.cs`
 
@@ -81,7 +82,7 @@ using System.Windows.Input;
 using System.IO; // Necesario para Path.Combine y operaciones de archivo
 using System.Text.Json; // Necesario para JsonSerializer (para historial y marcadores)
 using System.Speech.Synthesis; // Necesario para Text-to-Speech
-using System.Windows.Media.Imaging; // NUEVO: Necesario para BitmapFrame, PngBitmapEncoder
+using System.Windows.Media.Imaging; // Necesario para BitmapFrame, PngBitmapEncoder
 
 namespace NavegadorWeb
 {
@@ -865,7 +866,7 @@ namespace NavegadorWeb
         }
 
         /// <summary>
-        /// NUEVO: Maneja el clic en el botón "Captura de Pantalla". Captura la vista actual del WebView2.
+        /// Maneja el clic en el botón "Captura de Pantalla". Captura la vista actual del WebView2.
         /// </summary>
         private async void ScreenshotButton_Click(object sender, RoutedEventArgs e)
         {
@@ -909,6 +910,71 @@ namespace NavegadorWeb
             {
                 MessageBox.Show($"Error al realizar la captura de pantalla: {ex.Message}", "Error de Captura", MessageBoxButton.OK, Image.Error);
             }
+        }
+
+        /// <summary>
+        /// NUEVO: Maneja el clic en el botón "Administrador de Pestañas". Abre la ventana del administrador.
+        /// </summary>
+        private void TabManagerButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Pasamos delegados para que la ventana del administrador pueda obtener y cerrar pestañas
+            TabManagerWindow tabManagerWindow = new TabManagerWindow(GetBrowserTabItems, CloseBrowserTab, GetCurrentBrowserTabItemInternal);
+            tabManagerWindow.Show(); // Mostrar la ventana (no modal)
+        }
+
+        /// <summary>
+        /// Método público para que el Administrador de Pestañas pueda obtener la lista de todas las pestañas.
+        /// </summary>
+        /// <returns>Una lista de BrowserTabItem.</returns>
+        public List<BrowserTabItem> GetBrowserTabItems()
+        {
+            return _browserTabs;
+        }
+
+        /// <summary>
+        /// Método público para que el Administrador de Pestañas pueda cerrar una pestaña específica.
+        /// Se llama al método CloseTabButton_Click interno para reutilizar la lógica de cierre.
+        /// </summary>
+        /// <param name="tabToClose">El TabItem que se desea cerrar.</param>
+        public void CloseBrowserTab(TabItem tabToClose)
+        {
+            // Simular un clic en el botón de cerrar de la pestaña para reutilizar la lógica existente.
+            // Esto es un poco hacky, pero funciona si el botón de cerrar usa el TabItem como Tag.
+            // Una alternativa más limpia sería refactorizar la lógica de cierre en un método separado sin UI.
+            var closeButton = tabToClose.Header is DockPanel headerPanel && headerPanel.Children.OfType<Button>().Any()
+                              ? headerPanel.Children.OfType<Button>().First()
+                              : null;
+
+            if (closeButton != null)
+            {
+                CloseTabButton_Click(closeButton, new RoutedEventArgs());
+            }
+            else
+            {
+                // Fallback si no se encuentra el botón de cerrar (ej. pestaña suspendida que no tiene el botón en el header)
+                // En ese caso, la lógica de eliminación directa del TabControl y la lista _browserTabs
+                BrowserTabControl.Items.Remove(tabToClose);
+                var browserTabItem = _browserTabs.FirstOrDefault(t => t.Tab == tabToClose);
+                if (browserTabItem != null)
+                {
+                    browserTabItem.LeftWebView?.Dispose();
+                    browserTabItem.RightWebView?.Dispose();
+                    _browserTabs.Remove(browserTabItem);
+                }
+                if (BrowserTabControl.Items.Count == 0)
+                {
+                    AddNewTab();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Método interno para obtener la pestaña activa (para pasar al TabManagerWindow).
+        /// </summary>
+        /// <returns>El TabItem actualmente seleccionado.</returns>
+        private TabItem GetCurrentBrowserTabItemInternal()
+        {
+            return BrowserTabControl.SelectedItem as TabItem;
         }
 
 
@@ -1106,7 +1172,7 @@ namespace NavegadorWeb
 
                         // Restaurar el título original (quitar "(Suspendida)")
                         string originalHeaderText = browserTab.HeaderTextBlock.Text;
-                        if (originalHeaderText.StartsWith("(Suspendida) ")) // Evitar duplicar el prefijo
+                        if (!originalHeaderText.StartsWith("(Suspendida) ")) // Evitar duplicar el prefijo
                         {
                             tabItem.HeaderTextBlock.Text = originalHeaderText.Replace("(Suspendida) ", "");
                         }
@@ -1418,4 +1484,3 @@ namespace NavegadorWeb
         }
     }
 }
-
