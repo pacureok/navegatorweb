@@ -13,7 +13,7 @@ namespace NavegadorWeb
     /// incluyendo si está en modo dividido, referencias a ambos WebView2,
     /// y propiedades para el favicon y el estado de audio.
     /// </summary>
-    public class BrowserTabItem : DependencyObject, INotifyPropertyChanged // Heredar de DependencyObject para usar Dependency Properties si es necesario, o simplemente de object
+    public class BrowserTabItem : DependencyObject, INotifyPropertyChanged
     {
         public TabItem Tab { get; set; } // El control TabItem de WPF
         public WebView2 LeftWebView { get; set; } // La instancia de WebView2 del panel izquierdo (principal)
@@ -21,11 +21,13 @@ namespace NavegadorWeb
         public TextBlock HeaderTextBlock { get; set; } // El TextBlock que muestra el título en el encabezado de la pestaña
         public Image FaviconImage { get; set; } // El control Image para el favicon
         public Image AudioIconImage { get; set; } // El control Image para el icono de audio
+        public Image ExtensionIconImage { get; set; } // NUEVO: Control Image para el icono de extensión
+        public Image BlockedIconImage { get; set; } // NUEVO: Control Image para el icono de bloqueo
 
         public bool IsIncognito { get; set; } // Indica si la pestaña está en modo incógnito
         public bool IsSplit { get; set; } // Indica si la pestaña está en modo dividido
 
-        // NUEVO: Referencia al grupo al que pertenece esta pestaña
+        // Referencia al grupo al que pertenece esta pestaña
         public TabGroup ParentGroup { get; set; }
 
         // Propiedades de estado para la UI de la pestaña
@@ -39,10 +41,9 @@ namespace NavegadorWeb
                 {
                     _isAudioPlaying = value;
                     OnPropertyChanged(nameof(IsAudioPlaying)); // Notificar cambio
-                    // Actualizar la visibilidad del icono de audio en la UI
                     if (AudioIconImage != null)
                     {
-                        AudioIconImage.Visibility = value ? System.Windows.Visibility.Visibility.Visible : System.Windows.Visibility.Collapsed;
+                        AudioIconImage.Visibility = value ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
                     }
                 }
             }
@@ -58,7 +59,6 @@ namespace NavegadorWeb
                 {
                     _faviconSource = value;
                     OnPropertyChanged(nameof(FaviconSource)); // Notificar cambio
-                    // Actualizar la fuente de la imagen del favicon en la UI
                     if (FaviconImage != null)
                     {
                         FaviconImage.Source = value;
@@ -67,22 +67,58 @@ namespace NavegadorWeb
             }
         }
 
+        private bool _isExtensionActive; // NUEVO: Indica si una extensión personalizada está activa en esta pestaña
+        public bool IsExtensionActive
+        {
+            get { return _isExtensionActive; }
+            set
+            {
+                if (_isExtensionActive != value)
+                {
+                    _isExtensionActive = value;
+                    OnPropertyChanged(nameof(IsExtensionActive));
+                    if (ExtensionIconImage != null)
+                    {
+                        ExtensionIconImage.Visibility = value ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+                    }
+                }
+            }
+        }
+
+        private bool _isSiteBlocked; // NUEVO: Indica si el AdBlocker/TrackerBlocker bloqueó algo en esta pestaña
+        public bool IsSiteBlocked
+        {
+            get { return _isSiteBlocked; }
+            set
+            {
+                if (_isSiteBlocked != value)
+                {
+                    _isSiteBlocked = value;
+                    OnPropertyChanged(nameof(IsSiteBlocked));
+                    if (BlockedIconImage != null)
+                    {
+                        BlockedIconImage.Visibility = value ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+                    }
+                }
+            }
+        }
+
         // Constructor
         public BrowserTabItem()
         {
-            // Inicializar con el icono de globo por defecto
             FaviconSource = GetDefaultGlobeIcon();
-            IsAudioPlaying = false; // Por defecto, no hay audio reproduciéndose
+            IsAudioPlaying = false;
+            IsExtensionActive = false; // Por defecto no hay extensiones activas
+            IsSiteBlocked = false;     // Por defecto no hay bloqueo
         }
 
         /// <summary>
         /// Carga el icono de globo terráqueo por defecto.
         /// </summary>
-        private ImageSource GetDefaultGlobeIcon()
+        public ImageSource GetDefaultGlobeIcon() // Cambiado a public para que pueda ser llamado desde MainWindow
         {
             try
             {
-                // Asegúrate de que este archivo exista en la carpeta Resources de tu proyecto
                 string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "globe_icon.png");
                 if (File.Exists(iconPath))
                 {
@@ -93,8 +129,7 @@ namespace NavegadorWeb
             {
                 System.Diagnostics.Debug.WriteLine($"Error al cargar el icono de globo: {ex.Message}");
             }
-            // Fallback a un icono genérico si no se encuentra el archivo
-            return new BitmapImage(new Uri("pack://application:,,,/NavegadorWeb;component/Resources/globe_icon.png")); // Fallback para recursos embebidos
+            return new BitmapImage(new Uri("pack://application:,,,/NavegadorWeb;component/Resources/globe_icon.png"));
         }
 
         /// <summary>
@@ -114,9 +149,49 @@ namespace NavegadorWeb
             {
                 System.Diagnostics.Debug.WriteLine($"Error al cargar el icono de audio: {ex.Message}");
             }
-            // Fallback
-            return new BitmapImage(new Uri("pack://application:,,,/NavegadorWeb;component/Resources/audio_playing_icon.png")); // Fallback para recursos embebidos
+            return new BitmapImage(new Uri("pack://application:,,,/NavegadorWeb;component/Resources/audio_playing_icon.png"));
         }
+
+        /// <summary>
+        /// NUEVO: Carga el icono de extensión activa.
+        /// </summary>
+        public static ImageSource GetExtensionActiveIcon()
+        {
+            try
+            {
+                string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "extension_icon.png");
+                if (File.Exists(iconPath))
+                {
+                    return new BitmapImage(new Uri(iconPath));
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error al cargar el icono de extensión: {ex.Message}");
+            }
+            return new BitmapImage(new Uri("pack://application:,,,/NavegadorWeb;component/Resources/extension_icon.png"));
+        }
+
+        /// <summary>
+        /// NUEVO: Carga el icono de sitio bloqueado.
+        /// </summary>
+        public static ImageSource GetSiteBlockedIcon()
+        {
+            try
+            {
+                string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "blocked_icon.png");
+                if (File.Exists(iconPath))
+                {
+                    return new BitmapImage(new Uri(iconPath));
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error al cargar el icono de bloqueo: {ex.Message}");
+            }
+            return new BitmapImage(new Uri("pack://application:,,,/NavegadorWeb;component/Resources/blocked_icon.png"));
+        }
+
 
         public event PropertyChangedEventHandler PropertyChanged;
 
