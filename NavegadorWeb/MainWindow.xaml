@@ -7,12 +7,14 @@
         mc:Ignorable="d"
         Title="Mi Navegador Web" Height="720" Width="1280"
         Loaded="Window_Loaded"
-        Closing="Window_Closing"> <Grid>
+        Closing="Window_Closing">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <!-- Barra de Dirección, Botones y Botón Nueva Pestaña -->
         <Border Grid.Row="0" BorderBrush="LightGray" BorderThickness="0,0,0,1" Padding="5">
             <DockPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
@@ -25,7 +27,9 @@
                     <Button x:Name="DownloadsButton" Content="⬇️" Width="30" Height="25" Margin="0,0,5,0" Click="DownloadsButton_Click" ToolTip="Descargas"/>
                     <Button x:Name="ReaderModeButton" Content="📖" Width="30" Height="25" Margin="0,0,5,0" Click="ReaderModeButton_Click" ToolTip="Modo Lectura"/>
                     <Button x:Name="ReadAloudButton" Content="🔊" Width="30" Height="25" Margin="0,0,5,0" Click="ReadAloudButton_Click" ToolTip="Leer en Voz Alta"/>
-                    <Button x:Name="SplitScreenButton" Content="↔️" Width="30" Height="25" Margin="0,0,5,0" Click="SplitScreenButton_Click" ToolTip="Pantalla Dividida"/> </StackPanel>
+                    <Button x:Name="SplitScreenButton" Content="↔️" Width="30" Height="25" Margin="0,0,5,0" Click="SplitScreenButton_Click" ToolTip="Pantalla Dividida"/>
+                    <Button x:Name="AIButton" Content="🤖" Width="30" Height="25" Margin="0,0,5,0" Click="AIButton_Click" ToolTip="Abrir Gemini (IA) en Pantalla Dividida"/> <!-- NUEVO BOTÓN IA -->
+                </StackPanel>
 
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
                     <Button x:Name="IncognitoButton" Content="🕶️" Width="30" Height="25" Margin="0,0,5,0" Click="IncognitoButton_Click" ToolTip="Nueva Ventana Incógnito"/>
@@ -40,13 +44,16 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <TextBox x:Name="UrlTextBox" VerticalContentAlignment="Center" KeyDown="UrlTextBox_KeyDown" Text="https://www.google.com" Margin="0,0,5,0" Grid.Column="0"/>
+                    <!-- Indicador de Carga -->
                     <ProgressBar x:Name="LoadingProgressBar" Grid.Column="1" Width="50" Height="20" Margin="0,0,5,0" IsIndeterminate="True" Visibility="Collapsed" ToolTip="Cargando..."/>
                 </Grid>
             </DockPanel>
         </Border>
 
+        <!-- Contenedor de Pestañas -->
         <TabControl x:Name="BrowserTabControl" Grid.Row="1" SelectionChanged="BrowserTabControl_SelectionChanged">
-            </TabControl>
+            <!-- Las pestañas se añadirán programáticamente -->
+        </TabControl>
     </Grid>
 </Window>
 ```
@@ -55,7 +62,7 @@
 
 **2. Modificación del archivo: `MainWindow.xaml.cs`**
 
-Este archivo tendrá cambios significativos para manejar la lógica de pantalla dividida.
+Este archivo tendrá el nuevo manejador de eventos para el botón de IA.
 
 **Ruta:** `./NavegadorWeb/MainWindow.xaml.cs`
 
@@ -797,7 +804,7 @@ namespace NavegadorWeb
         }
 
         /// <summary>
-        /// NUEVO: Maneja el clic en el botón "Pantalla Dividida". Alterna el modo de pantalla dividida para la pestaña actual.
+        /// Maneja el clic en el botón "Pantalla Dividida". Alterna el modo de pantalla dividida para la pestaña actual.
         /// </summary>
         private async void SplitScreenButton_Click(object sender, RoutedEventArgs e)
         {
@@ -817,27 +824,63 @@ namespace NavegadorWeb
             else
             {
                 // Activar modo dividido
-                await EnableSplitScreenForCurrentTab(currentTab);
+                await EnableSplitScreenForCurrentTab(currentTab, _defaultHomePage); // Cargar página de inicio por defecto
                 SplitScreenButton.Content = "➡️"; // Cambiar icono a "derecha" (indicando que está dividido)
             }
         }
 
         /// <summary>
+        /// NUEVO: Maneja el clic en el botón "IA". Activa la pantalla dividida y carga Gemini en el panel derecho.
+        /// </summary>
+        private async void AIButton_Click(object sender, RoutedEventArgs e)
+        {
+            var currentTab = GetCurrentBrowserTabItem();
+            if (currentTab == null || currentTab.LeftWebView == null || currentTab.LeftWebView.CoreWebView2 == null)
+            {
+                MessageBox.Show("No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, Image.Error);
+                return;
+            }
+
+            // Si no está en modo dividido, activarlo primero
+            if (!currentTab.IsSplit)
+            {
+                await EnableSplitScreenForCurrentTab(currentTab, "https://gemini.google.com/");
+                SplitScreenButton.Content = "➡️"; // Asegurar que el icono de pantalla dividida se actualice
+            }
+            else
+            {
+                // Si ya está en modo dividido, simplemente navegar el panel derecho a Gemini
+                if (currentTab.RightWebView != null && currentTab.RightWebView.CoreWebView2 != null)
+                {
+                    currentTab.RightWebView.CoreWebView2.Navigate("https://gemini.google.com/");
+                }
+                else
+                {
+                    // Esto no debería pasar si IsSplit es true, pero como fallback
+                    await EnableSplitScreenForCurrentTab(currentTab, "https://gemini.google.com/");
+                }
+            }
+        }
+
+
+        /// <summary>
         /// Activa el modo de pantalla dividida para la pestaña actual.
         /// </summary>
-        private async System.Threading.Tasks.Task EnableSplitScreenForCurrentTab(BrowserTabItem tabItem)
+        /// <param name="tabItem">La pestaña a dividir.</param>
+        /// <param name="rightPanelUrl">La URL a cargar en el panel derecho.</param>
+        private async System.Threading.Tasks.Task EnableSplitScreenForCurrentTab(BrowserTabItem tabItem, string rightPanelUrl)
         {
             // Detener lectura en voz alta si está activa
             if (_isReadingAloud)
             {
                 _speechSynthesizer.SpeakAsyncCancelAll();
                 _isReadingAloud = false;
-                ReadAloudButton.Content = "🔊";
+                ReadAloudButton.Content = "�";
             }
 
             // Crear el segundo WebView2
             WebView2 webView2 = new WebView2();
-            webView2.Source = new Uri(_defaultHomePage); // La segunda vista empieza en la página de inicio
+            webView2.Source = new Uri(rightPanelUrl); // La segunda vista empieza en la URL especificada
             webView2.Name = "WebView2_Tab" + _browserTabs.IndexOf(tabItem); // Nombre único
             webView2.HorizontalAlignment = HorizontalAlignment.Stretch;
             webView2.VerticalAlignment = VerticalAlignment.Stretch;
@@ -1000,7 +1043,7 @@ namespace NavegadorWeb
                         // Enlazar eventos (similar a AddNewTab, asegurando el entorno correcto)
                         newWebView.Loaded += WebView_Loaded;
                         CoreWebView2Environment envToUse = browserTab.IsIncognito ? _incognitoEnvironment : _defaultEnvironment;
-                        newWebView.CoreWebView2InitializationCompleted += (s, ev) => ConfigureCoreWebView2(newWebView, ev, envToUse);
+                        newWebView.CoreWebView2InitializationCompleted += (s, ev) => ConfigureCoreWebView2(newWebView, ev, envToUse); // Pasar e y envToUse
                         // Los eventos de navegación, fuente y título se re-adjuntan en ConfigureCoreWebView2
 
                         // Reemplazar el contenido de la pestaña (volverá a ser una vista simple)
@@ -1082,7 +1125,7 @@ namespace NavegadorWeb
             SettingsWindow settingsWindow = new SettingsWindow(_defaultHomePage, AdBlocker.IsEnabled, _defaultSearchEngineUrl, _isTabSuspensionEnabled);
 
             // Suscribirse a los nuevos eventos de la ventana de configuración
-            settingsWindow.OnClearBrowseData += SettingsWindow_OnClearBrowseData;
+            settingsWindow.OnClearBrowsingData += SettingsWindow_OnClearBrowsingData;
             settingsWindow.OnSuspendInactiveTabs += SettingsWindow_OnSuspendInactiveTabs;
 
 
@@ -1098,7 +1141,7 @@ namespace NavegadorWeb
             }
 
             // Es importante desuscribirse de los eventos para evitar fugas de memoria
-            settingsWindow.OnClearBrowseData -= SettingsWindow_OnClearBrowseData;
+            settingsWindow.OnClearBrowsingData -= SettingsWindow_OnClearBrowsingData;
             settingsWindow.OnSuspendInactiveTabs -= SettingsWindow_OnSuspendInactiveTabs;
         }
 
@@ -1106,7 +1149,7 @@ namespace NavegadorWeb
         /// Nuevo: Manejador para borrar datos de navegación.
         /// Se invoca desde la ventana de configuración.
         /// </summary>
-        private async void SettingsWindow_OnClearBrowseData()
+        private async void SettingsWindow_OnClearBrowsingData()
         {
             // Esto borrará datos de la carpeta UserData del entorno predeterminado.
             WebView2 anyWebView = GetCurrentWebView(); // Solo necesitamos una instancia para acceder al entorno
@@ -1125,7 +1168,7 @@ namespace NavegadorWeb
                     CoreWebView2BrowserDataKinds.PasswordAutofill |
                     CoreWebView2BrowserDataKinds.OtherData;
 
-                await _defaultEnvironment.ClearBrowseDataAsync(dataKinds);
+                await _defaultEnvironment.ClearBrowsingDataAsync(dataKinds);
                 MessageBox.Show("Datos de navegación (caché, cookies, etc.) borrados con éxito.", "Limpieza Completa", MessageBoxButton.OK, Image.Information);
             }
             else
@@ -1322,7 +1365,7 @@ namespace NavegadorWeb
             public WebView2 RightWebView { get; set; } // La instancia de WebView2 del panel derecho (puede ser null)
             public TextBlock HeaderTextBlock { get; set; } // El TextBlock que muestra el título en el encabezado de la pestaña
             public bool IsIncognito { get; set; } // Indica si la pestaña está en modo incógnito
-            public bool IsSplit { get; set; } // NUEVO: Indica si la pestaña está en modo dividido
+            public bool IsSplit { get; set; } // Indica si la pestaña está en modo dividido
         }
     }
 }
