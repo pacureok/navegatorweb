@@ -1,3 +1,4 @@
+
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using System;
@@ -13,6 +14,7 @@ using System.Speech.Synthesis; // Necesario para Text-to-Speech
 using System.Windows.Media.Imaging; // Necesario para BitmapFrame, PngBitmapEncoder
 using System.Windows.Media; // Necesario para Brushes
 using System.Diagnostics; // Necesario para Process
+using System.Collections.ObjectModel; // Para ObservableCollection
 
 namespace NavegadorWeb
 {
@@ -29,17 +31,27 @@ namespace NavegadorWeb
         private const string RestoreSessionSettingKey = "RestoreSessionOnStartup"; // Clave para la configuración de restaurar sesión
         private const string LastSessionUrlsSettingKey = "LastSessionUrls"; // Clave para guardar las URLs de la última sesión
         private const string TrackerProtectionSettingKey = "TrackerProtectionEnabled"; // Clave para el estado de la protección contra rastreadores
-        private const string PdfViewerSettingKey = "PdfViewerEnabled"; // NUEVO: Clave para el estado del visor de PDF
-
+        private const string PdfViewerSettingKey = "PdfViewerEnabled"; // Clave para el estado del visor de PDF
+        private const string UncleanShutdownFlagKey = "UncleanShutdown"; // Clave para detectar cierre inesperado
 
         private string _defaultSearchEngineUrl = "https://www.google.com/search?q="; // URL base del motor de búsqueda predeterminado
         private bool _isTabSuspensionEnabled = false; // Estado de la suspensión de pestañas
         private bool _restoreSessionOnStartup = true; // Estado de restaurar sesión al inicio (por defecto true)
-        private bool _isPdfViewerEnabled = true; // NUEVO: Estado del visor de PDF (por defecto true)
+        private bool _isPdfViewerEnabled = true; // Estado del visor de PDF (por defecto true)
 
+        // NUEVO: Instancia del gestor de grupos de pestañas
+        private TabGroupManager _tabGroupManager;
 
-        // Lista para mantener un seguimiento de todas las pestañas abiertas
-        private List<BrowserTabItem> _browserTabs = new List<BrowserTabItem>();
+        // NUEVO: Propiedad para mantener la pestaña seleccionada globalmente para el Binding en XAML
+        public BrowserTabItem SelectedTabItem
+        {
+            get { return (BrowserTabItem)GetValue(SelectedTabItemProperty); }
+            set { SetValue(SelectedTabItemProperty, value); }
+        }
+
+        public static readonly DependencyProperty SelectedTabItemProperty =
+            DependencyProperty.Register("SelectedTabItem", typeof(BrowserTabItem), typeof(MainWindow), new PropertyMetadata(null));
+
 
         // Entornos de WebView2
         private CoreWebView2Environment _defaultEnvironment;
@@ -61,6 +73,9 @@ namespace NavegadorWeb
         public MainWindow()
         {
             InitializeComponent();
+            _tabGroupManager = new TabGroupManager();
+            this.DataContext = this; // Establecer el DataContext de la ventana a sí misma para el Binding de TabGroups y SelectedTabItem
+
             LoadSettings(); // Cargar configuraciones al iniciar la aplicación
             InitializeEnvironments(); // Inicializar los entornos de WebView2
             LoadReaderModeScript(); // Cargar el script de modo lectura
@@ -136,12 +151,12 @@ namespace NavegadorWeb
             try
             {
                 // Entorno para navegación normal (persistente)
-                string defaultUserDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MiNavegadorWeb", "UserData");
+                string defaultUserDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AuroraBrowser", "UserData"); // Nombre de carpeta cambiado
                 _defaultEnvironment = await CoreWebView2Environment.CreateAsync(null, defaultUserDataFolder);
 
                 // Entorno para navegación incógnito (no persistente)
                 // Se crea un directorio temporal que se eliminará al cerrar la aplicación.
-                string incognitoUserDataFolder = Path.Combine(Path.GetTempPath(), "MiNavegadorWebIncognito", Guid.NewGuid().ToString());
+                string incognitoUserDataFolder = Path.Combine(Path.GetTempPath(), "AuroraBrowserIncognito", Guid.NewGuid().ToString()); // Nombre de carpeta cambiado
                 _incognitoEnvironment = await CoreWebView2Environment.CreateAsync(null, incognitoUserDataFolder, new CoreWebView2EnvironmentOptions {
                     IsCustomCrashReportingEnabled = false // Para modo incógnito, puedes deshabilitar crash reporting si quieres más privacidad
                 });
@@ -168,9 +183,18 @@ namespace NavegadorWeb
             string trackerDomainsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tracker_domains.txt");
             TrackerBlocker.LoadBlockedTrackerDomainsFromFile(trackerDomainsFilePath);
 
+            // NUEVO: Comprobar si hubo un cierre inesperado
+            bool uncleanShutdown = false;
+            if (ConfigurationManager.AppSettings[UncleanShutdownFlagKey] != null && bool.TryParse(ConfigurationManager.AppSettings[UncleanShutdownFlagKey], out bool flag))
+            {
+                uncleanShutdown = flag;
+            }
 
-            // Restaurar sesión anterior si la configuración lo permite
-            if (_restoreSessionOnStartup)
+            // Restablecer el flag de cierre inesperado inmediatamente
+            UpdateUncleanShutdownFlag(true); // Establecerlo a true al inicio, si se cierra limpiamente, se pondrá a false
+
+            // Restaurar sesión anterior si la configuración lo permite Y hubo un cierre inesperado
+            if (_restoreSessionOnStartup && uncleanShutdown)
             {
                 string savedUrlsJson = ConfigurationManager.AppSettings[LastSessionUrlsSettingKey];
                 if (!string.IsNullOrEmpty(savedUrlsJson))
@@ -180,16 +204,41 @@ namespace NavegadorWeb
                         List<string> savedUrls = JsonSerializer.Deserialize<List<string>>(savedUrlsJson);
                         if (savedUrls != null && savedUrls.Any())
                         {
-                            // Limpiar la pestaña inicial predeterminada si hay URLs guardadas
-                            if (_browserTabs.Any())
-                            {
-                                TabItem initialTab = _browserTabs.First().Tab;
-                                CloseBrowserTab(initialTab); // Reutiliza la lógica de cierre para limpiar
-                            }
+                            // Mostrar la ventana de recuperación de fallos
+                            CrashRecoveryWindow recoveryWindow = new CrashRecoveryWindow();
+                            recoveryWindow.ShowDialog();
 
-                            foreach (string url in savedUrls)
+                            if (recoveryWindow.ShouldRestoreSession)
                             {
-                                AddNewTab(url);
+                                // Limpiar la pestaña inicial predeterminada si hay URLs guardadas
+                                // Ahora se hace de forma diferente con los grupos
+                                // Cerrar todas las pestañas existentes antes de restaurar
+                                foreach (var group in _tabGroupManager.TabGroups.ToList()) // ToList para evitar modificar la colección mientras se itera
+                                {
+                                    foreach (var tabItem in group.TabsInGroup.ToList())
+                                    {
+                                        CloseBrowserTab(tabItem.Tab);
+                                    }
+                                    if (!group.TabsInGroup.Any()) // Si el grupo está vacío, eliminarlo
+                                    {
+                                        _tabGroupManager.RemoveGroup(group);
+                                    }
+                                }
+                                // Asegurarse de que al menos un grupo exista si todos fueron eliminados
+                                if (!_tabGroupManager.TabGroups.Any())
+                                {
+                                    _tabGroupManager.AddGroup("General");
+                                }
+
+
+                                foreach (string url in savedUrls)
+                                {
+                                    AddNewTab(url);
+                                }
+                            }
+                            else
+                            {
+                                AddNewTab(_defaultHomePage); // Iniciar una nueva sesión
                             }
                         }
                         else
@@ -210,16 +259,36 @@ namespace NavegadorWeb
             }
             else
             {
-                AddNewTab(_defaultHomePage); // La restauración de sesión está deshabilitada, abre la página de inicio
+                AddNewTab(_defaultHomePage); // La restauración de sesión está deshabilitada o no hubo cierre inesperado, abre la página de inicio
             }
+
+            // Vincular los grupos de pestañas al ItemsControl
+            TabGroupContainer.ItemsSource = _tabGroupManager.TabGroups;
         }
+
+        /// <summary>
+        /// Actualiza el flag de cierre inesperado en App.config.
+        /// </summary>
+        /// <param name="isUnclean">True si el cierre es inesperado, False si es limpio.</param>
+        private void UpdateUncleanShutdownFlag(bool isUnclean)
+        {
+            Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+            if (config.AppSettings.Settings[UncleanShutdownFlagKey] == null)
+                config.AppSettings.Settings.Add(UncleanShutdownFlagKey, isUnclean.ToString());
+            else
+                config.AppSettings.Settings[UncleanShutdownFlagKey].Value = isUnclean.ToString();
+            config.Save(ConfigurationSaveMode.Modified);
+            ConfigurationManager.RefreshSection("appSettings");
+        }
+
 
         /// <summary>
         /// Agrega una nueva pestaña al navegador.
         /// </summary>
         /// <param name="url">URL opcional para cargar en la nueva pestaña. Si es nulo, usa la página de inicio predeterminada.</param>
         /// <param name="isIncognito">Indica si la nueva pestaña debe abrirse en modo incógnito.</param>
-        private async void AddNewTab(string url = null, bool isIncognito = false)
+        /// <param name="targetGroup">Grupo al que añadir la pestaña. Si es nulo, se añade al grupo por defecto.</param>
+        private async void AddNewTab(string url = null, bool isIncognito = false, TabGroup targetGroup = null)
         {
             // Esperar a que los entornos se inicialicen
             if (_defaultEnvironment == null || _incognitoEnvironment == null)
@@ -232,16 +301,38 @@ namespace NavegadorWeb
                 }
             }
 
+            // Determinar el grupo objetivo
+            TabGroup groupToAdd = targetGroup ?? _tabGroupManager.GetDefaultGroup();
+
             // Crear un nuevo TabItem (la pestaña visual)
             TabItem newTabItem = new TabItem();
-            newTabItem.Name = "Tab" + (_browserTabs.Count + 1); // Nombre único para la pestaña
+            newTabItem.Name = "Tab" + (groupToAdd.TabsInGroup.Count + 1); // Nombre único para la pestaña dentro del grupo
 
-            // Crear un panel para el encabezado de la pestaña (título + botón de cerrar)
+            // Crear una nueva instancia de BrowserTabItem
+            BrowserTabItem browserTab = new BrowserTabItem
+            {
+                Tab = newTabItem,
+                IsIncognito = isIncognito, // Marcar si es incógnito
+                IsSplit = false, // Inicialmente no está en modo dividido
+                ParentGroup = groupToAdd // Asignar el grupo padre
+            };
+            // No añadir a _browserTabs directamente, ahora se gestiona por grupos.
+
+            // Crear un panel para el encabezado de la pestaña (ahora usa propiedades de BrowserTabItem)
             DockPanel tabHeaderPanel = new DockPanel();
-            TextBlock headerText = new TextBlock { Text = "Cargando..." }; // Texto inicial del encabezado
+            browserTab.FaviconImage = new Image { Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
+            browserTab.AudioIconImage = new Image { Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
+            browserTab.HeaderTextBlock = new TextBlock { Text = "Cargando...", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 5, 0) };
+
+            // Enlazar las propiedades de la UI a la instancia de BrowserTabItem
+            browserTab.FaviconImage.SetBinding(Image.SourceProperty, new System.Windows.Data.Binding("FaviconSource") { Source = browserTab });
+            // El icono de audio ya se obtiene de forma estática en XAML, aquí solo se enlaza la visibilidad
+            browserTab.AudioIconImage.SetBinding(Image.VisibilityProperty, new System.Windows.Data.Binding("IsAudioPlaying") { Source = browserTab, Converter = (System.Windows.Data.IValueConverter)this.FindResource("BooleanToVisibilityConverter") });
+            browserTab.AudioIconImage.MouseLeftButtonUp += AudioIcon_MouseLeftButtonUp; // Asignar evento al icono de audio
+
             if (isIncognito)
             {
-                headerText.Text = "(Incógnito) Cargando...";
+                browserTab.HeaderTextBlock.Text = "(Incógnito) Cargando...";
             }
 
             Button closeButton = new Button
@@ -254,16 +345,23 @@ namespace NavegadorWeb
             };
             closeButton.Click += CloseTabButton_Click; // Asignar evento al botón de cerrar
             closeButton.Tag = newTabItem; // Asociar el botón a su TabItem correspondiente
-            DockPanel.SetDock(headerText, Dock.Left);
+
+            // Orden de los elementos en el encabezado
+            DockPanel.SetDock(browserTab.FaviconImage, Dock.Left);
+            DockPanel.SetDock(browserTab.AudioIconImage, Dock.Left);
+            DockPanel.SetDock(browserTab.HeaderTextBlock, Dock.Left);
             DockPanel.SetDock(closeButton, Dock.Right);
-            tabHeaderPanel.Children.Add(headerText);
+
+            tabHeaderPanel.Children.Add(browserTab.FaviconImage);
+            tabHeaderPanel.Children.Add(browserTab.AudioIconImage);
+            tabHeaderPanel.Children.Add(browserTab.HeaderTextBlock);
             tabHeaderPanel.Children.Add(closeButton);
             newTabItem.Header = tabHeaderPanel; // Asignar el panel como encabezado de la pestaña
 
             // Crear la primera instancia de WebView2 para el contenido de la pestaña
             WebView2 webView1 = new WebView2();
             webView1.Source = new Uri(url ?? _defaultHomePage); // Cargar la URL especificada o la página de inicio
-            webView1.Name = "WebView1_Tab" + (_browserTabs.Count + 1); // Nombre único
+            webView1.Name = "WebView1_Tab" + (groupToAdd.TabsInGroup.Count + 1); // Nombre único
             webView1.HorizontalAlignment = HorizontalAlignment.Stretch;
             webView1.VerticalAlignment = VerticalAlignment.Stretch;
 
@@ -276,19 +374,19 @@ namespace NavegadorWeb
                 webView1.CoreWebView2InitializationCompleted += (s, e) => ConfigureCoreWebView2(s as WebView2, e, _defaultEnvironment);
             }
 
-            // Enlazar eventos comunes del WebView2 para esta pestaña (solo al primario por ahora)
+            // Enlazar eventos comunes del WebView2 para esta pestaña
             webView1.Loaded += WebView_Loaded;
             webView1.NavigationStarting += WebView_NavigationStarting;
             webView1.SourceChanged += WebView_SourceChanged;
             webView1.NavigationCompleted += WebView_NavigationCompleted;
             webView1.CoreWebView2.DocumentTitleChanged += WebView_DocumentTitleChanged;
-            // Suscribirse al evento FindInPageCompleted para actualizar los resultados de búsqueda
             webView1.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted;
-            // Suscribirse al evento PermissionRequested para gestionar permisos
             webView1.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
-            // Suscribirse a los eventos para el gestor de contraseñas
             webView1.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
             webView1.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
+            webView1.CoreWebView2.FaviconChanged += CoreWebView2_FaviconChanged;
+            webView1.CoreWebView2.IsAudioPlayingChanged += CoreWebView2_IsAudioPlayingChanged;
+            webView1.CoreWebView2.ProcessFailed += CoreWebView2_ProcessFailed;
 
 
             // Contenido inicial de la pestaña: solo un WebView2 en un Grid
@@ -296,24 +394,19 @@ namespace NavegadorWeb
             tabContent.Children.Add(webView1);
             newTabItem.Content = tabContent;
 
-            // Añadir la nueva pestaña al TabControl principal
-            BrowserTabControl.Items.Add(newTabItem);
-            BrowserTabControl.SelectedItem = newTabItem; // Seleccionar la nueva pestaña automáticamente
+            // Añadir la nueva pestaña al grupo
+            groupToAdd.TabsInGroup.Add(browserTab);
+            browserTab.LeftWebView = webView1; // Este es el WebView principal por defecto
 
-            // Crear un objeto BrowserTabItem para rastrear la pestaña y sus componentes
-            BrowserTabItem browserTab = new BrowserTabItem
-            {
-                Tab = newTabItem,
-                LeftWebView = webView1, // Este es el WebView principal por defecto
-                RightWebView = null, // Inicialmente no hay WebView secundario
-                HeaderTextBlock = headerText,
-                IsIncognito = isIncognito, // Marcar si es incógnito
-                IsSplit = false // Inicialmente no está en modo dividido
-            };
-            _browserTabs.Add(browserTab); // Añadir a la lista de pestañas
+            // Seleccionar la nueva pestaña
+            newTabItem.IsSelected = true;
+            SelectedTabItem = browserTab; // Actualizar la propiedad de la ventana para el binding
 
             // Actualizar la barra de URL para reflejar la URL de la nueva pestaña activa
             UpdateUrlTextBoxFromCurrentTab();
+
+            // Sugerir suspensión de pestañas si hay demasiadas
+            CheckAndSuggestTabSuspension();
         }
 
         /// <summary>
@@ -347,17 +440,21 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.SourceChanged -= WebView_SourceChanged;
                 currentWebView.CoreWebView2.NavigationCompleted -= WebView_NavigationCompleted;
                 currentWebView.CoreWebView2.NavigationStarting -= WebView_NavigationStarting;
-                currentWebView.CoreWebView2.FindInPageCompleted -= CoreWebView2_FindInPageCompleted; // Desvincular también este
-                currentWebView.CoreWebView2.PermissionRequested -= CoreWebView2_PermissionRequested; // Desvincular este
-                currentWebView.CoreWebView2.WebMessageReceived -= CoreWebView2_WebMessageReceived; // Desvincular este
-                currentWebView.CoreWebView2.DOMContentLoaded -= CoreWebView2_DOMContentLoaded; // Desvincular este
+                currentWebView.CoreWebView2.FindInPageCompleted -= CoreWebView2_FindInPageCompleted;
+                currentWebView.CoreWebView2.PermissionRequested -= CoreWebView2_PermissionRequested;
+                currentWebView.CoreWebView2.WebMessageReceived -= CoreWebView2_WebMessageReceived;
+                currentWebView.CoreWebView2.DOMContentLoaded -= CoreWebView2_DOMContentLoaded;
+                currentWebView.CoreWebView2.FaviconChanged -= CoreWebView2_FaviconChanged;
+                currentWebView.CoreWebView2.IsAudioPlayingChanged -= CoreWebView2_IsAudioPlayingChanged;
+                currentWebView.CoreWebView2.ProcessFailed -= CoreWebView2_ProcessFailed;
+
 
                 // Adjuntar el manejador de eventos para interceptar solicitudes de red (bloqueador de anuncios y rastreadores).
                 currentWebView.CoreWebView2.WebResourceRequested += CoreWebView2_WebResourceRequested;
 
                 // Habilita las herramientas de desarrollador (F12)
                 currentWebView.CoreWebView2.Settings.AreDevToolsEnabled = true;
-                // NUEVO: Habilitar zoom y pinch-zoom para PDFs
+                // Habilitar zoom y pinch-zoom para PDFs
                 currentWebView.CoreWebView2.Settings.IsPinchZoomEnabled = true;
                 currentWebView.CoreWebView2.Settings.IsZoomControlEnabled = true;
 
@@ -370,10 +467,13 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.SourceChanged += WebView_SourceChanged;
                 currentWebView.CoreWebView2.NavigationCompleted += WebView_NavigationCompleted;
                 currentWebView.CoreWebView2.NavigationStarting += WebView_NavigationStarting;
-                currentWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted; // Re-adjuntar este también
-                currentWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested; // Re-adjuntar este
-                currentWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived; // Re-adjuntar este
-                currentWebView.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded; // Re-adjuntar este
+                currentWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted;
+                currentWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
+                currentWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
+                currentWebView.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
+                currentWebView.CoreWebView2.FaviconChanged += CoreWebView2_FaviconChanged;
+                currentWebView.CoreWebView2.IsAudioPlayingChanged += CoreWebView2_IsAudioPlayingChanged;
+                currentWebView.CoreWebView2.ProcessFailed += CoreWebView2_ProcessFailed;
             }
         }
 
@@ -409,7 +509,7 @@ namespace NavegadorWeb
         /// </summary>
         private async void CoreWebView2_DownloadStarting(object sender, CoreWebView2DownloadStartingEventArgs e)
         {
-            // NUEVO: Si el visor de PDF está habilitado y es un PDF, abrirlo en el visor en lugar de descargar.
+            // Si el visor de PDF está habilitado y es un PDF, abrirlo en el visor en lugar de descargar.
             if (_isPdfViewerEnabled && e.DownloadOperation.Uri.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
             {
                 e.Handled = true; // Indicar que manejaremos la descarga
@@ -512,10 +612,10 @@ namespace NavegadorWeb
         private void WebView_SourceChanged(object sender, CoreWebView2SourceChangedEventArgs e)
         {
             WebView2 currentWebView = sender as WebView2;
-            var browserTab = GetCurrentBrowserTabItem(); // Obtener la pestaña actualmente seleccionada
+            var browserTab = GetBrowserTabItemFromWebView(currentWebView); // Obtener la pestaña asociada
 
             // Solo actualiza la barra de dirección si este WebView es el principal (LeftWebView) de la pestaña seleccionada
-            if (browserTab != null && browserTab.LeftWebView == currentWebView)
+            if (browserTab != null && SelectedTabItem == browserTab) // Comparar con SelectedTabItem
             {
                 UrlTextBox.Text = currentWebView.CoreWebView2.Source;
             }
@@ -529,13 +629,27 @@ namespace NavegadorWeb
         private void WebView_NavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
         {
             WebView2 currentWebView = sender as WebView2;
-            var browserTab = _browserTabs.FirstOrDefault(t => t.LeftWebView == currentWebView || t.RightWebView == currentWebView);
+            var browserTab = GetBrowserTabItemFromWebView(currentWebView);
 
-            if (browserTab != null && BrowserTabControl.SelectedItem == browserTab.Tab)
+            if (browserTab != null && SelectedTabItem == browserTab) // Comparar con SelectedTabItem
             {
                 if (!e.IsSuccess)
                 {
-                    MessageBox.Show($"La navegación a {currentWebView.CoreWebView2.Source} falló con el código de error {e.WebErrorStatus}", "Error de Navegación", MessageBoxButton.OK, Image.Error);
+                    // Mostrar página de error personalizada para errores HTTP
+                    if (e.WebErrorStatus != CoreWebView2WebErrorStatus.OperationAborted) // Ignorar si fue abortada (ej. por navegación a PDF)
+                    {
+                        string errorPagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CustomErrorPage.html");
+                        if (File.Exists(errorPagePath))
+                        {
+                            currentWebView.CoreWebView2.Navigate($"file:///{errorPagePath.Replace("\\", "/")}");
+                            // Opcional: Pasar el mensaje de error a la página HTML si es posible
+                            // await currentWebView.CoreWebView2.ExecuteScriptAsync($"document.getElementById('errorMessage').innerText = 'Error: {e.WebErrorStatus}';");
+                        }
+                        else
+                        {
+                            MessageBox.Show($"La navegación a {currentWebView.CoreWebView2.Source} falló con el código de error {e.WebErrorStatus}", "Error de Navegación", MessageBoxButton.OK, Image.Error);
+                        }
+                    }
                 }
                 else
                 {
@@ -557,7 +671,7 @@ namespace NavegadorWeb
         {
             LoadingProgressBar.Visibility = Visibility.Visible; // Mostrar el indicador de carga
 
-            // NUEVO: Si el visor de PDF está habilitado y la URL es un PDF, abrirlo en el visor en lugar de navegar en la pestaña actual.
+            // Si el visor de PDF está habilitado y la URL es un PDF, abrirlo en el visor en lugar de navegar en la pestaña actual.
             if (_isPdfViewerEnabled && e.Uri.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
             {
                 e.Cancel = true; // Cancelar la navegación en la pestaña actual
@@ -578,31 +692,140 @@ namespace NavegadorWeb
             if (currentWebView != null)
             {
                 // Encuentra la pestaña asociada a este WebView2.
-                var tabItem = _browserTabs.FirstOrDefault(t => t.LeftWebView == currentWebView || t.RightWebView == currentWebView);
-                if (tabItem != null)
+                var browserTab = GetBrowserTabItemFromWebView(currentWebView);
+                if (browserTab != null)
                 {
                     // Si es el WebView izquierdo (principal), actualiza el encabezado de la pestaña.
-                    if (tabItem.LeftWebView == currentWebView)
+                    if (browserTab.LeftWebView == currentWebView)
                     {
                         string title = currentWebView.CoreWebView2.DocumentTitle;
-                        if (tabItem.IsIncognito)
+                        if (browserTab.IsIncognito)
                         {
-                            tabItem.HeaderTextBlock.Text = "(Incógnito) " + title;
+                            browserTab.HeaderTextBlock.Text = "(Incógnito) " + title;
                         }
                         else
                         {
-                            tabItem.HeaderTextBlock.Text = title;
+                            browserTab.HeaderTextBlock.Text = title;
                         }
                     }
                 }
 
                 // Si es la pestaña activa y es el WebView principal, actualiza también el título de la ventana principal.
-                if (BrowserTabControl.SelectedItem == tabItem?.Tab && tabItem.LeftWebView == currentWebView)
+                if (SelectedTabItem == browserTab && browserTab.LeftWebView == currentWebView) // Comparar con SelectedTabItem
                 {
-                    this.Title = currentWebView.CoreWebView2.DocumentTitle + " - Aurora Browser"; // Cambiado a Aurora Browser
+                    this.Title = currentWebView.CoreWebView2.DocumentTitle + " - Aurora Browser"; // Título cambiado a Aurora Browser
                 }
             }
         }
+
+        /// <summary>
+        /// NUEVO: Maneja el cambio del favicon de una página.
+        /// </summary>
+        private async void CoreWebView2_FaviconChanged(object sender, object e)
+        {
+            WebView2 currentWebView = sender as WebView2;
+            if (currentWebView == null || currentWebView.CoreWebView2 == null) return;
+
+            var browserTab = GetBrowserTabItemFromWebView(currentWebView);
+            if (browserTab == null) return;
+
+            try
+            {
+                using (var stream = await currentWebView.CoreWebView2.GetFaviconAsync())
+                {
+                    if (stream != null && stream.Length > 0)
+                    {
+                        BitmapImage bitmap = new BitmapImage();
+                        bitmap.BeginInit();
+                        bitmap.StreamSource = stream;
+                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                        bitmap.EndInit();
+                        bitmap.Freeze(); // Congelar para que pueda ser accedido desde otros hilos si es necesario
+                        browserTab.FaviconSource = bitmap;
+                    }
+                    else
+                    {
+                        browserTab.FaviconSource = browserTab.GetDefaultGlobeIcon(); // Establecer el icono de globo por defecto
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error al obtener favicon: {ex.Message}");
+                browserTab.FaviconSource = browserTab.GetDefaultGlobeIcon(); // Establecer el icono de globo por defecto en caso de error
+            }
+        }
+
+        /// <summary>
+        /// NUEVO: Maneja el cambio en el estado de reproducción de audio de una página.
+        /// </summary>
+        private void CoreWebView2_IsAudioPlayingChanged(object sender, object e)
+        {
+            WebView2 currentWebView = sender as WebView2;
+            if (currentWebView == null || currentWebView.CoreWebView2 == null) return;
+
+            var browserTab = GetBrowserTabItemFromWebView(currentWebView);
+            if (browserTab == null) return;
+
+            browserTab.IsAudioPlaying = currentWebView.CoreWebView2.IsAudioPlaying;
+        }
+
+        /// <summary>
+        /// NUEVO: Maneja el clic en el icono de audio para silenciar/reactivar.
+        /// </summary>
+        private void AudioIcon_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            Image audioIcon = sender as Image;
+            if (audioIcon == null) return;
+
+            // Encontrar la pestaña asociada a este icono
+            // Se asume que el DataContext del Image es el BrowserTabItem
+            BrowserTabItem browserTab = audioIcon.DataContext as BrowserTabItem;
+            if (browserTab == null || browserTab.LeftWebView == null || browserTab.LeftWebView.CoreWebView2 == null) return;
+
+            // Alternar el estado de silencio
+            browserTab.LeftWebView.CoreWebView2.IsMuted = !browserTab.LeftWebView.CoreWebView2.IsMuted;
+            // La propiedad IsAudioPlayingChanged se encargará de actualizar el icono si el audio está realmente reproduciéndose.
+            // Aquí solo actualizamos el ToolTip para reflejar la acción.
+            audioIcon.ToolTip = browserTab.LeftWebView.CoreWebView2.IsMuted ? "Audio silenciado (clic para reactivar)" : "Reproduciendo audio (clic para silenciar/reactivar)";
+        }
+
+
+        /// <summary>
+        /// NUEVO: Maneja los fallos del proceso de WebView2 (ej. página colgada).
+        /// </summary>
+        private void CoreWebView2_ProcessFailed(object sender, CoreWebView2ProcessFailedEventArgs e)
+        {
+            WebView2 failedWebView = sender as WebView2;
+            if (failedWebView == null) return;
+
+            var browserTab = GetBrowserTabItemFromWebView(failedWebView);
+            if (browserTab == null) return;
+
+            string message = $"El proceso de la página '{failedWebView.Source}' ha fallado.\n" +
+                             $"Tipo de fallo: {e.ProcessFailedKind}\n" +
+                             $"Estado del error: {e.Reason}";
+
+            MessageBoxResult result = MessageBox.Show(message + "\n\n¿Deseas recargar la página?",
+                                                      "Página No Responde",
+                                                      MessageBoxButton.YesNo,
+                                                      MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                failedWebView.CoreWebView2.Reload();
+            }
+            else
+            {
+                // Navegar a una página de error local
+                string errorPagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CustomErrorPage.html");
+                if (File.Exists(errorPagePath))
+                {
+                    failedWebView.CoreWebView2.Navigate($"file:///{errorPagePath.Replace("\\", "/")}");
+                }
+            }
+        }
+
 
         /// <summary>
         /// Maneja el clic en el botón "Ir" o la tecla Enter en la barra de URL.
@@ -716,7 +939,7 @@ namespace NavegadorWeb
         /// </summary>
         private void NewTabButton_Click(object sender, RoutedEventArgs e)
         {
-            AddNewTab(); // Abre una pestaña normal por defecto
+            AddNewTab(); // Abre una pestaña normal por defecto en el grupo por defecto
         }
 
         /// <summary>
@@ -761,7 +984,7 @@ namespace NavegadorWeb
             WebView2 currentWebView = GetCurrentWebView();
             if (currentWebView != null && currentWebView.CoreWebView2 != null)
             {
-                var browserTab = GetCurrentBrowserTabItem();
+                var browserTab = SelectedTabItem; // Obtener la pestaña seleccionada
                 if (browserTab != null && browserTab.IsIncognito)
                 {
                     MessageBox.Show("No se pueden añadir marcadores en modo incógnito.", "Error al Añadir Marcador", MessageBoxButton.OK, Image.Warning);
@@ -801,28 +1024,27 @@ namespace NavegadorWeb
         private async void ReaderModeButton_Click(object sender, RoutedEventArgs e)
         {
             WebView2 currentWebView = GetCurrentWebView();
-            if (currentWebView != null && currentWebView.CoreWebView2 != null)
+            if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
-                if (!string.IsNullOrEmpty(_readerModeScript))
+                MessageBox.Show("No hay una página activa para aplicar el modo lectura.", "Error de Modo Lectura", MessageBoxButton.OK, Image.Error);
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(_readerModeScript))
+            {
+                try
                 {
-                    try
-                    {
-                        // Inyectar el script en la página actual
-                        await currentWebView.CoreWebView2.ExecuteScriptAsync(_readerModeScript);
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Error al aplicar el modo lectura: {ex.Message}", "Error de Modo Lectura", MessageBoxButton.OK, Image.Error);
-                    }
+                    // Inyectar el script en la página actual
+                    await currentWebView.CoreWebView2.ExecuteScriptAsync(_readerModeScript);
                 }
-                else
+                catch (Exception ex)
                 {
-                    MessageBox.Show("Advertencia: El archivo 'ReaderMode.js' no se encontró. El modo lectura no funcionará.", "Archivo Faltante", MessageBoxButton.OK, Image.Warning);
+                    MessageBox.Show($"Error al aplicar el modo lectura: {ex.Message}", "Error de Modo Lectura", MessageBoxButton.OK, Image.Error);
                 }
             }
             else
             {
-                MessageBox.Show("No hay una página activa para aplicar el modo lectura.", "Error de Modo Lectura", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show("Advertencia: El archivo 'ReaderMode.js' no se encontró. El modo lectura no funcionará.", "Archivo Faltante", MessageBoxButton.OK, Image.Warning);
             }
         }
 
@@ -840,12 +1062,16 @@ namespace NavegadorWeb
             }
 
             WebView2 currentWebView = GetCurrentWebView();
-            if (currentWebView != null && currentWebView.CoreWebView2 != null)
+            if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
-                try
-                {
-                    // JavaScript para extraer el texto principal de la página
-                    string script = @"
+                MessageBox.Show("No hay una página activa para leer en voz alta.", "Leer en Voz Alta", MessageBoxButton.OK, Image.Error);
+                return;
+            }
+
+            try
+            {
+                // JavaScript para extraer el texto principal de la página
+                string script = @"
                         (function() {
                             let text = '';
                             let mainContent = document.querySelector('article, main, .post-content, .entry-content, #content, #main');
@@ -863,31 +1089,26 @@ namespace NavegadorWeb
                             return text;
                         })();
                     ";
-                    string pageText = await currentWebView.CoreWebView2.ExecuteScriptAsync(script);
+                string pageText = await currentWebView.CoreWebView2.ExecuteScriptAsync(script);
 
-                    // El resultado de ExecuteScriptAsync viene como una cadena JSON (con comillas si es string)
-                    // Necesitamos deserializarla para obtener el valor real de la cadena.
-                    pageText = System.Text.Json.JsonSerializer.Deserialize<string>(pageText);
+                // El resultado de ExecuteScriptAsync viene como una cadena JSON (con comillas si es string)
+                // Necesitamos deserializarla para obtener el valor real de la cadena.
+                pageText = System.Text.Json.JsonSerializer.Deserialize<string>(pageText);
 
-                    if (!string.IsNullOrWhiteSpace(pageText))
-                    {
-                        _speechSynthesizer.SpeakAsync(pageText);
-                        _isReadingAloud = true;
-                        ReadAloudButton.Content = "⏸️"; // Cambiar icono a pausa
-                    }
-                    else
-                    {
-                        MessageBox.Show("No se encontró texto legible en la página actual.", "Leer en Voz Alta", MessageBoxButton.OK, Image.Information);
-                    }
-                }
-                catch (Exception ex)
+                if (!string.IsNullOrWhiteSpace(pageText))
                 {
-                    MessageBox.Show($"Error al leer en voz alta: {ex.Message}", "Error de Lectura", MessageBoxButton.OK, Image.Error);
+                    _speechSynthesizer.SpeakAsync(pageText);
+                    _isReadingAloud = true;
+                    ReadAloudButton.Content = "⏸️"; // Cambiar icono a pausa
+                }
+                else
+                {
+                    MessageBox.Show("No se encontró texto legible en la página actual.", "Leer en Voz Alta", MessageBoxButton.OK, Image.Information);
                 }
             }
-            else
+            catch (Exception ex)
             {
-                MessageBox.Show("No hay una página activa para leer en voz alta.", "Leer en Voz Alta", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show($"Error al leer en voz alta: {ex.Message}", "Error de Lectura", MessageBoxButton.OK, Image.Error);
             }
         }
 
@@ -896,7 +1117,7 @@ namespace NavegadorWeb
         /// </summary>
         private async void SplitScreenButton_Click(object sender, RoutedEventArgs e)
         {
-            var currentTab = GetCurrentBrowserTabItem();
+            var currentTab = SelectedTabItem; // Usar SelectedTabItem
             if (currentTab == null || currentTab.LeftWebView == null || currentTab.LeftWebView.CoreWebView2 == null)
             {
                 MessageBox.Show("No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, Image.Error);
@@ -922,7 +1143,7 @@ namespace NavegadorWeb
         /// </summary>
         private async void AIButton_Click(object sender, RoutedEventArgs e)
         {
-            var currentTab = GetCurrentBrowserTabItem();
+            var currentTab = SelectedTabItem; // Usar SelectedTabItem
             if (currentTab == null || currentTab.LeftWebView == null || currentTab.LeftWebView.CoreWebView2 == null)
             {
                 MessageBox.Show("No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, Image.Error);
@@ -1003,7 +1224,8 @@ namespace NavegadorWeb
         private void TabManagerButton_Click(object sender, RoutedEventArgs e)
         {
             // Pasamos delegados para que la ventana del administrador pueda obtener y cerrar pestañas
-            TabManagerWindow tabManagerWindow = new TabManagerWindow(GetBrowserTabItems, CloseBrowserTab, GetCurrentBrowserTabItemInternal);
+            // Ahora se pasa la lista de todos los BrowserTabItem de todos los grupos
+            TabManagerWindow tabManagerWindow = new TabManagerWindow(() => _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).ToList(), CloseBrowserTab, GetCurrentBrowserTabItemInternal);
             tabManagerWindow.Show(); // Mostrar la ventana (no modal)
         }
 
@@ -1057,7 +1279,8 @@ namespace NavegadorWeb
         private void PerformanceMonitorButton_Click(object sender, RoutedEventArgs e)
         {
             // Pasamos un delegado para que la ventana del monitor pueda obtener la lista de pestañas
-            PerformanceMonitorWindow monitorWindow = new PerformanceMonitorWindow(GetBrowserTabItems);
+            // Ahora se pasa la lista de todos los BrowserTabItem de todos los grupos
+            PerformanceMonitorWindow monitorWindow = new PerformanceMonitorWindow(() => _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).ToList());
             monitorWindow.Show(); // Mostrar la ventana (no modal)
         }
 
@@ -1260,6 +1483,40 @@ namespace NavegadorWeb
         }
 
         /// <summary>
+        /// NUEVO: Maneja el clic en el botón "Resaltar Texto (Extensión)".
+        /// Inyecta un script para resaltar texto en la página actual.
+        /// </summary>
+        private async void HighlightButton_Click(object sender, RoutedEventArgs e)
+        {
+            WebView2 currentWebView = GetCurrentWebView();
+            if (currentWebView == null || currentWebView.CoreWebView2 == null)
+            {
+                MessageBox.Show("No hay una página activa para ejecutar la extensión.", "Error de Extensión", MessageBoxButton.OK, Image.Error);
+                return;
+            }
+
+            try
+            {
+                string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "HighlighterExtension.js");
+                if (File.Exists(scriptPath))
+                {
+                    string scriptContent = File.ReadAllText(scriptPath);
+                    await currentWebView.CoreWebView2.ExecuteScriptAsync(scriptContent);
+                    MessageBox.Show("Extensión de resaltado ejecutada. Puede que necesites hacer clic de nuevo para deshabilitar el resaltado.", "Extensión", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show("El script 'HighlighterExtension.js' no se encontró. Asegúrate de que el archivo exista.", "Error de Extensión", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al ejecutar la extensión de resaltado: {ex.Message}", "Error de Extensión", MessageBoxButton.OK, Image.Error);
+            }
+        }
+
+
+        /// <summary>
         /// Se ejecuta cuando la página ha terminado de cargar su DOM.
         /// Aquí inyectamos el script para detectar formularios de inicio de sesión y autocompletar.
         /// </summary>
@@ -1269,7 +1526,7 @@ namespace NavegadorWeb
             if (currentWebView == null || currentWebView.CoreWebView2 == null) return;
 
             // No autocompletar/guardar en modo incógnito
-            var browserTab = _browserTabs.FirstOrDefault(t => t.LeftWebView == currentWebView || t.RightWebView == currentWebView);
+            var browserTab = GetBrowserTabItemFromWebView(currentWebView);
             if (browserTab != null && browserTab.IsIncognito) return;
 
             string currentUrl = currentWebView.CoreWebView2.Source;
@@ -1338,7 +1595,7 @@ namespace NavegadorWeb
             if (currentWebView == null || currentWebView.CoreWebView2 == null) return;
 
             // No guardar en modo incógnito
-            var browserTab = _browserTabs.FirstOrDefault(t => t.LeftWebView == currentWebView || t.RightWebView == currentWebView);
+            var browserTab = GetBrowserTabItemFromWebView(currentWebView);
             if (browserTab != null && browserTab.IsIncognito) return;
 
             string message = e.WebMessageAsJson;
@@ -1392,9 +1649,10 @@ namespace NavegadorWeb
         /// Método público para que el Administrador de Pestañas y el Monitor de Rendimiento puedan obtener la lista de todas las pestañas.
         /// </summary>
         /// <returns>Una lista de BrowserTabItem.</returns>
+        // Este método ahora devuelve todas las pestañas de todos los grupos.
         public List<BrowserTabItem> GetBrowserTabItems()
         {
-            return _browserTabs;
+            return _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).ToList();
         }
 
         /// <summary>
@@ -1404,12 +1662,12 @@ namespace NavegadorWeb
         /// <param name="tabToClose">El TabItem que se desea cerrar.</param>
         public void CloseBrowserTab(TabItem tabToClose)
         {
-            // Simular un clic en el botón de cerrar de la pestaña para reutilizar la lógica existente.
-            // Esto es un poco hacky, pero funciona si el botón de cerrar usa el TabItem como Tag.
-            // Una alternativa más limpia sería refactorizar la lógica de cierre en un método separado sin UI.
-            var closeButton = tabToClose.Header is DockPanel headerPanel && headerPanel.Children.OfType<Button>().Any()
-                              ? headerPanel.Children.OfType<Button>().First()
-                              : null;
+            Button closeButton = null;
+            // Intentar encontrar el botón de cerrar si la pestaña tiene el header con DockPanel
+            if (tabToClose.Header is DockPanel headerPanel)
+            {
+                closeButton = headerPanel.Children.OfType<Button>().FirstOrDefault(b => b.Content.ToString() == "✖");
+            }
 
             if (closeButton != null)
             {
@@ -1419,15 +1677,25 @@ namespace NavegadorWeb
             {
                 // Fallback si no se encuentra el botón de cerrar (ej. pestaña suspendida que no tiene el botón en el header)
                 // En ese caso, la lógica de eliminación directa del TabControl y la lista _browserTabs
-                BrowserTabControl.Items.Remove(tabToClose);
-                var browserTabItem = _browserTabs.FirstOrDefault(t => t.Tab == tabToClose);
+                var browserTabItem = GetBrowserTabItemFromTabItem(tabToClose);
                 if (browserTabItem != null)
                 {
                     browserTabItem.LeftWebView?.Dispose();
                     browserTabItem.RightWebView?.Dispose();
-                    _browserTabs.Remove(browserTabItem);
+                    browserTabItem.ParentGroup?.TabsInGroup.Remove(browserTabItem); // Eliminar del grupo
                 }
-                if (BrowserTabControl.Items.Count == 0)
+
+                // Si el grupo se queda vacío, eliminarlo (excepto el grupo por defecto si es el único)
+                foreach (var group in _tabGroupManager.TabGroups.ToList())
+                {
+                    if (!group.TabsInGroup.Any() && _tabGroupManager.TabGroups.Count > 1)
+                    {
+                        _tabGroupManager.RemoveGroup(group);
+                    }
+                }
+
+                // Si no quedan pestañas en ningún grupo, abre una nueva por defecto para evitar una ventana vacía.
+                if (!_tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).Any())
                 {
                     AddNewTab();
                 }
@@ -1440,7 +1708,7 @@ namespace NavegadorWeb
         /// <returns>El TabItem actualmente seleccionado.</returns>
         private TabItem GetCurrentBrowserTabItemInternal()
         {
-            return BrowserTabControl.SelectedItem as TabItem;
+            return SelectedTabItem?.Tab; // Ahora usa SelectedTabItem
         }
 
 
@@ -1462,7 +1730,7 @@ namespace NavegadorWeb
             // Crear el segundo WebView2
             WebView2 webView2 = new WebView2();
             webView2.Source = new Uri(rightPanelUrl); // La segunda vista empieza en la URL especificada
-            webView2.Name = "WebView2_Tab" + _browserTabs.IndexOf(tabItem); // Nombre único
+            webView2.Name = "WebView2_Tab" + tabItem.ParentGroup.TabsInGroup.IndexOf(tabItem); // Nombre único
             webView2.HorizontalAlignment = HorizontalAlignment.Stretch;
             webView2.VerticalAlignment = VerticalAlignment.Stretch;
 
@@ -1540,11 +1808,10 @@ namespace NavegadorWeb
         }
 
         /// <summary>
-        /// Maneja el clic en el botón "Modo Incógnito". Abre una nueva ventana en modo incógnito.
+        /// Maneja el clic en el botón "Modo Incógnito". Abre una nueva pestaña en modo incógnito.
         /// </summary>
         private void IncognitoButton_Click(object sender, RoutedEventArgs e)
         {
-            // Para simplicidad en este ejemplo, abriremos una nueva PESTAÑA incógnito.
             AddNewTab(_defaultHomePage, isIncognito: true);
         }
 
@@ -1558,102 +1825,111 @@ namespace NavegadorWeb
 
             if (tabToClose != null)
             {
-                BrowserTabControl.Items.Remove(tabToClose); // Eliminar la pestaña del TabControl
-                var browserTabItem = _browserTabs.FirstOrDefault(t => t.Tab == tabToClose);
+                var browserTabItem = GetBrowserTabItemFromTabItem(tabToClose);
+
                 if (browserTabItem != null)
                 {
-                    // Desechar ambos WebView2 si están presentes
+                    browserTabItem.ParentGroup?.TabsInGroup.Remove(browserTabItem); // Eliminar del grupo
                     browserTabItem.LeftWebView?.Dispose();
                     browserTabItem.RightWebView?.Dispose();
-                    _browserTabs.Remove(browserTabItem); // Eliminar de nuestra lista de seguimiento
+
+                    // Si el grupo se queda vacío, eliminarlo (excepto el grupo por defecto si es el único)
+                    if (!browserTabItem.ParentGroup.TabsInGroup.Any() && _tabGroupManager.TabGroups.Count > 1)
+                    {
+                        _tabGroupManager.RemoveGroup(browserTabItem.ParentGroup);
+                    }
                 }
 
-                // Si no quedan pestañas, abre una nueva por defecto para evitar una ventana vacía.
-                if (BrowserTabControl.Items.Count == 0)
+                // Si no quedan pestañas en ningún grupo, abre una nueva por defecto para evitar una ventana vacía.
+                if (!_tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).Any())
                 {
-                    // Si se cerró la última pestaña, abrimos una nueva, por defecto normal
                     AddNewTab();
+                }
+                else
+                {
+                    // Asegurarse de que haya una pestaña seleccionada después de cerrar
+                    if (SelectedTabItem == browserTabItem && _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).Any())
+                    {
+                        SelectedTabItem = _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).First();
+                        SelectedTabItem.Tab.IsSelected = true;
+                    }
                 }
             }
         }
 
         /// <summary>
-        /// Se ejecuta cuando la selección de la pestaña en el TabControl cambia.
-        /// Actualiza la barra de URL y el título de la ventana.
+        /// NUEVO: Se ejecuta cuando la selección de la pestaña en un TabControl dentro de un grupo cambia.
         /// </summary>
-        private void BrowserTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void BrowserTabControl_SelectionChanged_Grouped(object sender, SelectionChangedEventArgs e)
         {
-            UpdateUrlTextBoxFromCurrentTab();
+            TabControl currentTabControl = sender as TabControl;
+            if (currentTabControl != null && currentTabControl.SelectedItem is BrowserTabItem selectedBrowserTab)
+            {
+                SelectedTabItem = selectedBrowserTab; // Actualizar la propiedad global
+                UpdateUrlTextBoxFromCurrentTab();
 
-            // Detener la lectura en voz alta si la pestaña activa cambia
-            if (_isReadingAloud)
-            {
-                _speechSynthesizer.SpeakAsyncCancelAll();
-                _isReadingAloud = false;
-                ReadAloudButton.Content = "🔊"; // Restaurar icono
-            }
+                // Detener la lectura en voz alta si la pestaña activa cambia
+                if (_isReadingAloud)
+                {
+                    _speechSynthesizer.SpeakAsyncCancelAll();
+                    _isReadingAloud = false;
+                    ReadAloudButton.Content = "🔊"; // Restaurar icono
+                }
 
-            // Actualizar el icono del botón de pantalla dividida
-            var currentTab = GetCurrentBrowserTabItem();
-            if (currentTab != null)
-            {
-                SplitScreenButton.Content = currentTab.IsSplit ? "➡️" : "↔️";
-            }
-            else
-            {
-                SplitScreenButton.Content = "↔️";
-            }
+                // Actualizar el icono del botón de pantalla dividida
+                SplitScreenButton.Content = selectedBrowserTab.IsSplit ? "➡️" : "↔️";
 
-            // Si la pestaña seleccionada está suspendida, reactivarla
-            if (BrowserTabControl.SelectedItem is TabItem selectedTabItem)
-            {
-                var browserTab = _browserTabs.FirstOrDefault(t => t.Tab == selectedTabItem);
-                if (browserTab != null && browserTab.LeftWebView == null) // Si el LeftWebView es nulo, la pestaña está suspendida
+                // Si la pestaña seleccionada está suspendida, reactivarla
+                if (selectedBrowserTab.LeftWebView == null) // Si el LeftWebView es nulo, la pestaña está suspendida
                 {
                     if (_isTabSuspensionEnabled) // Solo reactivar si la suspensión está habilitada
                     {
                         // Recrear WebView2 y cargar la URL
-                        string urlToReload = selectedTabItem.Tag?.ToString(); // Obtener la URL guardada
+                        string urlToReload = selectedBrowserTab.Tab.Tag?.ToString(); // Obtener la URL guardada
 
                         WebView2 newWebView = new WebView2();
                         newWebView.Source = new Uri(urlToReload ?? _defaultHomePage);
-                        newWebView.Name = "WebView1_Tab" + (BrowserTabControl.Items.IndexOf(selectedTabItem) + 1);
+                        newWebView.Name = "WebView1_Tab" + (selectedBrowserTab.ParentGroup.TabsInGroup.IndexOf(selectedBrowserTab) + 1);
                         newWebView.HorizontalAlignment = HorizontalAlignment.Stretch;
                         newWebView.VerticalAlignment = VerticalAlignment.Stretch;
 
                         // Enlazar eventos (similar a AddNewTab, asegurando el entorno correcto)
                         newWebView.Loaded += WebView_Loaded;
-                        CoreWebView2Environment envToUse = browserTab.IsIncognito ? _incognitoEnvironment : _defaultEnvironment;
-                        newWebView.CoreWebView2InitializationCompleted += (s, ev) => ConfigureCoreWebView2(newWebView, ev, envToUse); // Pasar e y envToUse
-                        // Los eventos de navegación, fuente y título se re-adjuntan en ConfigureCoreWebView2
-                        newWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted; // Asegurarse de re-adjuntar este también
-                        newWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested; // Asegurarse de re-adjuntar este
-                        newWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived; // Asegurarse de re-adjuntar este
-                        newWebView.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded; // Asegurarse de re-adjuntar este
+                        CoreWebView2Environment envToUse = selectedBrowserTab.IsIncognito ? _incognitoEnvironment : _defaultEnvironment;
+                        newWebView.CoreWebView2InitializationCompleted += (s, ev) => ConfigureCoreWebView2(newWebView, ev, envToUse);
+                        newWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted;
+                        newWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
+                        newWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
+                        newWebView.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
+                        newWebView.CoreWebView2.FaviconChanged += CoreWebView2_FaviconChanged;
+                        newWebView.CoreWebView2.IsAudioPlayingChanged += CoreWebView2_IsAudioPlayingChanged;
+                        newWebView.CoreWebView2.ProcessFailed += CoreWebView2_ProcessFailed;
+
 
                         // Reemplazar el contenido de la pestaña (volverá a ser una vista simple)
                         Grid tabContent = new Grid();
                         tabContent.Children.Add(newWebView);
-                        selectedTabItem.Content = tabContent;
+                        selectedBrowserTab.Tab.Content = tabContent;
 
-                        browserTab.LeftWebView = newWebView; // Actualizar la referencia al nuevo WebView
-                        browserTab.RightWebView = null; // Asegurar que el derecho sea nulo
-                        browserTab.IsSplit = false; // No está en modo dividido al reactivar
+                        selectedBrowserTab.LeftWebView = newWebView; // Actualizar la referencia al nuevo WebView
+                        selectedBrowserTab.RightWebView = null; // Asegurar que el derecho sea nulo
+                        selectedBrowserTab.IsSplit = false; // No está en modo dividido al reactivar
 
                         // Restaurar el título original (quitar "(Suspendida)")
-                        string originalHeaderText = browserTab.HeaderTextBlock.Text;
-                        if (!originalHeaderText.StartsWith("(Suspendida) ")) // Evitar duplicar el prefijo
+                        string originalHeaderText = selectedBrowserTab.HeaderTextBlock.Text;
+                        if (originalHeaderText.StartsWith("(Suspendida) ")) // Evitar duplicar el prefijo
                         {
-                            tabItem.HeaderTextBlock.Text = originalHeaderText.Replace("(Suspendida) ", "");
+                            selectedBrowserTab.HeaderTextBlock.Text = originalHeaderText.Replace("(Suspendida) ", "");
                         }
                     }
                     else
                     {
                         // Si la suspensión no está activa pero la pestaña está suspendida (ej. se deshabilitó la opción)
                         // recargarla como una nueva pestaña normal.
-                        string urlToReload = selectedTabItem.Tag?.ToString();
-                        AddNewTab(urlToReload);
-                        BrowserTabControl.Items.Remove(selectedTabItem); // Quitar la pestaña vieja y suspendida
+                        string urlToReload = selectedBrowserTab.Tab.Tag?.ToString();
+                        // Remover la pestaña suspendida y añadir una nueva
+                        selectedBrowserTab.ParentGroup.TabsInGroup.Remove(selectedBrowserTab);
+                        AddNewTab(urlToReload, selectedBrowserTab.IsIncognito, selectedBrowserTab.ParentGroup);
                     }
                 }
             }
@@ -1673,13 +1949,13 @@ namespace NavegadorWeb
             if (currentWebView != null && currentWebView.CoreWebView2 != null)
             {
                 UrlTextBox.Text = currentWebView.CoreWebView2.Source;
-                this.Title = currentWebView.CoreWebView2.DocumentTitle + " - Aurora Browser"; // Cambiado a Aurora Browser
+                this.Title = currentWebView.CoreWebView2.DocumentTitle + " - Aurora Browser"; // Título cambiado a Aurora Browser
             }
             else
             {
                 // Si no hay pestaña activa o el WebView principal no está listo, limpia la barra de URL y el título.
                 UrlTextBox.Text = string.Empty;
-                this.Title = "Aurora Browser"; // Cambiado a Aurora Browser
+                this.Title = "Aurora Browser"; // Título cambiado a Aurora Browser
             }
         }
 
@@ -1687,23 +1963,52 @@ namespace NavegadorWeb
         /// Obtiene la instancia de WebView2 principal (izquierda) de la pestaña actualmente seleccionada.
         /// </summary>
         /// <returns>El LeftWebView de la pestaña activa, o null si no hay una pestaña seleccionada o su contenido no es válido.</returns>
-        public WebView2 GetCurrentWebView() // Cambiado a público para que PdfViewerWindow pueda usarlo si es necesario
+        public WebView2 GetCurrentWebView()
         {
-            return GetCurrentBrowserTabItem()?.LeftWebView;
+            return SelectedTabItem?.LeftWebView; // Ahora usa SelectedTabItem
         }
 
         /// <summary>
-        /// Obtiene el objeto BrowserTabItem de la pestaña actualmente seleccionada.
+        /// NUEVO: Obtiene el objeto BrowserTabItem a partir de un TabItem de la UI.
         /// </summary>
-        /// <returns>El BrowserTabItem de la pestaña activa, o null.</returns>
-        private BrowserTabItem GetCurrentBrowserTabItem()
+        private BrowserTabItem GetBrowserTabItemFromTabItem(TabItem tabItem)
         {
-            if (BrowserTabControl.SelectedItem is TabItem selectedTabItem)
-            {
-                return _browserTabs.FirstOrDefault(t => t.Tab == selectedTabItem);
-            }
-            return null;
+            return _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).FirstOrDefault(bti => bti.Tab == tabItem);
         }
+
+        /// <summary>
+        /// NUEVO: Obtiene el objeto BrowserTabItem a partir de un WebView2.
+        /// </summary>
+        private BrowserTabItem GetBrowserTabItemFromWebView(WebView2 webView)
+        {
+            return _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).FirstOrDefault(bti => bti.LeftWebView == webView || bti.RightWebView == webView);
+        }
+
+
+        /// <summary>
+        /// Comprueba el número de pestañas abiertas y sugiere suspenderlas si hay demasiadas.
+        /// </summary>
+        private void CheckAndSuggestTabSuspension()
+        {
+            const int MaxTabsBeforeSuggestion = 15; // Límite para sugerir suspensión
+            int activeTabs = _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).Count(t => t.LeftWebView != null && !t.IsIncognito && !t.IsSplit); // Contar solo pestañas activas y no incógnito/divididas
+
+            if (_isTabSuspensionEnabled && activeTabs > MaxTabsBeforeSuggestion)
+            {
+                MessageBoxResult result = MessageBox.Show(
+                    $"Tienes {activeTabs} pestañas activas. Para mejorar el rendimiento, ¿te gustaría suspender las pestañas inactivas ahora?",
+                    "Sugerencia de Suspensión de Pestañas",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question
+                );
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    SettingsWindow_OnSuspendInactiveTabs(); // Llama a la lógica de suspensión
+                }
+            }
+        }
+
 
         /// <summary>
         /// Maneja el clic en el botón "Opciones". Abre la ventana de configuración.
@@ -1711,7 +2016,7 @@ namespace NavegadorWeb
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
             // Pasa la página de inicio actual, el estado del bloqueador, la URL del motor de búsqueda y el estado de suspensión
-            SettingsWindow settingsWindow = new SettingsWindow(_defaultHomePage, AdBlocker.IsEnabled, _defaultSearchEngineUrl, _isTabSuspensionEnabled, _restoreSessionOnStartup, TrackerBlocker.IsEnabled, _isPdfViewerEnabled); // NUEVO: Pasar el estado de PdfViewer
+            SettingsWindow settingsWindow = new SettingsWindow(_defaultHomePage, AdBlocker.IsEnabled, _defaultSearchEngineUrl, _isTabSuspensionEnabled, _restoreSessionOnStartup, TrackerBlocker.IsEnabled, _isPdfViewerEnabled);
 
             // Suscribirse a los nuevos eventos de la ventana de configuración
             settingsWindow.OnClearBrowsingData += SettingsWindow_OnClearBrowsingData;
@@ -1723,11 +2028,11 @@ namespace NavegadorWeb
                 // Si el usuario hizo clic en "Guardar" en la ventana de configuración
                 _defaultHomePage = settingsWindow.HomePage; // Actualiza la página de inicio
                 AdBlocker.IsEnabled = settingsWindow.IsAdBlockerEnabled; // Actualiza el estado del bloqueador
-                _defaultSearchEngineUrl = settingsWindow.DefaultSearchEngineUrl; // Actualiza la URL del motor de búsqueda
+                _defaultSearchEngineUrl = settingsWindow.SearchEngineUrl; // Actualiza la URL del motor de búsqueda
                 _isTabSuspensionEnabled = settingsWindow.IsTabSuspensionEnabled; // Actualiza el estado de suspensión
                 _restoreSessionOnStartup = settingsWindow.RestoreSessionOnStartup; // Actualiza el estado de restaurar sesión
                 TrackerBlocker.IsEnabled = settingsWindow.IsTrackerProtectionEnabled; // Actualiza el estado de TrackerBlocker
-                _isPdfViewerEnabled = settingsWindow.IsPdfViewerEnabled; // NUEVO: Actualiza el estado del visor de PDF
+                _isPdfViewerEnabled = settingsWindow.IsPdfViewerEnabled; // Actualiza el estado del visor de PDF
                 SaveSettings(); // Guarda todas las configuraciones en App.config
                 MessageBox.Show("Configuración guardada. Los cambios se aplicarán al abrir nuevas pestañas o al hacer clic en 'Inicio'.", "Configuración Guardada", MessageBoxButton.OK, Image.Information);
             }
@@ -1781,22 +2086,22 @@ namespace NavegadorWeb
                 return;
             }
 
-            foreach (var tabItem in _browserTabs)
+            foreach (var browserTab in _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).ToList()) // Iterar sobre todos los BrowserTabItem
             {
                 // No suspender la pestaña activa ni las pestañas incógnito (ya que su data no es persistente)
                 // Tampoco suspender pestañas en modo dividido, para evitar complejidad adicional
-                if (tabItem.Tab != BrowserTabControl.SelectedItem && !tabItem.IsIncognito && !tabItem.IsSplit)
+                if (browserTab != SelectedTabItem && !browserTab.IsIncognito && !browserTab.IsSplit) // Comparar con SelectedTabItem
                 {
                     // Un enfoque simple para "suspender": reemplazar el contenido con un mensaje y liberar el LeftWebView.
                     // Cuando el usuario vuelve a la pestaña, el WebView2 se recrea y se recarga la URL.
-                    if (tabItem.LeftWebView != null && tabItem.LeftWebView.CoreWebView2 != null)
+                    if (browserTab.LeftWebView != null && browserTab.LeftWebView.CoreWebView2 != null)
                     {
                         // Guardar la URL actual antes de desechar
-                        string suspendedUrl = tabItem.LeftWebView.Source.OriginalString;
+                        string suspendedUrl = browserTab.LeftWebView.Source.OriginalString;
 
                         // Desechar el WebView2 para liberar recursos
-                        tabItem.LeftWebView.Dispose();
-                        tabItem.LeftWebView = null; // Marcar como nulo para indicar que está suspendido
+                        browserTab.LeftWebView.Dispose();
+                        browserTab.LeftWebView = null; // Marcar como nulo para indicar que está suspendido
 
                         // Cambiar el contenido de la pestaña a una pantalla de "suspendido"
                         TextBlock suspendedMessage = new TextBlock
@@ -1809,14 +2114,14 @@ namespace NavegadorWeb
                             Padding = new Thickness(20),
                             TextWrapping = TextWrapping.Wrap
                         };
-                        tabItem.Tab.Content = suspendedMessage;
-                        tabItem.Tab.Tag = suspendedUrl; // Guardar la URL en el Tag del TabItem para recargarla
+                        browserTab.Tab.Content = suspendedMessage;
+                        browserTab.Tab.Tag = suspendedUrl; // Guardar la URL en el Tag del TabItem para recargarla
 
                         // Cambiar el encabezado de la pestaña para indicar que está suspendida
-                        string originalHeaderText = tabItem.HeaderTextBlock.Text;
+                        string originalHeaderText = browserTab.HeaderTextBlock.Text;
                         if (!originalHeaderText.StartsWith("(Suspendida) ")) // Evitar duplicar el prefijo
                         {
-                            tabItem.HeaderTextBlock.Text = "(Suspendida) " + originalHeaderText;
+                            browserTab.HeaderTextBlock.Text = "(Suspendida) " + originalHeaderText;
                         }
                     }
                 }
@@ -1887,7 +2192,7 @@ namespace NavegadorWeb
                 TrackerBlocker.IsEnabled = false; // Por defecto deshabilitado
             }
 
-            // NUEVO: Cargar el estado del visor de PDF
+            // Cargar el estado del visor de PDF
             string savedPdfViewerState = ConfigurationManager.AppSettings[PdfViewerSettingKey];
             if (bool.TryParse(savedPdfViewerState, out bool isPdfViewerEnabled))
             {
@@ -1942,7 +2247,7 @@ namespace NavegadorWeb
             else
                 config.AppSettings.Settings[TrackerProtectionSettingKey].Value = TrackerBlocker.IsEnabled.ToString();
 
-            // NUEVO: Guardar estado del visor de PDF
+            // Guardar estado del visor de PDF
             if (config.AppSettings.Settings[PdfViewerSettingKey] == null)
                 config.AppSettings.Settings.Add(PdfViewerSettingKey, _isPdfViewerEnabled.ToString());
             else
@@ -1953,7 +2258,8 @@ namespace NavegadorWeb
             if (_restoreSessionOnStartup)
             {
                 List<string> currentUrls = new List<string>();
-                foreach (var tab in _browserTabs)
+                // Recorrer todos los BrowserTabItem de todos los grupos
+                foreach (var tab in _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup))
                 {
                     // Solo guardar URLs de pestañas no incógnito que tengan un WebView2 cargado
                     if (!tab.IsIncognito && tab.LeftWebView != null && tab.LeftWebView.CoreWebView2 != null)
@@ -1991,6 +2297,7 @@ namespace NavegadorWeb
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             SaveSettings(); // Asegurarse de guardar la sesión antes de cerrar
+            UpdateUncleanShutdownFlag(false); // Establecer el flag a false para indicar un cierre limpio
 
             // Detener y desechar el sintetizador de voz
             if (_speechSynthesizer != null)
@@ -2001,12 +2308,12 @@ namespace NavegadorWeb
             }
 
             // Desechar todos los WebViews de todas las pestañas
-            foreach (var tab in _browserTabs)
+            foreach (var tab in _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup))
             {
                 tab.LeftWebView?.Dispose();
                 tab.RightWebView?.Dispose();
             }
-            _browserTabs.Clear(); // Limpiar la lista de pestañas
+            _tabGroupManager.TabGroups.Clear(); // Limpiar la lista de grupos
 
             // Limpiar los entornos de WebView2 (especialmente el de incógnito)
             if (_incognitoEnvironment != null)
@@ -2029,21 +2336,6 @@ namespace NavegadorWeb
             {
                 _defaultEnvironment = null; // Liberar la referencia
             }
-        }
-
-
-        /// <summary>
-        /// Clase auxiliar para gestionar la información de cada pestaña del navegador,
-        /// incluyendo si está en modo dividido y referencias a ambos WebView2.
-        /// </summary>
-        public class BrowserTabItem
-        {
-            public TabItem Tab { get; set; } // El control TabItem de WPF
-            public WebView2 LeftWebView { get; set; } // La instancia de WebView2 del panel izquierdo (principal)
-            public WebView2 RightWebView { get; set; } // La instancia de WebView2 del panel derecho (puede ser null)
-            public TextBlock HeaderTextBlock { get; set; } // El TextBlock que muestra el título en el encabezado de la pestaña
-            public bool IsIncognito { get; set; } // Indica si la pestaña está en modo incógnito
-            public bool IsSplit { get; set; } // Indica si la pestaña está en modo dividido
         }
     }
 }
