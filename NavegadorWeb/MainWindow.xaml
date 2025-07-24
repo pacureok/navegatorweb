@@ -32,7 +32,8 @@
                     <Button x:Name="ScreenshotButton" Content="📸" Width="30" Height="25" Margin="0,0,5,0" Click="ScreenshotButton_Click" ToolTip="Captura de Pantalla"/>
                     <Button x:Name="TabManagerButton" Content="🗂️" Width="30" Height="25" Margin="0,0,5,0" Click="TabManagerButton_Click" ToolTip="Administrador de Pestañas"/>
                     <Button x:Name="DataExtractionButton" Content="📋" Width="30" Height="25" Margin="0,0,5,0" Click="DataExtractionButton_Click" ToolTip="Extractor de Datos Web"/>
-                    <Button x:Name="DarkModeButton" Content="🌙" Width="30" Height="25" Margin="0,0,5,0" Click="DarkModeButton_Click" ToolTip="Activar/Desactivar Modo Oscuro Global"/> <!-- NUEVO BOTÓN MODO OSCURO -->
+                    <Button x:Name="DarkModeButton" Content="🌙" Width="30" Height="25" Margin="0,0,5,0" Click="DarkModeButton_Click" ToolTip="Activar/Desactivar Modo Oscuro Global"/>
+                    <Button x:Name="PerformanceMonitorButton" Content="📊" Width="30" Height="25" Margin="0,0,5,0" Click="PerformanceMonitorButton_Click" ToolTip="Monitor de Rendimiento"/> <!-- NUEVO BOTÓN MONITOR DE RENDIMIENTO -->
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
@@ -64,9 +65,9 @@
 
 ---
 
-**3. Modificación del archivo: `MainWindow.xaml.cs`**
+**5. Modificación del archivo: `MainWindow.xaml.cs`**
 
-Este archivo tendrá el nuevo manejador de eventos para el botón de modo oscuro y la carga del script.
+Este archivo tendrá el nuevo manejador de eventos para el botón del monitor de rendimiento.
 
 **Ruta:** `./NavegadorWeb/MainWindow.xaml.cs`
 
@@ -86,6 +87,7 @@ using System.Text.Json; // Necesario para JsonSerializer (para historial y marca
 using System.Speech.Synthesis; // Necesario para Text-to-Speech
 using System.Windows.Media.Imaging; // Necesario para BitmapFrame, PngBitmapEncoder
 using System.Windows.Media; // Necesario para Brushes
+using System.Diagnostics; // Necesario para Process
 
 namespace NavegadorWeb
 {
@@ -112,7 +114,7 @@ namespace NavegadorWeb
 
         // Contenido del script de modo lectura y modo oscuro
         private string _readerModeScript = string.Empty;
-        private string _darkModeScript = string.Empty; // NUEVO: Contenido del script de modo oscuro
+        private string _darkModeScript = string.Empty; // Contenido del script de modo oscuro
 
         // Instancia del sintetizador de voz
         private SpeechSynthesizer _speechSynthesizer;
@@ -124,7 +126,7 @@ namespace NavegadorWeb
             LoadSettings(); // Cargar configuraciones al iniciar la aplicación
             InitializeEnvironments(); // Inicializar los entornos de WebView2
             LoadReaderModeScript(); // Cargar el script de modo lectura
-            LoadDarkModeScript(); // NUEVO: Cargar el script de modo oscuro
+            LoadDarkModeScript(); // Cargar el script de modo oscuro
 
             // Inicializar el sintetizador de voz
             _speechSynthesizer = new SpeechSynthesizer();
@@ -165,7 +167,7 @@ namespace NavegadorWeb
         }
 
         /// <summary>
-        /// NUEVO: Carga el contenido del archivo DarkMode.js.
+        /// Carga el contenido del archivo DarkMode.js.
         /// </summary>
         private void LoadDarkModeScript()
         {
@@ -961,7 +963,7 @@ namespace NavegadorWeb
         }
 
         /// <summary>
-        /// NUEVO: Maneja el clic en el botón "Modo Oscuro Global". Inyecta el script para activar/desactivar el modo oscuro.
+        /// Maneja el clic en el botón "Modo Oscuro Global". Inyecta el script para activar/desactivar el modo oscuro.
         /// </summary>
         private async void DarkModeButton_Click(object sender, RoutedEventArgs e)
         {
@@ -994,9 +996,19 @@ namespace NavegadorWeb
             }
         }
 
+        /// <summary>
+        /// NUEVO: Maneja el clic en el botón "Monitor de Rendimiento". Abre la ventana del monitor.
+        /// </summary>
+        private void PerformanceMonitorButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Pasamos un delegado para que la ventana del monitor pueda obtener la lista de pestañas
+            PerformanceMonitorWindow monitorWindow = new PerformanceMonitorWindow(GetBrowserTabItems);
+            monitorWindow.Show(); // Mostrar la ventana (no modal)
+        }
+
 
         /// <summary>
-        /// Método público para que el Administrador de Pestañas pueda obtener la lista de todas las pestañas.
+        /// Método público para que el Administrador de Pestañas y el Monitor de Rendimiento puedan obtener la lista de todas las pestañas.
         /// </summary>
         /// <returns>Una lista de BrowserTabItem.</returns>
         public List<BrowserTabItem> GetBrowserTabItems()
@@ -1158,7 +1170,7 @@ namespace NavegadorWeb
         /// <summary>
         /// Cierra una pestaña cuando se hace clic en su botón "X".
         /// </summary>
-        private void CloseTabButton_Click(object sender, RoutedEventArgs e)
+        public void CloseTabButton_Click(object sender, RoutedEventArgs e) // Hacemos público para que TabManagerWindow pueda llamarlo
         {
             Button closeButton = sender as Button;
             TabItem tabToClose = closeButton?.Tag as TabItem; // Obtener el TabItem asociado al botón
@@ -1546,7 +1558,7 @@ namespace NavegadorWeb
         /// Clase auxiliar para gestionar la información de cada pestaña del navegador,
         /// incluyendo si está en modo dividido y referencias a ambos WebView2.
         /// </summary>
-        private class BrowserTabItem
+        public class BrowserTabItem // Hacemos pública para que PerformanceMonitorWindow pueda acceder a ella
         {
             public TabItem Tab { get; set; } // El control TabItem de WPF
             public WebView2 LeftWebView { get; set; } // La instancia de WebView2 del panel izquierdo (principal)
