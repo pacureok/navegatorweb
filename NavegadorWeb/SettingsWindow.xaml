@@ -25,6 +25,14 @@
 
         <CheckBox x:Name="AdBlockerCheckBox" Content="Habilitar Bloqueador de Anuncios" Grid.Row="1" Grid.ColumnSpan="2" Margin="0,15,0,5"/>
 
+        <!-- Nuevo: Opción para el motor de búsqueda predeterminado -->
+        <Label Content="Motor de Búsqueda Predeterminado:" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"/>
+        <ComboBox x:Name="SearchEngineComboBox" Grid.Row="2" Grid.Column="1" Margin="0,5,0,5">
+            <ComboBoxItem Content="Google" Tag="https://www.google.com/search?q="/>
+            <ComboBoxItem Content="Bing" Tag="https://www.bing.com/search?q="/>
+            <!-- Puedes añadir más motores de búsqueda aquí -->
+        </ComboBox>
+
         <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
             <Button Content="Guardar" Width="80" Margin="0,0,10,0" Click="SaveButton_Click"/>
             <Button Content="Cancelar" Width="80" Click="CancelButton_Click"/>
