@@ -15,13 +15,14 @@ namespace NavegadorWeb
         public string DefaultSearchEngineUrl { get; private set; }
         public bool IsTabSuspensionEnabled { get; private set; }
         public bool RestoreSessionOnStartup { get; private set; }
-        public bool IsTrackerProtectionEnabled { get; private set; } // NUEVO: Propiedad para protección contra rastreadores
+        public bool IsTrackerProtectionEnabled { get; private set; }
+        public bool IsPdfViewerEnabled { get; private set; } // NUEVO: Propiedad para visor de PDF
 
         // Eventos para notificar a MainWindow sobre acciones específicas
         public event Action OnClearBrowsingData;
         public event Action OnSuspendInactiveTabs;
 
-        public SettingsWindow(string currentHomePage, bool isAdBlockerEnabled, string defaultSearchEngineUrl, bool isTabSuspensionEnabled, bool restoreSessionOnStartup, bool isTrackerProtectionEnabled) // NUEVO: Parámetro isTrackerProtectionEnabled
+        public SettingsWindow(string currentHomePage, bool isAdBlockerEnabled, string defaultSearchEngineUrl, bool isTabSuspensionEnabled, bool restoreSessionOnStartup, bool isTrackerProtectionEnabled, bool isPdfViewerEnabled) // NUEVO: Parámetro isPdfViewerEnabled
         {
             InitializeComponent();
 
@@ -31,7 +32,8 @@ namespace NavegadorWeb
             SearchEngineTextBox.Text = defaultSearchEngineUrl;
             TabSuspensionCheckBox.IsChecked = isTabSuspensionEnabled;
             RestoreSessionCheckBox.IsChecked = restoreSessionOnStartup;
-            TrackerProtectionCheckBox.IsChecked = isTrackerProtectionEnabled; // NUEVO: Asignar estado al checkbox
+            TrackerProtectionCheckBox.IsChecked = isTrackerProtectionEnabled;
+            PdfViewerCheckBox.IsChecked = isPdfViewerEnabled; // NUEVO: Asignar estado al checkbox
         }
 
         /// <summary>
@@ -61,7 +63,8 @@ namespace NavegadorWeb
             DefaultSearchEngineUrl = SearchEngineTextBox.Text;
             IsTabSuspensionEnabled = TabSuspensionCheckBox.IsChecked ?? false;
             RestoreSessionOnStartup = RestoreSessionCheckBox.IsChecked ?? false;
-            IsTrackerProtectionEnabled = TrackerProtectionCheckBox.IsChecked ?? false; // NUEVO: Guardar estado
+            IsTrackerProtectionEnabled = TrackerProtectionCheckBox.IsChecked ?? false;
+            IsPdfViewerEnabled = PdfViewerCheckBox.IsChecked ?? false; // NUEVO: Guardar estado
 
             DialogResult = true; // Indicar que la ventana se cerró con éxito (Guardar)
             this.Close();
@@ -93,7 +96,7 @@ namespace NavegadorWeb
         /// </summary>
         private void SuspendInactiveTabsButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBoxResult result = MessageBox.Show("¿Estás seguro de que quieres suspender todas las pestañas inactivas ahora para liberar recursos?", "Confirmar Suspensión", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            MessageBoxResult result = MessageBox.Show("¿Estás seguro de que quieres suspender todas las pestañas inactivas ahora para liberar recursos?", "Confirmar Suspensión", MessageBoxButton.YesNo, MessageBoxButton.OK, MessageBoxImage.Question);
             if (result == MessageBoxResult.Yes)
             {
                 OnSuspendInactiveTabs?.Invoke(); // Disparar el evento para que MainWindow lo maneje
@@ -101,4 +104,3 @@ namespace NavegadorWeb
         }
     }
 }
-
