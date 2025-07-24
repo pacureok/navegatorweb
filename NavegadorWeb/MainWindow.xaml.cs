@@ -29,16 +29,44 @@ namespace NavegadorWeb
         // Lista para mantener un seguimiento de todas las pestañas abiertas
         private List<BrowserTabItem> _browserTabs = new List<BrowserTabItem>();
 
-        // Nuevo: Entornos de WebView2
+        // Entornos de WebView2
         private CoreWebView2Environment _defaultEnvironment;
         private CoreWebView2Environment _incognitoEnvironment; // Para el modo incógnito
+
+        // Nuevo: Contenido del script de modo lectura
+        private string _readerModeScript = string.Empty;
 
         public MainWindow()
         {
             InitializeComponent();
             LoadSettings(); // Cargar configuraciones al iniciar la aplicación
             InitializeEnvironments(); // Inicializar los entornos de WebView2
+            LoadReaderModeScript(); // NUEVO: Cargar el script de modo lectura
         }
+
+        /// <summary>
+        /// Carga el contenido del archivo ReaderMode.js.
+        /// </summary>
+        private void LoadReaderModeScript()
+        {
+            try
+            {
+                string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ReaderMode.js");
+                if (File.Exists(scriptPath))
+                {
+                    _readerModeScript = File.ReadAllText(scriptPath);
+                }
+                else
+                {
+                    MessageBox.Show("Advertencia: El archivo 'ReaderMode.js' no se encontró. El modo lectura no funcionará.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al cargar el script de modo lectura: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
 
         /// <summary>
         /// Inicializa los entornos CoreWebView2 para el modo normal e incógnito.
@@ -135,22 +163,15 @@ namespace NavegadorWeb
             webView.VerticalAlignment = VerticalAlignment.Stretch;
 
             // ***** Importante: Usar el entorno correcto para el WebView2 *****
+            // La inicialización del CoreWebView2 con el entorno correcto debe ocurrir antes de que se establezca el Source
+            // o se navegue. El evento CoreWebView2InitializationCompleted es el lugar más seguro.
             if (isIncognito)
             {
-                webView.CoreWebView2InitializationCompleted += (s, e) => WebView_CoreWebView2InitializationCompleted(s, e, _incognitoEnvironment);
-                // Si ya está inicializado (poco probable en una nueva pestaña), configurarlo aquí también
-                if (webView.CoreWebView2 != null)
-                {
-                    ConfigureCoreWebView2(webView, _incognitoEnvironment);
-                }
+                webView.CoreWebView2InitializationCompleted += (s, e) => ConfigureCoreWebView2(s as WebView2, e, _incognitoEnvironment);
             }
             else
             {
-                webView.CoreWebView2InitializationCompleted += (s, e) => WebView_CoreWebView2InitializationCompleted(s, e, _defaultEnvironment);
-                if (webView.CoreWebView2 != null)
-                {
-                    ConfigureCoreWebView2(webView, _defaultEnvironment);
-                }
+                webView.CoreWebView2InitializationCompleted += (s, e) => ConfigureCoreWebView2(s as WebView2, e, _defaultEnvironment);
             }
 
             // Enlazar eventos comunes del WebView2 para esta pestaña
@@ -159,6 +180,7 @@ namespace NavegadorWeb
             webView.SourceChanged += WebView_SourceChanged;
             webView.NavigationCompleted += WebView_NavigationCompleted;
             webView.CoreWebView2.DocumentTitleChanged += WebView_DocumentTitleChanged;
+
 
             // Contenido de la pestaña: un Grid que contiene el WebView2
             Grid tabContent = new Grid();
@@ -206,41 +228,27 @@ namespace NavegadorWeb
             WebView2 currentWebView = sender as WebView2;
             if (currentWebView != null && e.IsSuccess)
             {
-                ConfigureCoreWebView2(currentWebView, environment);
-            }
-        }
-
-        /// <summary>
-        /// Configura las propiedades y eventos del CoreWebView2.
-        /// </summary>
-        /// <param name="webView">La instancia de WebView2 a configurar.</param>
-        /// <param name="environment">El entorno a usar para este WebView2.</param>
-        private void ConfigureCoreWebView2(WebView2 webView, CoreWebView2Environment environment)
-        {
-            // Solo si el CoreWebView2 no ha sido creado con este entorno
-            if (webView.CoreWebView2 == null || webView.CoreWebView2.Environment != environment)
-            {
-                // Desvincular eventos antes de re-inicializar
-                if (webView.CoreWebView2 != null)
+                // Asegurar que se use el entorno correcto
+                if (currentWebView.CoreWebView2 == null || currentWebView.CoreWebView2.Environment != environment)
                 {
-                    webView.CoreWebView2.WebResourceRequested -= CoreWebView2_WebResourceRequested;
-                    webView.CoreWebView2.DownloadStarting -= CoreWebView2_DownloadStarting;
+                    // Esto solo debería ocurrir si el WebView2 ya estaba inicializado con otro entorno,
+                    // lo cual no debería pasar en AddNewTab. Es una medida de seguridad.
+                    // Para cambiar el entorno de un WebView2 existente, se debe recrear el WebView2.
+                    // currentWebView.CoreWebView2 = await environment.CreateCoreWebView2Async(currentWebView.Handle); // Esto no es directo con el control WPF
                 }
 
-                // Asegurar que se use el entorno correcto
-                // Nota: Inicializar con un entorno específico debe hacerse antes de que el Source se establezca la primera vez
-                // o si se necesita cambiar el entorno de un WebView2 ya existente, puede requerir recrear el WebView2
-                // completamente, que es lo que hacemos en suspensión de pestañas.
-                // Para nuevas pestañas, AddNewTab ya asegura esto.
+                // Desvincular eventos antes de (posiblemente) re-adjuntar para evitar duplicados
+                currentWebView.CoreWebView2.WebResourceRequested -= CoreWebView2_WebResourceRequested;
+                currentWebView.CoreWebView2.DownloadStarting -= CoreWebView2_DownloadStarting;
 
                 // Adjuntar el manejador de eventos para interceptar solicitudes de red (bloqueador de anuncios).
-                webView.CoreWebView2.WebResourceRequested += CoreWebView2_WebResourceRequested;
+                currentWebView.CoreWebView2.WebResourceRequested += CoreWebView2_WebResourceRequested;
 
                 // Habilita las herramientas de desarrollador (F12)
-                webView.CoreWebView2.Settings.AreDevToolsEnabled = true;
+                currentWebView.CoreWebView2.Settings.AreDevToolsEnabled = true;
 
                 // Suscribirse al evento DownloadStarting
-                webView.CoreWebView2.DownloadStarting += CoreWebView2_DownloadStarting;
+                currentWebView.CoreWebView2.DownloadStarting += CoreWebView2_DownloadStarting;
             }
         }
 
@@ -303,7 +311,8 @@ namespace NavegadorWeb
                     {
                         newDownload.Progress = (int)((double)newDownload.ReceivedBytes / newDownload.TotalBytes * 100);
                     }
-                    DownloadManager.AddOrUpdateDownload(newDownload); // Actualizar progreso
+                    // Actualizar la UI del gestor de descargas (si está abierta)
+                    DownloadManager.AddOrUpdateDownload(newDownload);
                 };
 
                 e.DownloadOperation.StateChanged += (s, args) =>
@@ -315,7 +324,8 @@ namespace NavegadorWeb
                         newDownload.EndTime = DateTime.Now;
                         MessageBox.Show($"Descarga de '{newDownload.FileName}' ha {newDownload.State}.", "Descarga Finalizada", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
-                    DownloadManager.AddOrUpdateDownload(newDownload); // Actualizar estado final
+                    // Actualizar la UI del gestor de descargas (si está abierta)
+                    DownloadManager.AddOrUpdateDownload(newDownload);
                 };
             }
             else
@@ -606,18 +616,43 @@ namespace NavegadorWeb
         }
 
         /// <summary>
+        /// Nuevo: Maneja el clic en el botón "Modo Lectura". Inyecta el script para activar/desactivar el modo lectura.
+        /// </summary>
+        private async void ReaderModeButton_Click(object sender, RoutedEventArgs e)
+        {
+            WebView2 currentWebView = GetCurrentWebView();
+            if (currentWebView != null && currentWebView.CoreWebView2 != null)
+            {
+                if (!string.IsNullOrEmpty(_readerModeScript))
+                {
+                    try
+                    {
+                        // Inyectar el script en la página actual
+                        await currentWebView.CoreWebView2.ExecuteScriptAsync(_readerModeScript);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Error al aplicar el modo lectura: {ex.Message}", "Error de Modo Lectura", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("El script de modo lectura no está cargado. Asegúrate de que 'ReaderMode.js' exista.", "Error de Modo Lectura", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+            else
+            {
+                MessageBox.Show("No hay una página activa para aplicar el modo lectura.", "Error de Modo Lectura", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
         /// Nuevo: Maneja el clic en el botón "Modo Incógnito". Abre una nueva ventana en modo incógnito.
         /// </summary>
         private void IncognitoButton_Click(object sender, RoutedEventArgs e)
         {
-            // Podrías abrir una nueva MainWindow dedicada al modo incógnito, o una nueva pestaña en la misma ventana.
             // Para simplicidad en este ejemplo, abriremos una nueva PESTAÑA incógnito.
             AddNewTab(_defaultHomePage, isIncognito: true);
-
-            // Si quisieras una ventana completamente nueva para incógnito:
-            // MainWindow incognitoWindow = new MainWindow();
-            // incognitoWindow.IsIncognitoWindow = true; // Necesitarías una propiedad en MainWindow para esto
-            // incognitoWindow.Show();
         }
 
         /// <summary>
@@ -677,7 +712,7 @@ namespace NavegadorWeb
                         newWebView.Loaded += WebView_Loaded;
                         // Usar el entorno por defecto para pestañas reactivadas si no eran incógnito
                         CoreWebView2Environment envToUse = browserTab.IsIncognito ? _incognitoEnvironment : _defaultEnvironment;
-                        newWebView.CoreWebView2InitializationCompleted += (s, ev) => ConfigureCoreWebView2(newWebView, envToUse);
+                        newWebView.CoreWebView2InitializationCompleted += (s, ev) => ConfigureCoreWebView2(newWebView, ev, envToUse); // Pasar e y envToUse
                         newWebView.NavigationStarting += WebView_NavigationStarting;
                         newWebView.SourceChanged += WebView_SourceChanged;
                         newWebView.NavigationCompleted += WebView_NavigationCompleted;
@@ -754,7 +789,7 @@ namespace NavegadorWeb
             SettingsWindow settingsWindow = new SettingsWindow(_defaultHomePage, AdBlocker.IsEnabled, _defaultSearchEngineUrl, _isTabSuspensionEnabled);
 
             // Suscribirse a los nuevos eventos de la ventana de configuración
-            settingsWindow.OnClearBrowseData += SettingsWindow_OnClearBrowseData;
+            settingsWindow.OnClearBrowsingData += SettingsWindow_OnClearBrowsingData;
             settingsWindow.OnSuspendInactiveTabs += SettingsWindow_OnSuspendInactiveTabs;
 
 
@@ -766,11 +801,11 @@ namespace NavegadorWeb
                 _defaultSearchEngineUrl = settingsWindow.DefaultSearchEngineUrl; // Actualiza la URL del motor de búsqueda
                 _isTabSuspensionEnabled = settingsWindow.IsTabSuspensionEnabled; // Actualiza el estado de suspensión
                 SaveSettings(); // Guarda todas las configuraciones en App.config
-                MessageBox.Show("Configuración guardada. Los cambios se aplicarán al abrir nuevas pestañas o al hacer clic en 'Inicio'.", "Configuración Guardada", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Configuración guardada. Los cambios se aplicarán al abrir nuevas pestañas o al hacer clic en 'Inicio'.", "Configuración Guardada", MessageBoxButton.OK, Image.Information);
             }
 
             // Es importante desuscribirse de los eventos para evitar fugas de memoria
-            settingsWindow.OnClearBrowseData -= SettingsWindow_OnClearBrowseData;
+            settingsWindow.OnClearBrowsingData -= SettingsWindow_OnClearBrowsingData;
             settingsWindow.OnSuspendInactiveTabs -= SettingsWindow_OnSuspendInactiveTabs;
         }
 
@@ -778,7 +813,7 @@ namespace NavegadorWeb
         /// Nuevo: Manejador para borrar datos de navegación.
         /// Se invoca desde la ventana de configuración.
         /// </summary>
-        private async void SettingsWindow_OnClearBrowseData()
+        private async void SettingsWindow_OnClearBrowsingData()
         {
             // Esto borrará datos de la carpeta UserData del entorno predeterminado.
             WebView2 anyWebView = GetCurrentWebView(); // Solo necesitamos una instancia para acceder al entorno
@@ -797,12 +832,12 @@ namespace NavegadorWeb
                     CoreWebView2BrowserDataKinds.PasswordAutofill |
                     CoreWebView2BrowserDataKinds.OtherData;
 
-                await _defaultEnvironment.ClearBrowseDataAsync(dataKinds);
-                MessageBox.Show("Datos de navegación (caché, cookies, etc.) borrados con éxito.", "Limpieza Completa", MessageBoxButton.OK, MessageBoxImage.Information);
+                await _defaultEnvironment.ClearBrowsingDataAsync(dataKinds);
+                MessageBox.Show("Datos de navegación (caché, cookies, etc.) borrados con éxito.", "Limpieza Completa", MessageBoxButton.OK, Image.Information);
             }
             else
             {
-                MessageBox.Show("No se pudo acceder al motor del navegador para borrar los datos del perfil normal.", "Error de Limpieza", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("No se pudo acceder al motor del navegador para borrar los datos del perfil normal.", "Error de Limpieza", MessageBoxButton.OK, Image.Error);
             }
         }
 
@@ -814,7 +849,7 @@ namespace NavegadorWeb
         {
             if (!_isTabSuspensionEnabled)
             {
-                MessageBox.Show("La suspensión de pestañas no está habilitada en la configuración. Habilítela para usar esta función.", "Suspensión Deshabilitada", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("La suspensión de pestañas no está habilitada en la configuración. Habilítela para usar esta función.", "Suspensión Deshabilitada", MessageBoxButton.OK, Image.Warning);
                 return;
             }
 
@@ -978,7 +1013,7 @@ namespace NavegadorWeb
             public TabItem Tab { get; set; } // El control TabItem de WPF
             public WebView2 WebView { get; set; } // La instancia de WebView2 dentro de la pestaña (puede ser null si la pestaña está suspendida)
             public TextBlock HeaderTextBlock { get; set; } // El TextBlock que muestra el título en el encabezado de la pestaña
-            public bool IsIncognito { get; set; } // Nuevo: Indica si la pestaña está en modo incógnito
+            public bool IsIncognito { get; set; } // Indica si la pestaña está en modo incógnito
         }
     }
 }
