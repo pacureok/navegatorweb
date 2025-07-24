@@ -1,4 +1,3 @@
-
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using System;
@@ -15,6 +14,7 @@ using System.Windows.Media.Imaging; // Necesario para BitmapFrame, PngBitmapEnco
 using System.Windows.Media; // Necesario para Brushes
 using System.Diagnostics; // Necesario para Process
 using System.Collections.ObjectModel; // Para ObservableCollection
+using System.Threading.Tasks; // Para Task.Delay
 
 namespace NavegadorWeb
 {
@@ -39,10 +39,12 @@ namespace NavegadorWeb
         private bool _restoreSessionOnStartup = true; // Estado de restaurar sesión al inicio (por defecto true)
         private bool _isPdfViewerEnabled = true; // Estado del visor de PDF (por defecto true)
 
-        // NUEVO: Instancia del gestor de grupos de pestañas
+        // Instancia del gestor de grupos de pestañas
         private TabGroupManager _tabGroupManager;
+        // Instancia del gestor de extensiones
+        private ExtensionManager _extensionManager;
 
-        // NUEVO: Propiedad para mantener la pestaña seleccionada globalmente para el Binding en XAML
+        // Propiedad para mantener la pestaña seleccionada globalmente para el Binding en XAML
         public BrowserTabItem SelectedTabItem
         {
             get { return (BrowserTabItem)GetValue(SelectedTabItemProperty); }
@@ -74,7 +76,12 @@ namespace NavegadorWeb
         {
             InitializeComponent();
             _tabGroupManager = new TabGroupManager();
+            _extensionManager = new ExtensionManager(); // Inicializar el gestor de extensiones
             this.DataContext = this; // Establecer el DataContext de la ventana a sí misma para el Binding de TabGroups y SelectedTabItem
+
+            // Vincular los grupos de pestañas al ItemsControl
+            TabGroupContainer.ItemsSource = _tabGroupManager.TabGroups;
+
 
             LoadSettings(); // Cargar configuraciones al iniciar la aplicación
             InitializeEnvironments(); // Inicializar los entornos de WebView2
@@ -110,12 +117,12 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    MessageBox.Show("Advertencia: El archivo 'ReaderMode.js' no se encontró. El modo lectura no funcionará.", "Archivo Faltante", MessageBoxButton.OK, Image.Warning);
+                    MessageBox.Show("Advertencia: El archivo 'ReaderMode.js' no se encontró. El modo lectura no funcionará.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al cargar el script de modo lectura: {ex.Message}", "Error", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show($"Error al cargar el script de modo lectura: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -133,12 +140,12 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    MessageBox.Show("Advertencia: El archivo 'DarkMode.js' no se encontró. El modo oscuro global no funcionará.", "Archivo Faltante", MessageBoxButton.OK, Image.Warning);
+                    MessageBox.Show("Advertencia: El archivo 'DarkMode.js' no se encontró. El modo oscuro global no funcionará.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al cargar el script de modo oscuro: {ex.Message}", "Error", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show($"Error al cargar el script de modo oscuro: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -163,7 +170,7 @@ namespace NavegadorWeb
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al inicializar los entornos del navegador: {ex.Message}\nPor favor, asegúrate de tener WebView2 Runtime instalado.", "Error de Inicialización", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show($"Error al inicializar los entornos del navegador: {ex.Message}\nPor favor, asegúrate de tener WebView2 Runtime instalado.", "Error de Inicialización", MessageBoxButton.OK, MessageBoxImage.Error);
                 Application.Current.Shutdown();
             }
         }
@@ -183,7 +190,7 @@ namespace NavegadorWeb
             string trackerDomainsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tracker_domains.txt");
             TrackerBlocker.LoadBlockedTrackerDomainsFromFile(trackerDomainsFilePath);
 
-            // NUEVO: Comprobar si hubo un cierre inesperado
+            // Comprobar si hubo un cierre inesperado
             bool uncleanShutdown = false;
             if (ConfigurationManager.AppSettings[UncleanShutdownFlagKey] != null && bool.TryParse(ConfigurationManager.AppSettings[UncleanShutdownFlagKey], out bool flag))
             {
@@ -210,16 +217,14 @@ namespace NavegadorWeb
 
                             if (recoveryWindow.ShouldRestoreSession)
                             {
-                                // Limpiar la pestaña inicial predeterminada si hay URLs guardadas
-                                // Ahora se hace de forma diferente con los grupos
                                 // Cerrar todas las pestañas existentes antes de restaurar
-                                foreach (var group in _tabGroupManager.TabGroups.ToList()) // ToList para evitar modificar la colección mientras se itera
+                                foreach (var group in _tabGroupManager.TabGroups.ToList())
                                 {
                                     foreach (var tabItem in group.TabsInGroup.ToList())
                                     {
                                         CloseBrowserTab(tabItem.Tab);
                                     }
-                                    if (!group.TabsInGroup.Any()) // Si el grupo está vacío, eliminarlo
+                                    if (!group.TabsInGroup.Any() && _tabGroupManager.TabGroups.Count > 1) // Solo eliminar si no es el único grupo
                                     {
                                         _tabGroupManager.RemoveGroup(group);
                                     }
@@ -248,7 +253,7 @@ namespace NavegadorWeb
                     }
                     catch (JsonException ex)
                     {
-                        MessageBox.Show($"Error al leer la sesión guardada: {ex.Message}. Se iniciará con la página de inicio.", "Error de Sesión", MessageBoxButton.OK, Image.Error);
+                        MessageBox.Show($"Error al leer la sesión guardada: {ex.Message}. Se iniciará con la página de inicio.", "Error de Sesión", MessageBoxButton.OK, MessageBoxImage.Error);
                         AddNewTab(_defaultHomePage);
                     }
                 }
@@ -261,9 +266,6 @@ namespace NavegadorWeb
             {
                 AddNewTab(_defaultHomePage); // La restauración de sesión está deshabilitada o no hubo cierre inesperado, abre la página de inicio
             }
-
-            // Vincular los grupos de pestañas al ItemsControl
-            TabGroupContainer.ItemsSource = _tabGroupManager.TabGroups;
         }
 
         /// <summary>
@@ -293,10 +295,10 @@ namespace NavegadorWeb
             // Esperar a que los entornos se inicialicen
             if (_defaultEnvironment == null || _incognitoEnvironment == null)
             {
-                await System.Threading.Tasks.Task.Delay(100); // Pequeña espera si no están listos
+                await Task.Delay(100); // Pequeña espera si no están listos
                 if (_defaultEnvironment == null || _incognitoEnvironment == null)
                 {
-                    MessageBox.Show("El navegador no está listo. Por favor, reinicia la aplicación.", "Error", MessageBoxButton.OK, Image.Error);
+                    MessageBox.Show("El navegador no está listo. Por favor, reinicia la aplicación.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
             }
@@ -316,19 +318,24 @@ namespace NavegadorWeb
                 IsSplit = false, // Inicialmente no está en modo dividido
                 ParentGroup = groupToAdd // Asignar el grupo padre
             };
-            // No añadir a _browserTabs directamente, ahora se gestiona por grupos.
 
             // Crear un panel para el encabezado de la pestaña (ahora usa propiedades de BrowserTabItem)
             DockPanel tabHeaderPanel = new DockPanel();
             browserTab.FaviconImage = new Image { Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
             browserTab.AudioIconImage = new Image { Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
+            browserTab.ExtensionIconImage = new Image { Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
+            browserTab.BlockedIconImage = new Image { Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
             browserTab.HeaderTextBlock = new TextBlock { Text = "Cargando...", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 5, 0) };
 
             // Enlazar las propiedades de la UI a la instancia de BrowserTabItem
             browserTab.FaviconImage.SetBinding(Image.SourceProperty, new System.Windows.Data.Binding("FaviconSource") { Source = browserTab });
-            // El icono de audio ya se obtiene de forma estática en XAML, aquí solo se enlaza la visibilidad
             browserTab.AudioIconImage.SetBinding(Image.VisibilityProperty, new System.Windows.Data.Binding("IsAudioPlaying") { Source = browserTab, Converter = (System.Windows.Data.IValueConverter)this.FindResource("BooleanToVisibilityConverter") });
             browserTab.AudioIconImage.MouseLeftButtonUp += AudioIcon_MouseLeftButtonUp; // Asignar evento al icono de audio
+            browserTab.ExtensionIconImage.SetBinding(Image.SourceProperty, new System.Windows.Data.Binding("ExtensionActiveIcon") { Source = browserTab });
+            browserTab.ExtensionIconImage.SetBinding(Image.VisibilityProperty, new System.Windows.Data.Binding("IsExtensionActive") { Source = browserTab, Converter = (System.Windows.Data.IValueConverter)this.FindResource("BooleanToVisibilityConverter") });
+            browserTab.BlockedIconImage.SetBinding(Image.SourceProperty, new System.Windows.Data.Binding("SiteBlockedIcon") { Source = browserTab });
+            browserTab.BlockedIconImage.SetBinding(Image.VisibilityProperty, new System.Windows.Data.Binding("IsSiteBlocked") { Source = browserTab, Converter = (System.Windows.Data.IValueConverter)this.FindResource("BooleanToVisibilityConverter") });
+
 
             if (isIncognito)
             {
@@ -349,11 +356,15 @@ namespace NavegadorWeb
             // Orden de los elementos en el encabezado
             DockPanel.SetDock(browserTab.FaviconImage, Dock.Left);
             DockPanel.SetDock(browserTab.AudioIconImage, Dock.Left);
+            DockPanel.SetDock(browserTab.ExtensionIconImage, Dock.Left);
+            DockPanel.SetDock(browserTab.BlockedIconImage, Dock.Left);
             DockPanel.SetDock(browserTab.HeaderTextBlock, Dock.Left);
             DockPanel.SetDock(closeButton, Dock.Right);
 
             tabHeaderPanel.Children.Add(browserTab.FaviconImage);
             tabHeaderPanel.Children.Add(browserTab.AudioIconImage);
+            tabHeaderPanel.Children.Add(browserTab.ExtensionIconImage);
+            tabHeaderPanel.Children.Add(browserTab.BlockedIconImage);
             tabHeaderPanel.Children.Add(browserTab.HeaderTextBlock);
             tabHeaderPanel.Children.Add(closeButton);
             newTabItem.Header = tabHeaderPanel; // Asignar el panel como encabezado de la pestaña
@@ -387,6 +398,7 @@ namespace NavegadorWeb
             webView1.CoreWebView2.FaviconChanged += CoreWebView2_FaviconChanged;
             webView1.CoreWebView2.IsAudioPlayingChanged += CoreWebView2_IsAudioPlayingChanged;
             webView1.CoreWebView2.ProcessFailed += CoreWebView2_ProcessFailed;
+            webView1.CoreWebView2.WebResourceResponseReceived += CoreWebView2_WebResourceResponseReceived;
 
 
             // Contenido inicial de la pestaña: solo un WebView2 en un Grid
@@ -447,6 +459,7 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.FaviconChanged -= CoreWebView2_FaviconChanged;
                 currentWebView.CoreWebView2.IsAudioPlayingChanged -= CoreWebView2_IsAudioPlayingChanged;
                 currentWebView.CoreWebView2.ProcessFailed -= CoreWebView2_ProcessFailed;
+                currentWebView.CoreWebView2.WebResourceResponseReceived -= CoreWebView2_WebResourceResponseReceived;
 
 
                 // Adjuntar el manejador de eventos para interceptar solicitudes de red (bloqueador de anuncios y rastreadores).
@@ -474,6 +487,7 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.FaviconChanged += CoreWebView2_FaviconChanged;
                 currentWebView.CoreWebView2.IsAudioPlayingChanged += CoreWebView2_IsAudioPlayingChanged;
                 currentWebView.CoreWebView2.ProcessFailed += CoreWebView2_ProcessFailed;
+                currentWebView.CoreWebView2.WebResourceResponseReceived += CoreWebView2_WebResourceResponseReceived;
             }
         }
 
@@ -490,6 +504,9 @@ namespace NavegadorWeb
                 e.Response = ((WebView2)sender).CoreWebView2.Environment.CreateWebResourceResponse(
                     null, 403, "Forbidden", "Content-Type: text/plain\nAccess-Control-Allow-Origin: *"
                 );
+                // Marcar la pestaña como "bloqueada"
+                var browserTab = GetBrowserTabItemFromWebView(sender as WebView2);
+                if (browserTab != null) browserTab.IsSiteBlocked = true;
                 return; // Importante: si ya se bloqueó por anuncios, no seguir comprobando
             }
 
@@ -499,9 +516,25 @@ namespace NavegadorWeb
                 e.Response = ((WebView2)sender).CoreWebView2.Environment.CreateWebResourceResponse(
                     null, 403, "Forbidden", "Content-Type: text/plain\nAccess-Control-Allow-Origin: *"
                 );
+                // Marcar la pestaña como "bloqueada"
+                var browserTab = GetBrowserTabItemFromWebView(sender as WebView2);
+                if (browserTab != null) browserTab.IsSiteBlocked = true;
                 return;
             }
         }
+
+        /// <summary>
+        /// Maneja la recepción de respuestas de recursos web para detectar bloqueos (complemento a WebResourceRequested).
+        /// Esto es útil si un recurso se bloquea pero no se cancela la solicitud directamente.
+        /// </summary>
+        private void CoreWebView2_WebResourceResponseReceived(object sender, CoreWebView2WebResourceResponseReceivedEventArgs e)
+        {
+            // Si la respuesta indica un error (ej. 403 Forbidden) y no fue cancelada por nosotros,
+            // o si el contenido es vacío para un recurso esperado, podríamos considerar esto un bloqueo.
+            // Para simplificar, nos basamos en WebResourceRequested para IsSiteBlocked.
+            // Esta función podría usarse para análisis más detallados si es necesario.
+        }
+
 
         /// <summary>
         /// Maneja el inicio de una descarga desde WebView2.
@@ -568,7 +601,7 @@ namespace NavegadorWeb
                     if (newDownload.State == CoreWebView2DownloadState.Completed || newDownload.State == CoreWebView2DownloadState.Interrupted)
                     {
                         newDownload.EndTime = DateTime.Now;
-                        MessageBox.Show($"Descarga de '{newDownload.FileName}' ha {newDownload.State}.", "Descarga Finalizada", MessageBoxButton.OK, Image.Information);
+                        MessageBox.Show($"Descarga de '{newDownload.FileName}' ha {newDownload.State}.", "Descarga Finalizada", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     // Actualizar la UI del gestor de descargas (si está abierta)
                     DownloadManager.AddOrUpdateDownload(newDownload);
@@ -578,7 +611,7 @@ namespace NavegadorWeb
             {
                 // Si el usuario cancela el diálogo de guardado, cancelar la descarga
                 e.Cancel = true;
-                MessageBox.Show("Descarga cancelada por el usuario.", "Descarga Cancelada", MessageBoxButton.OK, Image.Information);
+                MessageBox.Show("Descarga cancelada por el usuario.", "Descarga Cancelada", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
@@ -619,6 +652,8 @@ namespace NavegadorWeb
             {
                 UrlTextBox.Text = currentWebView.CoreWebView2.Source;
             }
+            // Resetear el flag de sitio bloqueado al navegar a una nueva URL
+            if (browserTab != null) browserTab.IsSiteBlocked = false;
         }
 
 
@@ -626,7 +661,7 @@ namespace NavegadorWeb
         /// Se ejecuta cuando la navegación en un WebView2 ha completado.
         /// Muestra un mensaje de error si la navegación falló y oculta el indicador de carga.
         /// </summary>
-        private void WebView_NavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
+        private async void WebView_NavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
         {
             WebView2 currentWebView = sender as WebView2;
             var browserTab = GetBrowserTabItemFromWebView(currentWebView);
@@ -647,7 +682,7 @@ namespace NavegadorWeb
                         }
                         else
                         {
-                            MessageBox.Show($"La navegación a {currentWebView.CoreWebView2.Source} falló con el código de error {e.WebErrorStatus}", "Error de Navegación", MessageBoxButton.OK, Image.Error);
+                            MessageBox.Show($"La navegación a {currentWebView.CoreWebView2.Source} falló con el código de error {e.WebErrorStatus}", "Error de Navegación", MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                     }
                 }
@@ -658,10 +693,39 @@ namespace NavegadorWeb
                     {
                         HistoryManager.AddHistoryEntry(currentWebView.CoreWebView2.Source, currentWebView.CoreWebView2.DocumentTitle);
                     }
+
+                    // Inyectar scripts de extensiones habilitadas
+                    await InjectEnabledExtensions(currentWebView, browserTab);
                 }
             }
             LoadingProgressBar.Visibility = Visibility.Collapsed; // Ocultar el indicador de carga
         }
+
+        /// <summary>
+        /// Inyecta los scripts de las extensiones personalizadas habilitadas en la página actual.
+        /// </summary>
+        private async Task InjectEnabledExtensions(WebView2 webView, BrowserTabItem browserTab)
+        {
+            bool anyExtensionInjected = false;
+            foreach (var extension in _extensionManager.GetEnabledExtensions())
+            {
+                try
+                {
+                    string scriptContent = extension.LoadScriptContent();
+                    if (!string.IsNullOrEmpty(scriptContent))
+                    {
+                        await webView.CoreWebView2.ExecuteScriptAsync(scriptContent);
+                        anyExtensionInjected = true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error al inyectar extensión '{extension.Name}': {ex.Message}");
+                }
+            }
+            browserTab.IsExtensionActive = anyExtensionInjected; // Actualizar el estado del icono de extensión
+        }
+
 
         /// <summary>
         /// Se ejecuta antes de que comience una navegación en un WebView2.
@@ -711,15 +775,15 @@ namespace NavegadorWeb
                 }
 
                 // Si es la pestaña activa y es el WebView principal, actualiza también el título de la ventana principal.
-                if (SelectedTabItem == browserTab && browserTab.LeftWebView == currentWebView) // Comparar con SelectedTabItem
+                if (SelectedTabItem == browserTab && browserTab.LeftWebView == currentWebView)
                 {
-                    this.Title = currentWebView.CoreWebView2.DocumentTitle + " - Aurora Browser"; // Título cambiado a Aurora Browser
+                    this.Title = currentWebView.CoreWebView2.DocumentTitle + " - Aurora Browser";
                 }
             }
         }
 
         /// <summary>
-        /// NUEVO: Maneja el cambio del favicon de una página.
+        /// Maneja el cambio del favicon de una página.
         /// </summary>
         private async void CoreWebView2_FaviconChanged(object sender, object e)
         {
@@ -757,7 +821,7 @@ namespace NavegadorWeb
         }
 
         /// <summary>
-        /// NUEVO: Maneja el cambio en el estado de reproducción de audio de una página.
+        /// Maneja el cambio en el estado de reproducción de audio de una página.
         /// </summary>
         private void CoreWebView2_IsAudioPlayingChanged(object sender, object e)
         {
@@ -771,28 +835,24 @@ namespace NavegadorWeb
         }
 
         /// <summary>
-        /// NUEVO: Maneja el clic en el icono de audio para silenciar/reactivar.
+        /// Maneja el clic en el icono de audio para silenciar/reactivar.
         /// </summary>
         private void AudioIcon_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             Image audioIcon = sender as Image;
             if (audioIcon == null) return;
 
-            // Encontrar la pestaña asociada a este icono
-            // Se asume que el DataContext del Image es el BrowserTabItem
             BrowserTabItem browserTab = audioIcon.DataContext as BrowserTabItem;
             if (browserTab == null || browserTab.LeftWebView == null || browserTab.LeftWebView.CoreWebView2 == null) return;
 
             // Alternar el estado de silencio
             browserTab.LeftWebView.CoreWebView2.IsMuted = !browserTab.LeftWebView.CoreWebView2.IsMuted;
-            // La propiedad IsAudioPlayingChanged se encargará de actualizar el icono si el audio está realmente reproduciéndose.
-            // Aquí solo actualizamos el ToolTip para reflejar la acción.
             audioIcon.ToolTip = browserTab.LeftWebView.CoreWebView2.IsMuted ? "Audio silenciado (clic para reactivar)" : "Reproduciendo audio (clic para silenciar/reactivar)";
         }
 
 
         /// <summary>
-        /// NUEVO: Maneja los fallos del proceso de WebView2 (ej. página colgada).
+        /// Maneja los fallos del proceso de WebView2 (ej. página colgada).
         /// </summary>
         private void CoreWebView2_ProcessFailed(object sender, CoreWebView2ProcessFailedEventArgs e)
         {
@@ -855,7 +915,7 @@ namespace NavegadorWeb
             WebView2 currentWebView = GetCurrentWebView(); // Obtiene el WebView principal de la pestaña activa
             if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
-                MessageBox.Show("No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show("No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -882,12 +942,12 @@ namespace NavegadorWeb
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al navegar: {ex.Message}", "Error", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show($"Error al navegar: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         /// <summary>
-        /// Navega hacia atrás en el historial de la pestaña activa.
+        /// Maneja el clic en el botón "Atrás".
         /// </summary>
         private void BackButton_Click(object sender, RoutedEventArgs e)
         {
@@ -899,7 +959,7 @@ namespace NavegadorWeb
         }
 
         /// <summary>
-        /// Navega hacia adelante en el historial de la pestaña activa.
+        /// Maneja el clic en el botón "Adelante".
         /// </summary>
         private void ForwardButton_Click(object sender, RoutedEventArgs e)
         {
@@ -987,7 +1047,7 @@ namespace NavegadorWeb
                 var browserTab = SelectedTabItem; // Obtener la pestaña seleccionada
                 if (browserTab != null && browserTab.IsIncognito)
                 {
-                    MessageBox.Show("No se pueden añadir marcadores en modo incógnito.", "Error al Añadir Marcador", MessageBoxButton.OK, Image.Warning);
+                    MessageBox.Show("No se pueden añadir marcadores en modo incógnito.", "Error al Añadir Marcador", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -1000,12 +1060,12 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    MessageBox.Show("No se pudo añadir la página a marcadores. Asegúrate de que la página esté cargada y tenga un título.", "Error al Añadir Marcador", MessageBoxButton.OK, Image.Warning);
+                    MessageBox.Show("No se pudo añadir la página a marcadores. Asegúrate de que la página esté cargada y tenga un título.", "Error al Añadir Marcador", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             else
             {
-                MessageBox.Show("No hay una página activa para añadir a marcadores.", "Error al Añadir Marcador", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show("No hay una página activa para añadir a marcadores.", "Error al Añadir Marcador", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1026,7 +1086,7 @@ namespace NavegadorWeb
             WebView2 currentWebView = GetCurrentWebView();
             if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
-                MessageBox.Show("No hay una página activa para aplicar el modo lectura.", "Error de Modo Lectura", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show("No hay una página activa para aplicar el modo lectura.", "Error de Modo Lectura", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1039,12 +1099,12 @@ namespace NavegadorWeb
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error al aplicar el modo lectura: {ex.Message}", "Error de Modo Lectura", MessageBoxButton.OK, Image.Error);
+                    MessageBox.Show($"Error al aplicar el modo lectura: {ex.Message}", "Error de Modo Lectura", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             else
             {
-                MessageBox.Show("Advertencia: El archivo 'ReaderMode.js' no se encontró. El modo lectura no funcionará.", "Archivo Faltante", MessageBoxButton.OK, Image.Warning);
+                MessageBox.Show("Advertencia: El archivo 'ReaderMode.js' no se encontró. El modo lectura no funcionará.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -1064,7 +1124,7 @@ namespace NavegadorWeb
             WebView2 currentWebView = GetCurrentWebView();
             if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
-                MessageBox.Show("No hay una página activa para leer en voz alta.", "Leer en Voz Alta", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show("No hay una página activa para leer en voz alta.", "Leer en Voz Alta", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1103,12 +1163,12 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    MessageBox.Show("No se encontró texto legible en la página actual.", "Leer en Voz Alta", MessageBoxButton.OK, Image.Information);
+                    MessageBox.Show("No se encontró texto legible en la página actual.", "Leer en Voz Alta", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al leer en voz alta: {ex.Message}", "Error de Lectura", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show($"Error al leer en voz alta: {ex.Message}", "Error de Lectura", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1120,7 +1180,7 @@ namespace NavegadorWeb
             var currentTab = SelectedTabItem; // Usar SelectedTabItem
             if (currentTab == null || currentTab.LeftWebView == null || currentTab.LeftWebView.CoreWebView2 == null)
             {
-                MessageBox.Show("No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show("No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1146,7 +1206,7 @@ namespace NavegadorWeb
             var currentTab = SelectedTabItem; // Usar SelectedTabItem
             if (currentTab == null || currentTab.LeftWebView == null || currentTab.LeftWebView.CoreWebView2 == null)
             {
-                MessageBox.Show("No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show("No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1179,7 +1239,7 @@ namespace NavegadorWeb
             WebView2 currentWebView = GetCurrentWebView(); // Obtiene el WebView principal de la pestaña activa
             if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
-                MessageBox.Show("No hay una página activa para capturar.", "Error de Captura", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show("No hay una página activa para capturar.", "Error de Captura", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1209,12 +1269,12 @@ namespace NavegadorWeb
                             stream.WriteTo(fileStream);
                         }
                     }
-                    MessageBox.Show($"Captura de pantalla guardada en:\n{filePath}", "Captura Exitosa", MessageBoxButton.OK, Image.Information);
+                    MessageBox.Show($"Captura de pantalla guardada en:\n{filePath}", "Captura Exitosa", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al realizar la captura de pantalla: {ex.Message}", "Error de Captura", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show($"Error al realizar la captura de pantalla: {ex.Message}", "Error de Captura", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1247,7 +1307,7 @@ namespace NavegadorWeb
             WebView2 currentWebView = GetCurrentWebView();
             if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
-                MessageBox.Show("No hay una página activa para aplicar el modo oscuro.", "Error de Modo Oscuro", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show("No hay una página activa para aplicar el modo oscuro.", "Error de Modo Oscuro", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1264,12 +1324,12 @@ namespace NavegadorWeb
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error al aplicar el modo oscuro: {ex.Message}", "Error de Modo Oscuro", MessageBoxButton.OK, Image.Error);
+                    MessageBox.Show($"Error al aplicar el modo oscuro: {ex.Message}", "Error de Modo Oscuro", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             else
             {
-                MessageBox.Show("Advertencia: El script de modo oscuro no está cargado. Asegúrate de que 'DarkMode.js' exista.", "Error de Modo Oscuro", MessageBoxButton.OK, Image.Warning);
+                MessageBox.Show("Advertencia: El archivo 'DarkMode.js' no se encontró. El modo oscuro global no funcionará.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -1423,7 +1483,7 @@ namespace NavegadorWeb
             WebView2 currentWebView = GetCurrentWebView();
             if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
-                MessageBox.Show("No hay una página activa para extraer un video.", "Error de PIP", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show("No hay una página activa para extraer un video.", "Error de PIP", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1454,7 +1514,7 @@ namespace NavegadorWeb
                     })();
                 ";
                 string videoUrlJson = await currentWebView.CoreWebView2.ExecuteScriptAsync(script);
-                string videoUrl = System.Text.Json.JsonSerializer.Deserialize<string>(videoUrlJson);
+                string videoUrl = JsonSerializer.Deserialize<string>(videoUrlJson);
 
                 if (!string.IsNullOrEmpty(videoUrl))
                 {
@@ -1464,12 +1524,12 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    MessageBox.Show("No se encontró ningún video reproducible en la página actual.", "Video no Encontrado", MessageBoxButton.OK, Image.Information);
+                    MessageBox.Show("No se encontró ningún video reproducible en la página actual.", "Video no Encontrado", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al intentar el modo Picture-in-Picture: {ex.Message}", "Error de PIP", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show($"Error al intentar el modo Picture-in-Picture: {ex.Message}", "Error de PIP", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1483,36 +1543,12 @@ namespace NavegadorWeb
         }
 
         /// <summary>
-        /// NUEVO: Maneja el clic en el botón "Resaltar Texto (Extensión)".
-        /// Inyecta un script para resaltar texto en la página actual.
+        /// Maneja el clic en el botón "Gestor de Extensiones". Abre la ventana del gestor.
         /// </summary>
-        private async void HighlightButton_Click(object sender, RoutedEventArgs e)
+        private void ExtensionsButton_Click(object sender, RoutedEventArgs e)
         {
-            WebView2 currentWebView = GetCurrentWebView();
-            if (currentWebView == null || currentWebView.CoreWebView2 == null)
-            {
-                MessageBox.Show("No hay una página activa para ejecutar la extensión.", "Error de Extensión", MessageBoxButton.OK, Image.Error);
-                return;
-            }
-
-            try
-            {
-                string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "HighlighterExtension.js");
-                if (File.Exists(scriptPath))
-                {
-                    string scriptContent = File.ReadAllText(scriptPath);
-                    await currentWebView.CoreWebView2.ExecuteScriptAsync(scriptContent);
-                    MessageBox.Show("Extensión de resaltado ejecutada. Puede que necesites hacer clic de nuevo para deshabilitar el resaltado.", "Extensión", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    MessageBox.Show("El script 'HighlighterExtension.js' no se encontró. Asegúrate de que el archivo exista.", "Error de Extensión", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error al ejecutar la extensión de resaltado: {ex.Message}", "Error de Extensión", MessageBoxButton.OK, Image.Error);
-            }
+            ExtensionsWindow extensionsWindow = new ExtensionsWindow(_extensionManager);
+            extensionsWindow.ShowDialog(); // Mostrar como diálogo modal
         }
 
 
@@ -1683,14 +1719,11 @@ namespace NavegadorWeb
                     browserTabItem.LeftWebView?.Dispose();
                     browserTabItem.RightWebView?.Dispose();
                     browserTabItem.ParentGroup?.TabsInGroup.Remove(browserTabItem); // Eliminar del grupo
-                }
 
-                // Si el grupo se queda vacío, eliminarlo (excepto el grupo por defecto si es el único)
-                foreach (var group in _tabGroupManager.TabGroups.ToList())
-                {
-                    if (!group.TabsInGroup.Any() && _tabGroupManager.TabGroups.Count > 1)
+                    // Si el grupo se queda vacío, eliminarlo (excepto el grupo por defecto si es el único)
+                    if (!browserTabItem.ParentGroup.TabsInGroup.Any() && _tabGroupManager.TabGroups.Count > 1)
                     {
-                        _tabGroupManager.RemoveGroup(group);
+                        _tabGroupManager.RemoveGroup(browserTabItem.ParentGroup);
                     }
                 }
 
@@ -1698,6 +1731,15 @@ namespace NavegadorWeb
                 if (!_tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).Any())
                 {
                     AddNewTab();
+                }
+                else
+                {
+                    // Asegurarse de que haya una pestaña seleccionada después de cerrar
+                    if (SelectedTabItem == browserTabItem && _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).Any())
+                    {
+                        SelectedTabItem = _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).First();
+                        SelectedTabItem.Tab.IsSelected = true;
+                    }
                 }
             }
         }
@@ -1717,7 +1759,7 @@ namespace NavegadorWeb
         /// </summary>
         /// <param name="tabItem">La pestaña a dividir.</param>
         /// <param name="rightPanelUrl">La URL a cargar en el panel derecho.</param>
-        private async System.Threading.Tasks.Task EnableSplitScreenForCurrentTab(BrowserTabItem tabItem, string rightPanelUrl)
+        private async Task EnableSplitScreenForCurrentTab(BrowserTabItem tabItem, string rightPanelUrl)
         {
             // Detener lectura en voz alta si está activa
             if (_isReadingAloud)
@@ -1858,7 +1900,33 @@ namespace NavegadorWeb
         }
 
         /// <summary>
-        /// NUEVO: Se ejecuta cuando la selección de la pestaña en un TabControl dentro de un grupo cambia.
+        /// Maneja el clic derecho en la barra de URL para abrir el menú contextual.
+        /// </summary>
+        private void UrlTextBox_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            // No es necesario código aquí si el ContextMenu está definido directamente en XAML.
+            // Esto solo se usaría si quisieras construir el menú dinámicamente en C#.
+        }
+
+        /// <summary>
+        /// Maneja la opción "Abrir en nueva pestaña" del menú contextual de la URL.
+        /// </summary>
+        private void OpenInNewTabMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            AddNewTab(UrlTextBox.Text);
+        }
+
+        /// <summary>
+        /// Maneja la opción "Abrir en nueva pestaña incógnito" del menú contextual de la URL.
+        /// </summary>
+        private void OpenInNewIncognitoTabMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            AddNewTab(UrlTextBox.Text, isIncognito: true);
+        }
+
+
+        /// <summary>
+        /// Se ejecuta cuando la selección de la pestaña en un TabControl dentro de un grupo cambia.
         /// </summary>
         private void BrowserTabControl_SelectionChanged_Grouped(object sender, SelectionChangedEventArgs e)
         {
@@ -1904,6 +1972,7 @@ namespace NavegadorWeb
                         newWebView.CoreWebView2.FaviconChanged += CoreWebView2_FaviconChanged;
                         newWebView.CoreWebView2.IsAudioPlayingChanged += CoreWebView2_IsAudioPlayingChanged;
                         newWebView.CoreWebView2.ProcessFailed += CoreWebView2_ProcessFailed;
+                        newWebView.CoreWebView2.WebResourceResponseReceived += CoreWebView2_WebResourceResponseReceived;
 
 
                         // Reemplazar el contenido de la pestaña (volverá a ser una vista simple)
@@ -1949,13 +2018,13 @@ namespace NavegadorWeb
             if (currentWebView != null && currentWebView.CoreWebView2 != null)
             {
                 UrlTextBox.Text = currentWebView.CoreWebView2.Source;
-                this.Title = currentWebView.CoreWebView2.DocumentTitle + " - Aurora Browser"; // Título cambiado a Aurora Browser
+                this.Title = currentWebView.CoreWebView2.DocumentTitle + " - Aurora Browser";
             }
             else
             {
                 // Si no hay pestaña activa o el WebView principal no está listo, limpia la barra de URL y el título.
                 UrlTextBox.Text = string.Empty;
-                this.Title = "Aurora Browser"; // Título cambiado a Aurora Browser
+                this.Title = "Aurora Browser";
             }
         }
 
@@ -1969,18 +2038,20 @@ namespace NavegadorWeb
         }
 
         /// <summary>
-        /// NUEVO: Obtiene el objeto BrowserTabItem a partir de un TabItem de la UI.
+        /// Obtiene el objeto BrowserTabItem a partir de un TabItem de la UI.
         /// </summary>
         private BrowserTabItem GetBrowserTabItemFromTabItem(TabItem tabItem)
         {
+            // Recorre todos los grupos y sus pestañas para encontrar la coincidencia
             return _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).FirstOrDefault(bti => bti.Tab == tabItem);
         }
 
         /// <summary>
-        /// NUEVO: Obtiene el objeto BrowserTabItem a partir de un WebView2.
+        /// Obtiene el objeto BrowserTabItem a partir de un WebView2.
         /// </summary>
         private BrowserTabItem GetBrowserTabItemFromWebView(WebView2 webView)
         {
+            // Recorre todos los grupos y sus pestañas para encontrar la coincidencia
             return _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).FirstOrDefault(bti => bti.LeftWebView == webView || bti.RightWebView == webView);
         }
 
@@ -2034,7 +2105,7 @@ namespace NavegadorWeb
                 TrackerBlocker.IsEnabled = settingsWindow.IsTrackerProtectionEnabled; // Actualiza el estado de TrackerBlocker
                 _isPdfViewerEnabled = settingsWindow.IsPdfViewerEnabled; // Actualiza el estado del visor de PDF
                 SaveSettings(); // Guarda todas las configuraciones en App.config
-                MessageBox.Show("Configuración guardada. Los cambios se aplicarán al abrir nuevas pestañas o al hacer clic en 'Inicio'.", "Configuración Guardada", MessageBoxButton.OK, Image.Information);
+                MessageBox.Show("Configuración guardada. Los cambios se aplicarán al abrir nuevas pestañas o al hacer clic en 'Inicio'.", "Configuración Guardada", MessageBoxButton.OK, MessageBoxImage.Information);
             }
 
             // Es importante desuscribirse de los eventos para evitar fugas de memoria
@@ -2066,11 +2137,11 @@ namespace NavegadorWeb
                     CoreWebView2BrowserDataKinds.OtherData;
 
                 await _defaultEnvironment.ClearBrowsingDataAsync(dataKinds);
-                MessageBox.Show("Datos de navegación (caché, cookies, etc.) borrados con éxito.", "Limpieza Completa", MessageBoxButton.OK, Image.Information);
+                MessageBox.Show("Datos de navegación (caché, cookies, etc.) borrados con éxito.", "Limpieza Completa", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
-                MessageBox.Show("No se pudo acceder al motor del navegador para borrar los datos del perfil normal.", "Error de Limpieza", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show("No se pudo acceder al motor del navegador para borrar los datos del perfil normal.", "Error de Limpieza", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -2082,7 +2153,7 @@ namespace NavegadorWeb
         {
             if (!_isTabSuspensionEnabled)
             {
-                MessageBox.Show("La suspensión de pestañas no está habilitada en la configuración. Habilítela para usar esta función.", "Suspensión Deshabilitada", MessageBoxButton.OK, Image.Warning);
+                MessageBox.Show("La suspensión de pestañas no está habilitada en la configuración. Habilítela para usar esta función.", "Suspensión Deshabilitada", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -2297,6 +2368,7 @@ namespace NavegadorWeb
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             SaveSettings(); // Asegurarse de guardar la sesión antes de cerrar
+            _extensionManager.SaveExtensionsState(); // Guardar el estado de las extensiones
             UpdateUncleanShutdownFlag(false); // Establecer el flag a false para indicar un cierre limpio
 
             // Detener y desechar el sintetizador de voz
