@@ -8,7 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.IO; // Necesario para Path.Combine y operaciones de archivo
-using System.Text.Json; // NUEVO: Necesario para JsonSerializer (para el historial)
+using System.Text.Json; // Necesario para JsonSerializer (para historial y marcadores)
 
 namespace NavegadorWeb
 {
@@ -198,7 +198,7 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    // NUEVO: Añadir la página al historial si la navegación fue exitosa
+                    // Añadir la página al historial si la navegación fue exitosa
                     HistoryManager.AddHistoryEntry(currentWebView.CoreWebView2.Source, currentWebView.CoreWebView2.DocumentTitle);
                 }
             }
@@ -369,6 +369,49 @@ namespace NavegadorWeb
                     UrlTextBox.Text = historyWindow.SelectedUrl;
                     NavigateToUrlInCurrentTab(); // Navega a la URL seleccionada
                 }
+            }
+        }
+
+        /// <summary>
+        /// Maneja el clic en el botón "Marcadores". Abre la ventana de marcadores.
+        /// </summary>
+        private void BookmarksButton_Click(object sender, RoutedEventArgs e)
+        {
+            BookmarksWindow bookmarksWindow = new BookmarksWindow();
+            if (bookmarksWindow.ShowDialog() == true) // Muestra la ventana de marcadores como un diálogo
+            {
+                // Si el usuario seleccionó una URL de los marcadores y hizo doble clic
+                if (!string.IsNullOrEmpty(bookmarksWindow.SelectedUrl))
+                {
+                    UrlTextBox.Text = bookmarksWindow.SelectedUrl;
+                    NavigateToUrlInCurrentTab(); // Navega a la URL seleccionada
+                }
+            }
+        }
+
+        /// <summary>
+        /// Maneja el clic en el botón "Añadir Marcador". Añade la página actual a los marcadores.
+        /// </summary>
+        private void AddBookmarkButton_Click(object sender, RoutedEventArgs e)
+        {
+            WebView2 currentWebView = GetCurrentWebView();
+            if (currentWebView != null && currentWebView.CoreWebView2 != null)
+            {
+                string url = currentWebView.CoreWebView2.Source;
+                string title = currentWebView.CoreWebView2.DocumentTitle;
+
+                if (!string.IsNullOrEmpty(url) && !string.IsNullOrEmpty(title))
+                {
+                    BookmarkManager.AddBookmark(url, title);
+                }
+                else
+                {
+                    MessageBox.Show("No se pudo añadir la página a marcadores. Asegúrate de que la página esté cargada y tenga un título.", "Error al Añadir Marcador", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+            else
+            {
+                MessageBox.Show("No hay una página activa para añadir a marcadores.", "Error al Añadir Marcador", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
