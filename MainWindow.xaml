@@ -5,24 +5,31 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         mc:Ignorable="d"
-        Title="Mi Navegador Web" Height="720" Width="1280">
-    <Grid>
+        Title="Mi Navegador Web" Height="720" Width="1280"
+        Loaded="Window_Loaded"> <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <Border Grid.Row="0" BorderBrush="LightGray" BorderThickness="0,0,0,1" Padding="5">
-            <StackPanel Orientation="Horizontal">
-                <Button x:Name="BackButton" Content="Atrás" Width="60" Margin="0,0,5,0" Click="BackButton_Click"/>
-                <Button x:Name="ForwardButton" Content="Adelante" Width="60" Margin="0,0,5,0" Click="ForwardButton_Click"/>
-                <TextBox x:Name="UrlTextBox" Text="https://www.google.com" VerticalContentAlignment="Center" KeyDown="UrlTextBox_KeyDown" Width="400" Margin="0,0,5,0"/>
-                <Button x:Name="GoButton" Content="Ir" Width="40" Margin="0,0,5,0" Click="GoButton_Click"/>
-                <Button x:Name="HomeButton" Content="Inicio" Width="60" Margin="0,0,5,0" Click="HomeButton_Click"/>
-                <Button x:Name="SettingsButton" Content="Opciones" Width="80" Click="SettingsButton_Click"/>
-            </StackPanel>
+            <DockPanel>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                    <Button x:Name="BackButton" Content="◀" Width="30" Height="25" Margin="0,0,5,0" Click="BackButton_Click"/>
+                    <Button x:Name="ForwardButton" Content="▶" Width="30" Height="25" Margin="0,0,5,0" Click="ForwardButton_Click"/>
+                    <Button x:Name="ReloadButton" Content="⟳" Width="30" Height="25" Margin="0,0,5,0" Click="ReloadButton_Click"/> <Button x:Name="HomeButton" Content="🏠" Width="30" Height="25" Margin="0,0,5,0" Click="HomeButton_Click"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                    <Button x:Name="NewTabButton" Content="+" Width="30" Height="25" Margin="0,0,5,0" Click="NewTabButton_Click"/>
+                    <Button x:Name="SettingsButton" Content="⚙️" Width="30" Height="25" Click="SettingsButton_Click"/>
+                </StackPanel>
+
+                <TextBox x:Name="UrlTextBox" VerticalContentAlignment="Center" KeyDown="UrlTextBox_KeyDown" Text="https://www.google.com" Margin="0,0,5,0"/>
+                </DockPanel>
         </Border>
 
-        <wv2:WebView2 x:Name="MyWebView" Grid.Row="1" Source="https://www.google.com"/>
+        <TabControl x:Name="BrowserTabControl" Grid.Row="1" SelectionChanged="BrowserTabControl_SelectionChanged">
+            </TabControl>
     </Grid>
 </Window>
