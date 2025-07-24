@@ -29,11 +29,42 @@ namespace NavegadorWeb
         // Lista para mantener un seguimiento de todas las pestañas abiertas
         private List<BrowserTabItem> _browserTabs = new List<BrowserTabItem>();
 
+        // Nuevo: Entornos de WebView2
+        private CoreWebView2Environment _defaultEnvironment;
+        private CoreWebView2Environment _incognitoEnvironment; // Para el modo incógnito
+
         public MainWindow()
         {
             InitializeComponent();
             LoadSettings(); // Cargar configuraciones al iniciar la aplicación
+            InitializeEnvironments(); // Inicializar los entornos de WebView2
         }
+
+        /// <summary>
+        /// Inicializa los entornos CoreWebView2 para el modo normal e incógnito.
+        /// </summary>
+        private async void InitializeEnvironments()
+        {
+            try
+            {
+                // Entorno para navegación normal (persistente)
+                string defaultUserDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MiNavegadorWeb", "UserData");
+                _defaultEnvironment = await CoreWebView2Environment.CreateAsync(null, defaultUserDataFolder);
+
+                // Entorno para navegación incógnito (no persistente)
+                // Se crea un directorio temporal que se eliminará al cerrar la aplicación.
+                string incognitoUserDataFolder = Path.Combine(Path.GetTempPath(), "MiNavegadorWebIncognito", Guid.NewGuid().ToString());
+                _incognitoEnvironment = await CoreWebView2Environment.CreateAsync(null, incognitoUserDataFolder, new CoreWebView2EnvironmentOptions {
+                    IsCustomCrashReportingEnabled = false // Para modo incógnito, puedes deshabilitar crash reporting si quieres más privacidad
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al inicializar los entornos del navegador: {ex.Message}\nPor favor, asegúrate de tener WebView2 Runtime instalado.", "Error de Inicialización", MessageBoxButton.OK, MessageBoxImage.Error);
+                Application.Current.Shutdown();
+            }
+        }
+
 
         /// <summary>
         /// Se ejecuta cuando la ventana principal se ha cargado completamente.
@@ -53,15 +84,33 @@ namespace NavegadorWeb
         /// Agrega una nueva pestaña al navegador.
         /// </summary>
         /// <param name="url">URL opcional para cargar en la nueva pestaña. Si es nulo, usa la página de inicio predeterminada.</param>
-        private void AddNewTab(string url = null)
+        /// <param name="isIncognito">Indica si la nueva pestaña debe abrirse en modo incógnito.</param>
+        private async void AddNewTab(string url = null, bool isIncognito = false)
         {
+            // Esperar a que los entornos se inicialicen
+            if (_defaultEnvironment == null || _incognitoEnvironment == null)
+            {
+                await System.Threading.Tasks.Task.Delay(100); // Pequeña espera si no están listos
+                if (_defaultEnvironment == null || _incognitoEnvironment == null)
+                {
+                    MessageBox.Show("El navegador no está listo. Por favor, reinicia la aplicación.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+            }
+
             // Crear un nuevo TabItem (la pestaña visual)
             TabItem newTabItem = new TabItem();
             newTabItem.Name = "Tab" + (_browserTabs.Count + 1); // Nombre único para la pestaña
+            newTabItem.Tag = isIncognito; // Guardar el estado de incógnito en el Tag de la pestaña
 
             // Crear un panel para el encabezado de la pestaña (título + botón de cerrar)
             DockPanel tabHeaderPanel = new DockPanel();
             TextBlock headerText = new TextBlock { Text = "Cargando..." }; // Texto inicial del encabezado
+            if (isIncognito)
+            {
+                headerText.Text = "(Incógnito) Cargando...";
+            }
+
             Button closeButton = new Button
             {
                 Content = "✖", // Carácter 'X' para cerrar
@@ -85,12 +134,30 @@ namespace NavegadorWeb
             webView.HorizontalAlignment = HorizontalAlignment.Stretch;
             webView.VerticalAlignment = VerticalAlignment.Stretch;
 
-            // Enlazar eventos del WebView2 para esta pestaña
-            webView.Loaded += WebView_Loaded; // Para asegurar que CoreWebView2 esté listo
-            webView.CoreWebView2InitializationCompleted += WebView_CoreWebView2InitializationCompleted; // Para adjuntar WebResourceRequested y DevTools
-            webView.NavigationStarting += WebView_NavigationStarting; // Para mostrar indicador de carga
+            // ***** Importante: Usar el entorno correcto para el WebView2 *****
+            if (isIncognito)
+            {
+                webView.CoreWebView2InitializationCompleted += (s, e) => WebView_CoreWebView2InitializationCompleted(s, e, _incognitoEnvironment);
+                // Si ya está inicializado (poco probable en una nueva pestaña), configurarlo aquí también
+                if (webView.CoreWebView2 != null)
+                {
+                    ConfigureCoreWebView2(webView, _incognitoEnvironment);
+                }
+            }
+            else
+            {
+                webView.CoreWebView2InitializationCompleted += (s, e) => WebView_CoreWebView2InitializationCompleted(s, e, _defaultEnvironment);
+                if (webView.CoreWebView2 != null)
+                {
+                    ConfigureCoreWebView2(webView, _defaultEnvironment);
+                }
+            }
+
+            // Enlazar eventos comunes del WebView2 para esta pestaña
+            webView.Loaded += WebView_Loaded;
+            webView.NavigationStarting += WebView_NavigationStarting;
             webView.SourceChanged += WebView_SourceChanged;
-            webView.NavigationCompleted += WebView_NavigationCompleted; // Para ocultar indicador de carga
+            webView.NavigationCompleted += WebView_NavigationCompleted;
             webView.CoreWebView2.DocumentTitleChanged += WebView_DocumentTitleChanged;
 
             // Contenido de la pestaña: un Grid que contiene el WebView2
@@ -107,7 +174,8 @@ namespace NavegadorWeb
             {
                 Tab = newTabItem,
                 WebView = webView,
-                HeaderTextBlock = headerText
+                HeaderTextBlock = headerText,
+                IsIncognito = isIncognito // Marcar si es incógnito
             };
             _browserTabs.Add(browserTab); // Añadir a la lista de pestañas
 
@@ -124,33 +192,55 @@ namespace NavegadorWeb
             WebView2 currentWebView = sender as WebView2;
             if (currentWebView != null)
             {
-                // Asegura que el CoreWebView2 subyacente esté inicializado.
-                // Esto es crucial antes de interactuar con CoreWebView2.
+                // Espera por la inicialización de CoreWebView2 si no ha ocurrido ya
                 await currentWebView.EnsureCoreWebView2Async(null);
             }
         }
 
         /// <summary>
         /// Se ejecuta cuando CoreWebView2 ha completado su inicialización.
-        /// Aquí es el lugar seguro para adjuntar el manejador de WebResourceRequested y habilitar DevTools.
+        /// Configura el CoreWebView2 con el entorno y eventos necesarios.
         /// </summary>
-        private void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2InitializationCompletedEventArgs e)
+        private void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2InitializationCompletedEventArgs e, CoreWebView2Environment environment)
         {
             WebView2 currentWebView = sender as WebView2;
             if (currentWebView != null && e.IsSuccess)
             {
+                ConfigureCoreWebView2(currentWebView, environment);
+            }
+        }
+
+        /// <summary>
+        /// Configura las propiedades y eventos del CoreWebView2.
+        /// </summary>
+        /// <param name="webView">La instancia de WebView2 a configurar.</param>
+        /// <param name="environment">El entorno a usar para este WebView2.</param>
+        private void ConfigureCoreWebView2(WebView2 webView, CoreWebView2Environment environment)
+        {
+            // Solo si el CoreWebView2 no ha sido creado con este entorno
+            if (webView.CoreWebView2 == null || webView.CoreWebView2.Environment != environment)
+            {
+                // Desvincular eventos antes de re-inicializar
+                if (webView.CoreWebView2 != null)
+                {
+                    webView.CoreWebView2.WebResourceRequested -= CoreWebView2_WebResourceRequested;
+                    webView.CoreWebView2.DownloadStarting -= CoreWebView2_DownloadStarting;
+                }
+
+                // Asegurar que se use el entorno correcto
+                // Nota: Inicializar con un entorno específico debe hacerse antes de que el Source se establezca la primera vez
+                // o si se necesita cambiar el entorno de un WebView2 ya existente, puede requerir recrear el WebView2
+                // completamente, que es lo que hacemos en suspensión de pestañas.
+                // Para nuevas pestañas, AddNewTab ya asegura esto.
+
                 // Adjuntar el manejador de eventos para interceptar solicitudes de red (bloqueador de anuncios).
-                // Primero, desadjuntamos para evitar duplicados si el evento se adjunta varias veces.
-                currentWebView.CoreWebView2.WebResourceRequested -= CoreWebView2_WebResourceRequested;
-                currentWebView.CoreWebView2.WebResourceRequested += CoreWebView2_WebResourceRequested;
+                webView.CoreWebView2.WebResourceRequested += CoreWebView2_WebResourceRequested;
 
                 // Habilita las herramientas de desarrollador (F12)
-                currentWebView.CoreWebView2.Settings.AreDevToolsEnabled = true;
-                // currentWebView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = true; // Habilita atajos de teclado del navegador, incluyendo F12
+                webView.CoreWebView2.Settings.AreDevToolsEnabled = true;
 
-                // NUEVO: Suscribirse al evento DownloadStarting
-                currentWebView.CoreWebView2.DownloadStarting -= CoreWebView2_DownloadStarting; // Evitar duplicados
-                currentWebView.CoreWebView2.DownloadStarting += CoreWebView2_DownloadStarting;
+                // Suscribirse al evento DownloadStarting
+                webView.CoreWebView2.DownloadStarting += CoreWebView2_DownloadStarting;
             }
         }
 
@@ -259,6 +349,8 @@ namespace NavegadorWeb
         private void WebView_NavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
         {
             WebView2 currentWebView = sender as WebView2;
+            var browserTab = _browserTabs.FirstOrDefault(t => t.WebView == currentWebView);
+
             if (currentWebView != null && BrowserTabControl.SelectedItem != null &&
                 ((TabItem)BrowserTabControl.SelectedItem).Content is Grid contentGrid &&
                 contentGrid.Children.Contains(currentWebView))
@@ -269,8 +361,11 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    // Añadir la página al historial si la navegación fue exitosa
-                    HistoryManager.AddHistoryEntry(currentWebView.CoreWebView2.Source, currentWebView.CoreWebView2.DocumentTitle);
+                    // Añadir la página al historial SOLO SI NO ES UNA PESTAÑA INCÓGNITO
+                    if (browserTab != null && !browserTab.IsIncognito)
+                    {
+                        HistoryManager.AddHistoryEntry(currentWebView.CoreWebView2.Source, currentWebView.CoreWebView2.DocumentTitle);
+                    }
                 }
             }
             LoadingProgressBar.Visibility = Visibility.Collapsed; // Ocultar el indicador de carga
@@ -300,7 +395,15 @@ namespace NavegadorWeb
                 if (tabItem != null)
                 {
                     // Actualiza el texto del encabezado de la pestaña.
-                    tabItem.HeaderTextBlock.Text = currentWebView.CoreWebView2.DocumentTitle;
+                    string title = currentWebView.CoreWebView2.DocumentTitle;
+                    if (tabItem.IsIncognito)
+                    {
+                        tabItem.HeaderTextBlock.Text = "(Incógnito) " + title;
+                    }
+                    else
+                    {
+                        tabItem.HeaderTextBlock.Text = title;
+                    }
                 }
 
                 // Si es la pestaña activa, actualiza también el título de la ventana principal.
@@ -423,7 +526,7 @@ namespace NavegadorWeb
         /// </summary>
         private void NewTabButton_Click(object sender, RoutedEventArgs e)
         {
-            AddNewTab();
+            AddNewTab(); // Abre una pestaña normal por defecto
         }
 
         /// <summary>
@@ -468,6 +571,13 @@ namespace NavegadorWeb
             WebView2 currentWebView = GetCurrentWebView();
             if (currentWebView != null && currentWebView.CoreWebView2 != null)
             {
+                var browserTab = _browserTabs.FirstOrDefault(t => t.WebView == currentWebView);
+                if (browserTab != null && browserTab.IsIncognito)
+                {
+                    MessageBox.Show("No se pueden añadir marcadores en modo incógnito.", "Error al Añadir Marcador", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
                 string url = currentWebView.CoreWebView2.Source;
                 string title = currentWebView.CoreWebView2.DocumentTitle;
 
@@ -496,6 +606,21 @@ namespace NavegadorWeb
         }
 
         /// <summary>
+        /// Nuevo: Maneja el clic en el botón "Modo Incógnito". Abre una nueva ventana en modo incógnito.
+        /// </summary>
+        private void IncognitoButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Podrías abrir una nueva MainWindow dedicada al modo incógnito, o una nueva pestaña en la misma ventana.
+            // Para simplicidad en este ejemplo, abriremos una nueva PESTAÑA incógnito.
+            AddNewTab(_defaultHomePage, isIncognito: true);
+
+            // Si quisieras una ventana completamente nueva para incógnito:
+            // MainWindow incognitoWindow = new MainWindow();
+            // incognitoWindow.IsIncognitoWindow = true; // Necesitarías una propiedad en MainWindow para esto
+            // incognitoWindow.Show();
+        }
+
+        /// <summary>
         /// Cierra una pestaña cuando se hace clic en su botón "X".
         /// </summary>
         private void CloseTabButton_Click(object sender, RoutedEventArgs e)
@@ -517,6 +642,7 @@ namespace NavegadorWeb
                 // Si no quedan pestañas, abre una nueva por defecto para evitar una ventana vacía.
                 if (BrowserTabControl.Items.Count == 0)
                 {
+                    // Si se cerró la última pestaña, abrimos una nueva, por defecto normal
                     AddNewTab();
                 }
             }
@@ -547,9 +673,11 @@ namespace NavegadorWeb
                         newWebView.HorizontalAlignment = HorizontalAlignment.Stretch;
                         newWebView.VerticalAlignment = VerticalAlignment.Stretch;
 
-                        // Enlazar eventos (similares a AddNewTab)
+                        // Enlazar eventos (similar a AddNewTab, asegurando el entorno correcto)
                         newWebView.Loaded += WebView_Loaded;
-                        newWebView.CoreWebView2InitializationCompleted += WebView_CoreWebView2InitializationCompleted;
+                        // Usar el entorno por defecto para pestañas reactivadas si no eran incógnito
+                        CoreWebView2Environment envToUse = browserTab.IsIncognito ? _incognitoEnvironment : _defaultEnvironment;
+                        newWebView.CoreWebView2InitializationCompleted += (s, ev) => ConfigureCoreWebView2(newWebView, envToUse);
                         newWebView.NavigationStarting += WebView_NavigationStarting;
                         newWebView.SourceChanged += WebView_SourceChanged;
                         newWebView.NavigationCompleted += WebView_NavigationCompleted;
@@ -571,11 +699,10 @@ namespace NavegadorWeb
                     }
                     else
                     {
-                        // Si el usuario intentó suspender pero la opción no está activa,
-                        // y la pestaña está en estado suspendido, mejor recargarla de todos modos
-                        // o mostrar un mensaje. Para simplicidad, podemos forzar una recarga.
+                        // Si la suspensión no está activa pero la pestaña está suspendida (ej. se deshabilitó la opción)
+                        // recargarla como una nueva pestaña normal.
                         string urlToReload = selectedTabItem.Tag?.ToString();
-                        AddNewTab(urlToReload); // Abrir como nueva pestaña o recargar el contenido directamente.
+                        AddNewTab(urlToReload);
                         BrowserTabControl.Items.Remove(selectedTabItem); // Quitar la pestaña vieja y suspendida
                     }
                 }
@@ -627,7 +754,7 @@ namespace NavegadorWeb
             SettingsWindow settingsWindow = new SettingsWindow(_defaultHomePage, AdBlocker.IsEnabled, _defaultSearchEngineUrl, _isTabSuspensionEnabled);
 
             // Suscribirse a los nuevos eventos de la ventana de configuración
-            settingsWindow.OnClearBrowsingData += SettingsWindow_OnClearBrowsingData;
+            settingsWindow.OnClearBrowseData += SettingsWindow_OnClearBrowseData;
             settingsWindow.OnSuspendInactiveTabs += SettingsWindow_OnSuspendInactiveTabs;
 
 
@@ -643,7 +770,7 @@ namespace NavegadorWeb
             }
 
             // Es importante desuscribirse de los eventos para evitar fugas de memoria
-            settingsWindow.OnClearBrowsingData -= SettingsWindow_OnClearBrowsingData;
+            settingsWindow.OnClearBrowseData -= SettingsWindow_OnClearBrowseData;
             settingsWindow.OnSuspendInactiveTabs -= SettingsWindow_OnSuspendInactiveTabs;
         }
 
@@ -651,33 +778,31 @@ namespace NavegadorWeb
         /// Nuevo: Manejador para borrar datos de navegación.
         /// Se invoca desde la ventana de configuración.
         /// </summary>
-        private async void SettingsWindow_OnClearBrowsingData()
+        private async void SettingsWindow_OnClearBrowseData()
         {
-            // Esto borrará datos de todas las instancias de WebView2 que usen el mismo UserDataFolder.
-            // Por defecto, WebView2 usa una carpeta de datos de usuario separada para cada aplicación,
-            // pero todas las pestañas de esta aplicación comparten la misma.
+            // Esto borrará datos de la carpeta UserData del entorno predeterminado.
             WebView2 anyWebView = GetCurrentWebView(); // Solo necesitamos una instancia para acceder al entorno
-            if (anyWebView?.CoreWebView2 != null)
+
+            if (_defaultEnvironment != null)
             {
-                // Define qué tipos de datos quieres borrar
                 CoreWebView2BrowserDataKinds dataKinds =
                     CoreWebView2BrowserDataKinds.Cookies |
                     CoreWebView2BrowserDataKinds.DiskCache |
                     CoreWebView2BrowserDataKinds.Downloads |
                     CoreWebView2BrowserDataKinds.GeneralAutofill |
-                    CoreWebView2BrowserDataKinds.ReadAloud | // Incluido por si acaso
+                    CoreWebView2BrowserDataKinds.ReadAloud |
                     CoreWebView2BrowserDataKinds.History |
                     CoreWebView2BrowserDataKinds.IndexedDb |
                     CoreWebView2BrowserDataKinds.LocalStorage |
                     CoreWebView2BrowserDataKinds.PasswordAutofill |
-                    CoreWebView2BrowserDataKinds.OtherData; // Agrega otros tipos si son relevantes
+                    CoreWebView2BrowserDataKinds.OtherData;
 
-                await anyWebView.CoreWebView2.DeleteDataFromUserDataFolderAsync(dataKinds);
+                await _defaultEnvironment.ClearBrowseDataAsync(dataKinds);
                 MessageBox.Show("Datos de navegación (caché, cookies, etc.) borrados con éxito.", "Limpieza Completa", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
-                MessageBox.Show("No se pudo acceder al motor del navegador para borrar los datos.", "Error de Limpieza", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("No se pudo acceder al motor del navegador para borrar los datos del perfil normal.", "Error de Limpieza", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -695,8 +820,8 @@ namespace NavegadorWeb
 
             foreach (var tabItem in _browserTabs)
             {
-                // No suspender la pestaña activa
-                if (tabItem.Tab != BrowserTabControl.SelectedItem)
+                // No suspender la pestaña activa ni las pestañas incógnito (ya que su data no es persistente)
+                if (tabItem.Tab != BrowserTabControl.SelectedItem && !tabItem.IsIncognito)
                 {
                     // Un enfoque simple para "suspender": reemplazar el contenido con un mensaje y liberar el WebView2.
                     // Cuando el usuario vuelve a la pestaña, el WebView2 se recrea y se recarga la URL.
@@ -813,6 +938,39 @@ namespace NavegadorWeb
         }
 
         /// <summary>
+        /// Se ejecuta cuando la ventana se está cerrando. Limpia los recursos del entorno incógnito.
+        /// </summary>
+        private void Window_Closed(object sender, EventArgs e)
+        {
+            // Asegúrate de desechar los entornos de WebView2 al cerrar la aplicación
+            // Esto es crucial para liberar recursos y limpiar el directorio temporal del modo incógnito.
+            if (_incognitoEnvironment != null)
+            {
+                // El entorno incógnito crea una carpeta temporal. Al cerrarse, se limpia automáticamente.
+                // Sin embargo, podemos asegurarnos de que no haya restos.
+                string incognitoUserDataFolder = _incognitoEnvironment.UserDataFolder;
+                _incognitoEnvironment = null; // Liberar la referencia para que GC pueda limpiar
+                try
+                {
+                    if (Directory.Exists(incognitoUserDataFolder))
+                    {
+                        Directory.Delete(incognitoUserDataFolder, true); // Eliminar recursivamente la carpeta temporal
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error al eliminar la carpeta de datos de incógnito: {ex.Message}");
+                    // No es crítico si falla la limpieza de la carpeta, pero es bueno intentarlo.
+                }
+            }
+            if (_defaultEnvironment != null)
+            {
+                // El entorno por defecto no necesita ser eliminado, sus datos son persistentes.
+                _defaultEnvironment = null;
+            }
+        }
+
+        /// <summary>
         /// Clase auxiliar para gestionar la información de cada pestaña del navegador.
         /// </summary>
         private class BrowserTabItem
@@ -820,6 +978,7 @@ namespace NavegadorWeb
             public TabItem Tab { get; set; } // El control TabItem de WPF
             public WebView2 WebView { get; set; } // La instancia de WebView2 dentro de la pestaña (puede ser null si la pestaña está suspendida)
             public TextBlock HeaderTextBlock { get; set; } // El TextBlock que muestra el título en el encabezado de la pestaña
+            public bool IsIncognito { get; set; } // Nuevo: Indica si la pestaña está en modo incógnito
         }
     }
 }
