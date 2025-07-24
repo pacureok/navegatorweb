@@ -4,6 +4,7 @@ using System.Windows.Media; // Para ImageSource
 using System.Windows.Media.Imaging; // Para BitmapImage
 using System;
 using System.IO;
+using System.ComponentModel; // Para INotifyPropertyChanged
 
 namespace NavegadorWeb
 {
@@ -12,7 +13,7 @@ namespace NavegadorWeb
     /// incluyendo si está en modo dividido, referencias a ambos WebView2,
     /// y propiedades para el favicon y el estado de audio.
     /// </summary>
-    public class BrowserTabItem : DependencyObject // Heredar de DependencyObject para usar Dependency Properties si es necesario, o simplemente de object
+    public class BrowserTabItem : DependencyObject, INotifyPropertyChanged // Heredar de DependencyObject para usar Dependency Properties si es necesario, o simplemente de object
     {
         public TabItem Tab { get; set; } // El control TabItem de WPF
         public WebView2 LeftWebView { get; set; } // La instancia de WebView2 del panel izquierdo (principal)
@@ -24,6 +25,9 @@ namespace NavegadorWeb
         public bool IsIncognito { get; set; } // Indica si la pestaña está en modo incógnito
         public bool IsSplit { get; set; } // Indica si la pestaña está en modo dividido
 
+        // NUEVO: Referencia al grupo al que pertenece esta pestaña
+        public TabGroup ParentGroup { get; set; }
+
         // Propiedades de estado para la UI de la pestaña
         private bool _isAudioPlaying;
         public bool IsAudioPlaying
@@ -34,10 +38,11 @@ namespace NavegadorWeb
                 if (_isAudioPlaying != value)
                 {
                     _isAudioPlaying = value;
+                    OnPropertyChanged(nameof(IsAudioPlaying)); // Notificar cambio
                     // Actualizar la visibilidad del icono de audio en la UI
                     if (AudioIconImage != null)
                     {
-                        AudioIconImage.Visibility = value ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+                        AudioIconImage.Visibility = value ? System.Windows.Visibility.Visibility.Visible : System.Windows.Visibility.Collapsed;
                     }
                 }
             }
@@ -52,6 +57,7 @@ namespace NavegadorWeb
                 if (_faviconSource != value)
                 {
                     _faviconSource = value;
+                    OnPropertyChanged(nameof(FaviconSource)); // Notificar cambio
                     // Actualizar la fuente de la imagen del favicon en la UI
                     if (FaviconImage != null)
                     {
@@ -110,6 +116,13 @@ namespace NavegadorWeb
             }
             // Fallback
             return new BitmapImage(new Uri("pack://application:,,,/NavegadorWeb;component/Resources/audio_playing_icon.png")); // Fallback para recursos embebidos
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }
