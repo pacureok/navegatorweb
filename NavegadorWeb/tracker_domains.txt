@@ -1,0 +1,32 @@
+# Ejemplo de dominios de rastreo
+# Puedes añadir más dominios, uno por línea.
+# Las líneas que empiezan con # son comentarios.
+
+google-analytics.com
+googlesyndication.com
+doubleclick.net
+adsrvr.org
+adservice.google.com
+facebook.com/tr
+pixel.facebook.com
+bing.com/ads
+analytics.yahoo.com
+criteo.com
+adnxs.com
+rubiconproject.com
+app-measurement.com
+segment.io
+mixpanel.com
+amplitude.com
+hotjar.com
+fullstory.com
+newrelic.com
+sentry.io
+track.adform.net
+matomo.org
+piwik.pro
+quantserve.com
+scorecardresearch.com
+vk.com/rtrg
+twitter.com/i/adsct
+linkedin.com/analytics
