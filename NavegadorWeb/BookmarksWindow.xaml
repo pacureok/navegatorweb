@@ -1,0 +1,32 @@
+<Window x:Class="NavegadorWeb.BookmarksWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:NavegadorWeb"
+        mc:Ignorable="d"
+        Title="Mis Marcadores" Height="600" Width="800"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <ListView x:Name="BookmarksListView" Grid.Row="0" Margin="0,0,0,10" SelectionMode="Single" MouseDoubleClick="BookmarksListView_MouseDoubleClick">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Título" Width="300" DisplayMemberBinding="{Binding Title}"/>
+                    <GridViewColumn Header="URL" Width="400" DisplayMemberBinding="{Binding Url}"/>
+                    <GridViewColumn Header="Añadido el" Width="150" DisplayMemberBinding="{Binding DateAdded}"/>
+                </GridView>
+            </ListView.View>
+        </ListView>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="DeleteBookmarkButton" Content="Eliminar Marcador" Width="140" Height="30" Margin="0,0,10,0" Click="DeleteBookmarkButton_Click"/>
+            <Button x:Name="ClearAllBookmarksButton" Content="Borrar Todos" Width="120" Height="30" Margin="0,0,10,0" Click="ClearAllBookmarksButton_Click"/>
+            <Button x:Name="CloseButton" Content="Cerrar" Width="80" Height="30" Click="CloseButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
