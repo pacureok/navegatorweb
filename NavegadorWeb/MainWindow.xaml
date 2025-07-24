@@ -36,7 +36,8 @@
                     <Button x:Name="PerformanceMonitorButton" Content="📊" Width="30" Height="25" Margin="0,0,5,0" Click="PerformanceMonitorButton_Click" ToolTip="Monitor de Rendimiento"/>
                     <Button x:Name="FindButton" Content="🔍" Width="30" Height="25" Margin="0,0,5,0" Click="FindButton_Click" ToolTip="Buscar en Página"/>
                     <Button x:Name="PermissionsButton" Content="🔒" Width="30" Height="25" Margin="0,0,5,0" Click="PermissionsButton_Click" ToolTip="Gestor de Permisos"/>
-                    <Button x:Name="PipButton" Content="📺" Width="30" Height="25" Margin="0,0,5,0" Click="PipButton_Click" ToolTip="Modo Picture-in-Picture (PIP)"/> <!-- NUEVO BOTÓN PIP -->
+                    <Button x:Name="PipButton" Content="📺" Width="30" Height="25" Margin="0,0,5,0" Click="PipButton_Click" ToolTip="Modo Picture-in-Picture (PIP)"/>
+                    <Button x:Name="PasswordManagerButton" Content="🔑" Width="30" Height="25" Margin="0,0,5,0" Click="PasswordManagerButton_Click" ToolTip="Gestor de Contraseñas"/> <!-- NUEVO BOTÓN GESTOR DE CONTRASEÑAS -->
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
@@ -89,9 +90,9 @@
 
 ---
 
-**4. Modificación del archivo: `MainWindow.xaml.cs`**
+**6. Modificación del archivo: `MainWindow.xaml.cs`**
 
-Este archivo contendrá la lógica para detectar y extraer el video para el modo PIP.
+Este archivo contendrá la lógica para interactuar con el gestor de contraseñas, incluyendo la detección de formularios y el autocompletado/guardado.
 
 **Ruta:** `./NavegadorWeb/MainWindow.xaml.cs`
 
@@ -376,6 +377,9 @@ namespace NavegadorWeb
             webView1.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted;
             // Suscribirse al evento PermissionRequested para gestionar permisos
             webView1.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
+            // NUEVO: Suscribirse a los eventos para el gestor de contraseñas
+            webView1.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
+            webView1.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
 
 
             // Contenido inicial de la pestaña: solo un WebView2 en un Grid
@@ -436,6 +440,8 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.NavigationStarting -= WebView_NavigationStarting;
                 currentWebView.CoreWebView2.FindInPageCompleted -= CoreWebView2_FindInPageCompleted; // Desvincular también este
                 currentWebView.CoreWebView2.PermissionRequested -= CoreWebView2_PermissionRequested; // Desvincular este
+                currentWebView.CoreWebView2.WebMessageReceived -= CoreWebView2_WebMessageReceived; // NUEVO: Desvincular este
+                currentWebView.CoreWebView2.DOMContentLoaded -= CoreWebView2_DOMContentLoaded; // NUEVO: Desvincular este
 
                 // Adjuntar el manejador de eventos para interceptar solicitudes de red (bloqueador de anuncios).
                 currentWebView.CoreWebView2.WebResourceRequested += CoreWebView2_WebResourceRequested;
@@ -453,6 +459,8 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.NavigationStarting += WebView_NavigationStarting;
                 currentWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted; // Re-adjuntar este también
                 currentWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested; // Re-adjuntar este
+                currentWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived; // NUEVO: Re-adjuntar este
+                currentWebView.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded; // NUEVO: Re-adjuntar este
             }
         }
 
@@ -867,7 +875,7 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    MessageBox.Show("Advertencia: El archivo 'ReaderMode.js' no se encontró. El modo lectura no funcionará.", "Error de Modo Lectura", MessageBoxButton.OK, Image.Warning);
+                    MessageBox.Show("Advertencia: El archivo 'ReaderMode.js' no se encontró. El modo lectura no funcionará.", "Archivo Faltante", MessageBoxButton.OK, Image.Warning);
                 }
             }
             else
@@ -1300,6 +1308,133 @@ namespace NavegadorWeb
             }
         }
 
+        /// <summary>
+        /// NUEVO: Maneja el clic en el botón "Gestor de Contraseñas". Abre la ventana del gestor.
+        /// </summary>
+        private void PasswordManagerButton_Click(object sender, RoutedEventArgs e)
+        {
+            PasswordManagerWindow passwordWindow = new PasswordManagerWindow();
+            passwordWindow.ShowDialog(); // Mostrar como diálogo modal
+        }
+
+        /// <summary>
+        /// NUEVO: Se ejecuta cuando la página ha terminado de cargar su DOM.
+        /// Aquí inyectamos el script para detectar formularios de inicio de sesión y autocompletar.
+        /// </summary>
+        private async void CoreWebView2_DOMContentLoaded(object sender, CoreWebView2DOMContentLoadedEventArgs e)
+        {
+            WebView2 currentWebView = sender as WebView2;
+            if (currentWebView == null || currentWebView.CoreWebView2 == null) return;
+
+            // No autocompletar/guardar en modo incógnito
+            var browserTab = _browserTabs.FirstOrDefault(t => t.LeftWebView == currentWebView || t.RightWebView == currentWebView);
+            if (browserTab != null && browserTab.IsIncognito) return;
+
+            string currentUrl = currentWebView.CoreWebView2.Source;
+            string username = null;
+            string password = null;
+
+            // 1. Intentar autocompletar si hay credenciales guardadas
+            // Para simplificar, solo buscamos la primera credencial para el dominio.
+            // Una implementación más avanzada podría permitir al usuario elegir entre múltiples credenciales.
+            var allPasswords = PasswordManager.GetAllPasswords();
+            var matchingEntry = allPasswords.FirstOrDefault(p =>
+                new Uri(p.Url).Host.Equals(new Uri(currentUrl).Host, StringComparison.OrdinalIgnoreCase));
+
+            if (matchingEntry != null)
+            {
+                username = matchingEntry.Username;
+                password = PasswordManager.DecryptPassword(matchingEntry.EncryptedPassword);
+
+                // Inyectar JavaScript para rellenar los campos del formulario
+                string autofillScript = $@"
+                    (function() {{
+                        let usernameFields = document.querySelectorAll('input[type=""text""], input[type=""email""]');
+                        let passwordFields = document.querySelectorAll('input[type=""password""]');
+
+                        if (usernameFields.length > 0 && passwordFields.length > 0) {{
+                            usernameFields[0].value = '{username}';
+                            passwordFields[0].value = '{password}';
+                            // Opcional: enfocar el campo de contraseña o el botón de submit
+                            // passwordFields[0].focus();
+                        }}
+                    }})();
+                ";
+                await currentWebView.CoreWebView2.ExecuteScriptAsync(autofillScript);
+            }
+
+            // 2. Inyectar script para monitorear envíos de formularios y enviar credenciales a C#
+            string scriptToInject = @"
+                (function() {
+                    document.querySelectorAll('form').forEach(form => {
+                        form.addEventListener('submit', (event) => {
+                            let usernameInput = form.querySelector('input[type=""text""], input[type=""email""]');
+                            let passwordInput = form.querySelector('input[type=""password""]');
+
+                            if (usernameInput && passwordInput && usernameInput.value && passwordInput.value) {
+                                // Enviar las credenciales a la aplicación C#
+                                window.chrome.webview.postMessage({
+                                    type: 'loginSubmit',
+                                    url: window.location.href,
+                                    username: usernameInput.value,
+                                    password: passwordInput.value
+                                });
+                            }
+                        });
+                    });
+                })();
+            ";
+            await currentWebView.CoreWebView2.ExecuteScriptAsync(scriptToInject);
+        }
+
+        /// <summary>
+        /// NUEVO: Maneja los mensajes recibidos desde JavaScript (ej. credenciales de login).
+        /// </summary>
+        private async void CoreWebView2_WebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs e)
+        {
+            WebView2 currentWebView = sender as WebView2;
+            if (currentWebView == null || currentWebView.CoreWebView2 == null) return;
+
+            // No guardar en modo incógnito
+            var browserTab = _browserTabs.FirstOrDefault(t => t.LeftWebView == currentWebView || t.RightWebView == currentWebView);
+            if (browserTab != null && browserTab.IsIncognito) return;
+
+            string message = e.WebMessageAsJson;
+            try
+            {
+                // Deserializar el mensaje JSON
+                using (JsonDocument doc = JsonDocument.Parse(message))
+                {
+                    JsonElement root = doc.RootElement;
+                    if (root.TryGetProperty("type", out JsonElement typeElement) && typeElement.GetString() == "loginSubmit")
+                    {
+                        string url = root.GetProperty("url").GetString();
+                        string username = root.GetProperty("username").GetString();
+                        string password = root.GetProperty("password").GetString();
+
+                        // Preguntar al usuario si desea guardar la contraseña
+                        MessageBoxResult result = MessageBox.Show(
+                            $"¿Deseas guardar la contraseña para el usuario '{username}' en '{new Uri(url).Host}'?",
+                            "Guardar Contraseña",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Question
+                        );
+
+                        if (result == MessageBoxResult.Yes)
+                        {
+                            PasswordManager.AddOrUpdatePassword(url, username, password);
+                            MessageBox.Show("Contraseña guardada con éxito.", "Contraseña Guardada", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Esto puede ocurrir si el mensaje JSON no tiene el formato esperado
+                Debug.WriteLine($"Error al procesar mensaje web: {ex.Message}");
+            }
+        }
+
 
         /// <summary>
         /// Método público para que el Gestor de Permisos pueda obtener el entorno predeterminado.
@@ -1551,6 +1686,8 @@ namespace NavegadorWeb
                         // Los eventos de navegación, fuente y título se re-adjuntan en ConfigureCoreWebView2
                         newWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted; // Asegurarse de re-adjuntar este también
                         newWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested; // Asegurarse de re-adjuntar este
+                        newWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived; // NUEVO: Asegurarse de re-adjuntar este
+                        newWebView.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded; // NUEVO: Asegurarse de re-adjuntar este
 
                         // Reemplazar el contenido de la pestaña (volverá a ser una vista simple)
                         Grid tabContent = new Grid();
