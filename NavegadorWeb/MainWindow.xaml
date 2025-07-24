@@ -31,7 +31,8 @@
                     <Button x:Name="AIButton" Content="🤖" Width="30" Height="25" Margin="0,0,5,0" Click="AIButton_Click" ToolTip="Abrir Gemini (IA) en Pantalla Dividida"/>
                     <Button x:Name="ScreenshotButton" Content="📸" Width="30" Height="25" Margin="0,0,5,0" Click="ScreenshotButton_Click" ToolTip="Captura de Pantalla"/>
                     <Button x:Name="TabManagerButton" Content="🗂️" Width="30" Height="25" Margin="0,0,5,0" Click="TabManagerButton_Click" ToolTip="Administrador de Pestañas"/>
-                    <Button x:Name="DataExtractionButton" Content="📋" Width="30" Height="25" Margin="0,0,5,0" Click="DataExtractionButton_Click" ToolTip="Extractor de Datos Web"/> <!-- NUEVO BOTÓN EXTRACCIÓN DE DATOS -->
+                    <Button x:Name="DataExtractionButton" Content="📋" Width="30" Height="25" Margin="0,0,5,0" Click="DataExtractionButton_Click" ToolTip="Extractor de Datos Web"/>
+                    <Button x:Name="DarkModeButton" Content="🌙" Width="30" Height="25" Margin="0,0,5,0" Click="DarkModeButton_Click" ToolTip="Activar/Desactivar Modo Oscuro Global"/> <!-- NUEVO BOTÓN MODO OSCURO -->
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
@@ -63,9 +64,9 @@
 
 ---
 
-**4. Modificación del archivo: `MainWindow.xaml.cs`**
+**3. Modificación del archivo: `MainWindow.xaml.cs`**
 
-Este archivo tendrá el nuevo manejador de eventos para el botón de extracción de datos.
+Este archivo tendrá el nuevo manejador de eventos para el botón de modo oscuro y la carga del script.
 
 **Ruta:** `./NavegadorWeb/MainWindow.xaml.cs`
 
@@ -84,6 +85,7 @@ using System.IO; // Necesario para Path.Combine y operaciones de archivo
 using System.Text.Json; // Necesario para JsonSerializer (para historial y marcadores)
 using System.Speech.Synthesis; // Necesario para Text-to-Speech
 using System.Windows.Media.Imaging; // Necesario para BitmapFrame, PngBitmapEncoder
+using System.Windows.Media; // Necesario para Brushes
 
 namespace NavegadorWeb
 {
@@ -108,8 +110,9 @@ namespace NavegadorWeb
         private CoreWebView2Environment _defaultEnvironment;
         private CoreWebView2Environment _incognitoEnvironment; // Para el modo incógnito
 
-        // Contenido del script de modo lectura
+        // Contenido del script de modo lectura y modo oscuro
         private string _readerModeScript = string.Empty;
+        private string _darkModeScript = string.Empty; // NUEVO: Contenido del script de modo oscuro
 
         // Instancia del sintetizador de voz
         private SpeechSynthesizer _speechSynthesizer;
@@ -121,6 +124,7 @@ namespace NavegadorWeb
             LoadSettings(); // Cargar configuraciones al iniciar la aplicación
             InitializeEnvironments(); // Inicializar los entornos de WebView2
             LoadReaderModeScript(); // Cargar el script de modo lectura
+            LoadDarkModeScript(); // NUEVO: Cargar el script de modo oscuro
 
             // Inicializar el sintetizador de voz
             _speechSynthesizer = new SpeechSynthesizer();
@@ -157,6 +161,29 @@ namespace NavegadorWeb
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al cargar el script de modo lectura: {ex.Message}", "Error", MessageBoxButton.OK, Image.Error);
+            }
+        }
+
+        /// <summary>
+        /// NUEVO: Carga el contenido del archivo DarkMode.js.
+        /// </summary>
+        private void LoadDarkModeScript()
+        {
+            try
+            {
+                string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DarkMode.js");
+                if (File.Exists(scriptPath))
+                {
+                    _darkModeScript = File.ReadAllText(scriptPath);
+                }
+                else
+                {
+                    MessageBox.Show("Advertencia: El archivo 'DarkMode.js' no se encontró. El modo oscuro global no funcionará.", "Archivo Faltante", MessageBoxButton.OK, Image.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al cargar el script de modo oscuro: {ex.Message}", "Error", MessageBoxButton.OK, Image.Error);
             }
         }
 
@@ -924,13 +951,47 @@ namespace NavegadorWeb
         }
 
         /// <summary>
-        /// NUEVO: Maneja el clic en el botón "Extractor de Datos Web". Abre la ventana de extracción de datos.
+        /// Maneja el clic en el botón "Extractor de Datos Web". Abre la ventana de extracción de datos.
         /// </summary>
         private void DataExtractionButton_Click(object sender, RoutedEventArgs e)
         {
             // Pasamos un delegado para que la ventana de extracción pueda obtener el WebView2 actual
             DataExtractionWindow dataExtractionWindow = new DataExtractionWindow(GetCurrentWebView);
             dataExtractionWindow.Show(); // Mostrar la ventana (no modal)
+        }
+
+        /// <summary>
+        /// NUEVO: Maneja el clic en el botón "Modo Oscuro Global". Inyecta el script para activar/desactivar el modo oscuro.
+        /// </summary>
+        private async void DarkModeButton_Click(object sender, RoutedEventArgs e)
+        {
+            WebView2 currentWebView = GetCurrentWebView();
+            if (currentWebView == null || currentWebView.CoreWebView2 == null)
+            {
+                MessageBox.Show("No hay una página activa para aplicar el modo oscuro.", "Error de Modo Oscuro", MessageBoxButton.OK, Image.Error);
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(_darkModeScript))
+            {
+                try
+                {
+                    // Inyectar el script en la página actual
+                    await currentWebView.CoreWebView2.ExecuteScriptAsync(_darkModeScript);
+
+                    // Opcional: Cambiar el icono del botón para indicar el estado
+                    // Esto requeriría que el JavaScript devuelva el estado actual, o que el C# lo gestione.
+                    // Por simplicidad, el JS se encarga de la lógica de toggle.
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error al aplicar el modo oscuro: {ex.Message}", "Error de Modo Oscuro", MessageBoxButton.OK, Image.Error);
+                }
+            }
+            else
+            {
+                MessageBox.Show("El script de modo oscuro no está cargado. Asegúrate de que 'DarkMode.js' exista.", "Error de Modo Oscuro", MessageBoxButton.OK, Image.Warning);
+            }
         }
 
 
