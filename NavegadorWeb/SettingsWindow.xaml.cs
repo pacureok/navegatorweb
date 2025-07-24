@@ -8,24 +8,29 @@ namespace NavegadorWeb
     public partial class SettingsWindow : Window
     {
         public string HomePage { get; set; }
+        public bool IsAdBlockerEnabled { get; set; } // Nuevo: Propiedad para el bloqueador
 
-        public SettingsWindow(string currentHomePage)
+        public SettingsWindow(string currentHomePage, bool currentAdBlockerState) // Nuevo: Parámetro para el estado del bloqueador
         {
             InitializeComponent();
             HomePage = currentHomePage;
             HomePageTextBox.Text = HomePage;
+
+            IsAdBlockerEnabled = currentAdBlockerState; // Cargar estado actual
+            AdBlockerCheckBox.IsChecked = IsAdBlockerEnabled; // Asignar al CheckBox
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
             HomePage = HomePageTextBox.Text;
-            this.DialogResult = true; // Indica que los cambios fueron guardados
+            IsAdBlockerEnabled = AdBlockerCheckBox.IsChecked ?? false; // Guardar estado del CheckBox
+            this.DialogResult = true;
             this.Close();
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
-            this.DialogResult = false; // Indica que los cambios no fueron guardados
+            this.DialogResult = false;
             this.Close();
         }
     }
