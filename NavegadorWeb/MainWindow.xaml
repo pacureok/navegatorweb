@@ -22,11 +22,12 @@
                     <Button x:Name="ReloadButton" Content="⟳" Width="30" Height="25" Margin="0,0,5,0" Click="ReloadButton_Click" ToolTip="Recargar"/>
                     <Button x:Name="HomeButton" Content="🏠" Width="30" Height="25" Margin="0,0,5,0" Click="HomeButton_Click" ToolTip="Inicio"/>
                     <Button x:Name="HistoryButton" Content="🕒" Width="30" Height="25" Margin="0,0,5,0" Click="HistoryButton_Click" ToolTip="Historial"/>
-                    <Button x:Name="BookmarksButton" Content="⭐" Width="30" Height="25" Margin="0,0,5,0" Click="BookmarksButton_Click" ToolTip="Mis Marcadores"/> <!-- NUEVO BOTÓN MARCADORES -->
+                    <Button x:Name="BookmarksButton" Content="⭐" Width="30" Height="25" Margin="0,0,5,0" Click="BookmarksButton_Click" ToolTip="Mis Marcadores"/>
+                    <Button x:Name="DownloadsButton" Content="⬇️" Width="30" Height="25" Margin="0,0,5,0" Click="DownloadsButton_Click" ToolTip="Descargas"/> <!-- NUEVO BOTÓN DESCARGAS -->
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
-                    <Button x:Name="AddBookmarkButton" Content="➕⭐" Width="40" Height="25" Margin="0,0,5,0" Click="AddBookmarkButton_Click" ToolTip="Añadir página actual a Marcadores"/> <!-- NUEVO BOTÓN AÑADIR MARCADOR -->
+                    <Button x:Name="AddBookmarkButton" Content="➕⭐" Width="40" Height="25" Margin="0,0,5,0" Click="AddBookmarkButton_Click" ToolTip="Añadir página actual a Marcadores"/>
                     <Button x:Name="NewTabButton" Content="+" Width="30" Height="25" Margin="0,0,5,0" Click="NewTabButton_Click" ToolTip="Nueva Pestaña"/>
                     <Button x:Name="SettingsButton" Content="⚙️" Width="30" Height="25" Click="SettingsButton_Click" ToolTip="Opciones"/>
                 </StackPanel>
