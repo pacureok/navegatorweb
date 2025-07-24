@@ -2,7 +2,7 @@ using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using System;
 using System.Collections.Generic;
-using System.Configuration; // Necesario para ConfigurationManager
+using System.Configuration;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -18,7 +18,10 @@ namespace NavegadorWeb
     {
         private string _defaultHomePage = "https://www.google.com"; // Página de inicio predeterminada
         private const string HomePageSettingKey = "DefaultHomePage"; // Clave para la configuración de la página de inicio
-        private const string AdBlockerSettingKey = "AdBlockerEnabled"; // Nueva clave para el estado del bloqueador de anuncios
+        private const string AdBlockerSettingKey = "AdBlockerEnabled"; // Clave para el estado del bloqueador de anuncios
+        private const string DefaultSearchEngineSettingKey = "DefaultSearchEngine"; // Nueva clave para el motor de búsqueda predeterminado
+
+        private string _defaultSearchEngineUrl = "https://www.google.com/search?q="; // URL base del motor de búsqueda predeterminado
 
         // Lista para mantener un seguimiento de todas las pestañas abiertas
         private List<BrowserTabItem> _browserTabs = new List<BrowserTabItem>();
@@ -82,9 +85,9 @@ namespace NavegadorWeb
             // Enlazar eventos del WebView2 para esta pestaña
             webView.Loaded += WebView_Loaded; // Para asegurar que CoreWebView2 esté listo
             webView.CoreWebView2InitializationCompleted += WebView_CoreWebView2InitializationCompleted; // Para adjuntar WebResourceRequested
-            webView.NavigationStarting += WebView_NavigationStarting;
+            webView.NavigationStarting += WebView_NavigationStarting; // Para mostrar indicador de carga
             webView.SourceChanged += WebView_SourceChanged;
-            webView.NavigationCompleted += WebView_NavigationCompleted;
+            webView.NavigationCompleted += WebView_NavigationCompleted; // Para ocultar indicador de carga
             webView.CoreWebView2.DocumentTitleChanged += WebView_DocumentTitleChanged;
 
             // Contenido de la pestaña: un Grid que contiene el WebView2
@@ -174,7 +177,7 @@ namespace NavegadorWeb
 
         /// <summary>
         /// Se ejecuta cuando la navegación en un WebView2 ha completado.
-        /// Muestra un mensaje de error si la navegación falló.
+        /// Muestra un mensaje de error si la navegación falló y oculta el indicador de carga.
         /// </summary>
         private void WebView_NavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
         {
@@ -188,13 +191,16 @@ namespace NavegadorWeb
                     MessageBox.Show($"La navegación a {currentWebView.CoreWebView2.Source} falló con el código de error {e.WebErrorStatus}", "Error de Navegación", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
+            LoadingProgressBar.Visibility = Visibility.Collapsed; // Ocultar el indicador de carga
         }
 
         /// <summary>
         /// Se ejecuta antes de que comience una navegación en un WebView2.
+        /// Muestra el indicador de carga.
         /// </summary>
         private void WebView_NavigationStarting(object sender, CoreWebView2NavigationStartingEventArgs e)
         {
+            LoadingProgressBar.Visibility = Visibility.Visible; // Mostrar el indicador de carga
             // Aquí puedes añadir lógica para bloquear ciertas URLs o modificar la solicitud antes de que comience la navegación.
         }
 
@@ -244,6 +250,7 @@ namespace NavegadorWeb
 
         /// <summary>
         /// Navega a la URL en la pestaña actualmente activa.
+        /// Si el texto no es una URL válida, lo trata como una búsqueda.
         /// </summary>
         private void NavigateToUrlInCurrentTab()
         {
@@ -254,21 +261,26 @@ namespace NavegadorWeb
                 return;
             }
 
-            string url = UrlTextBox.Text;
-            if (!Uri.IsWellFormedUriString(url, UriKind.Absolute))
+            string input = UrlTextBox.Text.Trim();
+            string urlToNavigate = input;
+
+            // Intentar crear una URI para validar si es una URL bien formada
+            if (!Uri.TryCreate(input, UriKind.Absolute, out Uri uriResult) ||
+                (uriResult.Scheme != Uri.UriSchemeHttp && uriResult.Scheme != Uri.UriSchemeHttps))
             {
-                // Intentar prefijar con "http://" si no es una URL válida.
-                url = "http://" + url;
-                if (!Uri.IsWellFormedUriString(url, UriKind.Absolute))
-                {
-                    MessageBox.Show("Por favor, introduce una URL válida.", "URL Inválida", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+                // Si no es una URL válida (o no tiene http/https), asumimos que es una búsqueda
+                urlToNavigate = _defaultSearchEngineUrl + Uri.EscapeDataString(input);
             }
+            // Si es una URL válida pero no tiene esquema (ej. "google.com"), añadir "http://"
+            else if (uriResult.IsAbsoluteUri && string.IsNullOrEmpty(uriResult.Scheme))
+            {
+                urlToNavigate = "http://" + input;
+            }
+
 
             try
             {
-                currentWebView.CoreWebView2.Navigate(url);
+                currentWebView.CoreWebView2.Navigate(urlToNavigate);
             }
             catch (Exception ex)
             {
@@ -409,20 +421,21 @@ namespace NavegadorWeb
         /// </summary>
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
-            // Pasa la página de inicio actual y el estado actual del bloqueador de anuncios a la ventana de configuración.
-            SettingsWindow settingsWindow = new SettingsWindow(_defaultHomePage, AdBlocker.IsEnabled);
+            // Pasa la página de inicio actual, el estado actual del bloqueador de anuncios y la URL del motor de búsqueda
+            SettingsWindow settingsWindow = new SettingsWindow(_defaultHomePage, AdBlocker.IsEnabled, _defaultSearchEngineUrl);
             if (settingsWindow.ShowDialog() == true) // Muestra la ventana de configuración como un diálogo modal
             {
                 // Si el usuario hizo clic en "Guardar" en la ventana de configuración
                 _defaultHomePage = settingsWindow.HomePage; // Actualiza la página de inicio
                 AdBlocker.IsEnabled = settingsWindow.IsAdBlockerEnabled; // Actualiza el estado del bloqueador
-                SaveSettings(); // Guarda ambas configuraciones en App.config
-                MessageBox.Show("Configuración guardada. La nueva página de inicio se aplicará al abrir nuevas pestañas o al hacer clic en 'Inicio'. La configuración del bloqueador de anuncios es efectiva inmediatamente.", "Configuración Guardada", MessageBoxButton.OK, MessageBoxImage.Information);
+                _defaultSearchEngineUrl = settingsWindow.DefaultSearchEngineUrl; // Actualiza la URL del motor de búsqueda
+                SaveSettings(); // Guarda todas las configuraciones en App.config
+                MessageBox.Show("Configuración guardada. Los cambios se aplicarán al abrir nuevas pestañas o al hacer clic en 'Inicio'.", "Configuración Guardada", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
         /// <summary>
-        /// Carga las configuraciones de la aplicación (página de inicio y estado del bloqueador) desde App.config.
+        /// Carga las configuraciones de la aplicación (página de inicio, estado del bloqueador, motor de búsqueda) desde App.config.
         /// </summary>
         private void LoadSettings()
         {
@@ -443,10 +456,18 @@ namespace NavegadorWeb
             {
                 AdBlocker.IsEnabled = false; // Por defecto, el bloqueador está deshabilitado si no hay configuración o es inválida.
             }
+
+            // Cargar la URL del motor de búsqueda predeterminado
+            string savedSearchEngineUrl = ConfigurationManager.AppSettings[DefaultSearchEngineSettingKey];
+            if (!string.IsNullOrEmpty(savedSearchEngineUrl))
+            {
+                _defaultSearchEngineUrl = savedSearchEngineUrl;
+            }
+            // Si no hay configuración guardada, se usará la _defaultSearchEngineUrl inicial ("https://www.google.com/search?q=")
         }
 
         /// <summary>
-        /// Guarda las configuraciones actuales (página de inicio y estado del bloqueador) en App.config.
+        /// Guarda las configuraciones actuales (página de inicio, estado del bloqueador, motor de búsqueda) en App.config.
         /// </summary>
         private void SaveSettings()
         {
@@ -454,23 +475,21 @@ namespace NavegadorWeb
 
             // Guardar página de inicio
             if (config.AppSettings.Settings[HomePageSettingKey] == null)
-            {
                 config.AppSettings.Settings.Add(HomePageSettingKey, _defaultHomePage);
-            }
             else
-            {
                 config.AppSettings.Settings[HomePageSettingKey].Value = _defaultHomePage;
-            }
 
             // Guardar estado del bloqueador de anuncios
             if (config.AppSettings.Settings[AdBlockerSettingKey] == null)
-            {
                 config.AppSettings.Settings.Add(AdBlockerSettingKey, AdBlocker.IsEnabled.ToString());
-            }
             else
-            {
                 config.AppSettings.Settings[AdBlockerSettingKey].Value = AdBlocker.IsEnabled.ToString();
-            }
+
+            // Guardar URL del motor de búsqueda predeterminado
+            if (config.AppSettings.Settings[DefaultSearchEngineSettingKey] == null)
+                config.AppSettings.Settings.Add(DefaultSearchEngineSettingKey, _defaultSearchEngineUrl);
+            else
+                config.AppSettings.Settings[DefaultSearchEngineSettingKey].Value = _defaultSearchEngineUrl;
 
             config.Save(ConfigurationSaveMode.Modified); // Guarda los cambios en el archivo de configuración
             ConfigurationManager.RefreshSection("appSettings"); // Refresca la sección para que los nuevos valores estén disponibles inmediatamente
