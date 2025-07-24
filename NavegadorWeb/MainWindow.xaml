@@ -35,6 +35,7 @@
                     <Button x:Name="DarkModeButton" Content="🌙" Width="30" Height="25" Margin="0,0,5,0" Click="DarkModeButton_Click" ToolTip="Activar/Desactivar Modo Oscuro Global"/>
                     <Button x:Name="PerformanceMonitorButton" Content="📊" Width="30" Height="25" Margin="0,0,5,0" Click="PerformanceMonitorButton_Click" ToolTip="Monitor de Rendimiento"/>
                     <Button x:Name="FindButton" Content="🔍" Width="30" Height="25" Margin="0,0,5,0" Click="FindButton_Click" ToolTip="Buscar en Página"/>
+                    <Button x:Name="PermissionsButton" Content="🔒" Width="30" Height="25" Margin="0,0,5,0" Click="PermissionsButton_Click" ToolTip="Gestor de Permisos"/> <!-- NUEVO BOTÓN GESTOR DE PERMISOS -->
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
@@ -87,9 +88,9 @@
 
 ---
 
-**2. Modificación del archivo: `MainWindow.xaml.cs`**
+**4. Modificación del archivo: `MainWindow.xaml.cs`**
 
-Este archivo contendrá la lógica para guardar y cargar la sesión.
+Este archivo contendrá el manejador para el nuevo botón del gestor de permisos y un delegado para pasar el entorno de WebView2.
 
 **Ruta:** `./NavegadorWeb/MainWindow.xaml.cs`
 
@@ -123,12 +124,12 @@ namespace NavegadorWeb
         private const string AdBlockerSettingKey = "AdBlockerEnabled"; // Clave para el estado del bloqueador de anuncios
         private const string DefaultSearchEngineSettingKey = "DefaultSearchEngine"; // Clave para el motor de búsqueda predeterminado
         private const string TabSuspensionSettingKey = "TabSuspensionEnabled"; // Clave para el estado de la suspensión de pestañas
-        private const string RestoreSessionSettingKey = "RestoreSessionOnStartup"; // NUEVO: Clave para la configuración de restaurar sesión
-        private const string LastSessionUrlsSettingKey = "LastSessionUrls"; // NUEVO: Clave para guardar las URLs de la última sesión
+        private const string RestoreSessionSettingKey = "RestoreSessionOnStartup"; // Clave para la configuración de restaurar sesión
+        private const string LastSessionUrlsSettingKey = "LastSessionUrls"; // Clave para guardar las URLs de la última sesión
 
         private string _defaultSearchEngineUrl = "https://www.google.com/search?q="; // URL base del motor de búsqueda predeterminado
         private bool _isTabSuspensionEnabled = false; // Estado de la suspensión de pestañas
-        private bool _restoreSessionOnStartup = true; // NUEVO: Estado de restaurar sesión al inicio (por defecto true)
+        private bool _restoreSessionOnStartup = true; // Estado de restaurar sesión al inicio (por defecto true)
 
         // Lista para mantener un seguimiento de todas las pestañas abiertas
         private List<BrowserTabItem> _browserTabs = new List<BrowserTabItem>();
@@ -257,7 +258,7 @@ namespace NavegadorWeb
             string blockedDomainsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "blocked_domains.txt");
             AdBlocker.LoadBlockedDomainsFromFile(blockedDomainsFilePath);
 
-            // NUEVO: Restaurar sesión anterior si la configuración lo permite
+            // Restaurar sesión anterior si la configuración lo permite
             if (_restoreSessionOnStartup)
             {
                 string savedUrlsJson = ConfigurationManager.AppSettings[LastSessionUrlsSettingKey];
@@ -372,6 +373,8 @@ namespace NavegadorWeb
             webView1.CoreWebView2.DocumentTitleChanged += WebView_DocumentTitleChanged;
             // Suscribirse al evento FindInPageCompleted para actualizar los resultados de búsqueda
             webView1.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted;
+            // NUEVO: Suscribirse al evento PermissionRequested para gestionar permisos
+            webView1.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
 
 
             // Contenido inicial de la pestaña: solo un WebView2 en un Grid
@@ -431,6 +434,7 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.NavigationCompleted -= WebView_NavigationCompleted;
                 currentWebView.CoreWebView2.NavigationStarting -= WebView_NavigationStarting;
                 currentWebView.CoreWebView2.FindInPageCompleted -= CoreWebView2_FindInPageCompleted; // Desvincular también este
+                currentWebView.CoreWebView2.PermissionRequested -= CoreWebView2_PermissionRequested; // NUEVO: Desvincular este
 
                 // Adjuntar el manejador de eventos para interceptar solicitudes de red (bloqueador de anuncios).
                 currentWebView.CoreWebView2.WebResourceRequested += CoreWebView2_WebResourceRequested;
@@ -447,6 +451,7 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.NavigationCompleted += WebView_NavigationCompleted;
                 currentWebView.CoreWebView2.NavigationStarting += WebView_NavigationStarting;
                 currentWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted; // Re-adjuntar este también
+                currentWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested; // NUEVO: Re-adjuntar este
             }
         }
 
@@ -532,6 +537,29 @@ namespace NavegadorWeb
                 // Si el usuario cancela el diálogo de guardado, cancelar la descarga
                 e.Cancel = true;
                 MessageBox.Show("Descarga cancelada por el usuario.", "Descarga Cancelada", MessageBoxButton.OK, Image.Information);
+            }
+        }
+
+        /// <summary>
+        /// Maneja las solicitudes de permisos de sitios web (ej. cámara, micrófono).
+        /// </summary>
+        private void CoreWebView2_PermissionRequested(object sender, CoreWebView2PermissionRequestedEventArgs e)
+        {
+            // Mostrar un MessageBox para preguntar al usuario
+            MessageBoxResult result = MessageBox.Show(
+                $"El sitio web '{e.Uri}' solicita permiso para usar: {e.PermissionKind}.\n¿Deseas permitirlo?",
+                "Solicitud de Permiso",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question
+            );
+
+            if (result == MessageBoxResult.Yes)
+            {
+                e.State = CoreWebView2PermissionState.Allow; // Permitir el permiso
+            }
+            else
+            {
+                e.State = CoreWebView2PermissionState.Deny; // Denegar el permiso
             }
         }
 
@@ -1203,6 +1231,25 @@ namespace NavegadorWeb
             ClearFindResults();
         }
 
+        /// <summary>
+        /// NUEVO: Maneja el clic en el botón "Gestor de Permisos". Abre la ventana del gestor de permisos.
+        /// </summary>
+        private void PermissionsButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Pasamos un delegado para que la ventana de permisos pueda obtener el entorno de WebView2
+            PermissionsManagerWindow permissionsWindow = new PermissionsManagerWindow(GetDefaultEnvironment);
+            permissionsWindow.Show(); // Mostrar la ventana (no modal)
+        }
+
+        /// <summary>
+        /// Método público para que el Gestor de Permisos pueda obtener el entorno predeterminado.
+        /// </summary>
+        /// <returns>El CoreWebView2Environment predeterminado.</returns>
+        public CoreWebView2Environment GetDefaultEnvironment()
+        {
+            return _defaultEnvironment;
+        }
+
 
         /// <summary>
         /// Método público para que el Administrador de Pestañas y el Monitor de Rendimiento puedan obtener la lista de todas las pestañas.
@@ -1280,7 +1327,7 @@ namespace NavegadorWeb
             webView2.Source = new Uri(rightPanelUrl); // La segunda vista empieza en la URL especificada
             webView2.Name = "WebView2_Tab" + _browserTabs.IndexOf(tabItem); // Nombre único
             webView2.HorizontalAlignment = HorizontalAlignment.Stretch;
-            webView2.VerticalAlignment = VerticalAlignment.Stretch; // Corregido el typo
+            webView2.VerticalAlignment = VerticalAlignment.Stretch;
 
             // Usar el mismo entorno que el LeftWebView para consistencia
             CoreWebView2Environment envToUse = tabItem.IsIncognito ? _incognitoEnvironment : _defaultEnvironment;
@@ -1443,6 +1490,7 @@ namespace NavegadorWeb
                         newWebView.CoreWebView2InitializationCompleted += (s, ev) => ConfigureCoreWebView2(newWebView, ev, envToUse); // Pasar e y envToUse
                         // Los eventos de navegación, fuente y título se re-adjuntan en ConfigureCoreWebView2
                         newWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted; // Asegurarse de re-adjuntar este también
+                        newWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested; // NUEVO: Asegurarse de re-adjuntar este
 
                         // Reemplazar el contenido de la pestaña (volverá a ser una vista simple)
                         Grid tabContent = new Grid();
@@ -1524,7 +1572,7 @@ namespace NavegadorWeb
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
             // Pasa la página de inicio actual, el estado del bloqueador, la URL del motor de búsqueda y el estado de suspensión
-            SettingsWindow settingsWindow = new SettingsWindow(_defaultHomePage, AdBlocker.IsEnabled, _defaultSearchEngineUrl, _isTabSuspensionEnabled, _restoreSessionOnStartup); // NUEVO: Pasar el estado de restaurar sesión
+            SettingsWindow settingsWindow = new SettingsWindow(_defaultHomePage, AdBlocker.IsEnabled, _defaultSearchEngineUrl, _isTabSuspensionEnabled, _restoreSessionOnStartup);
 
             // Suscribirse a los nuevos eventos de la ventana de configuración
             settingsWindow.OnClearBrowsingData += SettingsWindow_OnClearBrowsingData;
@@ -1538,7 +1586,7 @@ namespace NavegadorWeb
                 AdBlocker.IsEnabled = settingsWindow.IsAdBlockerEnabled; // Actualiza el estado del bloqueador
                 _defaultSearchEngineUrl = settingsWindow.DefaultSearchEngineUrl; // Actualiza la URL del motor de búsqueda
                 _isTabSuspensionEnabled = settingsWindow.IsTabSuspensionEnabled; // Actualiza el estado de suspensión
-                _restoreSessionOnStartup = settingsWindow.RestoreSessionOnStartup; // NUEVO: Actualiza el estado de restaurar sesión
+                _restoreSessionOnStartup = settingsWindow.RestoreSessionOnStartup; // Actualiza el estado de restaurar sesión
                 SaveSettings(); // Guarda todas las configuraciones en App.config
                 MessageBox.Show("Configuración guardada. Los cambios se aplicarán al abrir nuevas pestañas o al hacer clic en 'Inicio'.", "Configuración Guardada", MessageBoxButton.OK, Image.Information);
             }
@@ -1676,7 +1724,7 @@ namespace NavegadorWeb
                 _isTabSuspensionEnabled = false; // Por defecto deshabilitado
             }
 
-            // NUEVO: Cargar el estado de restaurar sesión al inicio
+            // Cargar el estado de restaurar sesión al inicio
             string savedRestoreSessionState = ConfigurationManager.AppSettings[RestoreSessionSettingKey];
             if (bool.TryParse(savedRestoreSessionState, out bool restoreSession))
             {
@@ -1719,13 +1767,13 @@ namespace NavegadorWeb
             else
                 config.AppSettings.Settings[TabSuspensionSettingKey].Value = _isTabSuspensionEnabled.ToString();
 
-            // NUEVO: Guardar estado de restaurar sesión al inicio
+            // Guardar estado de restaurar sesión al inicio
             if (config.AppSettings.Settings[RestoreSessionSettingKey] == null)
                 config.AppSettings.Settings.Add(RestoreSessionSettingKey, _restoreSessionOnStartup.ToString());
             else
                 config.AppSettings.Settings[RestoreSessionSettingKey].Value = _restoreSessionOnStartup.ToString();
 
-            // NUEVO: Guardar las URLs de la sesión actual si la restauración está habilitada
+            // Guardar las URLs de la sesión actual si la restauración está habilitada
             if (_restoreSessionOnStartup)
             {
                 List<string> currentUrls = new List<string>();
@@ -1820,172 +1868,6 @@ namespace NavegadorWeb
             public TextBlock HeaderTextBlock { get; set; } // El TextBlock que muestra el título en el encabezado de la pestaña
             public bool IsIncognito { get; set; } // Indica si la pestaña está en modo incógnito
             public bool IsSplit { get; set; } // Indica si la pestaña está en modo dividido
-        }
-    }
-}
-```
-
----
-
-**3. Modificación del archivo: `SettingsWindow.xaml`**
-
-Añadir un `CheckBox` para la opción de restaurar sesión.
-
-**Ruta:** `./NavegadorWeb/SettingsWindow.xaml`
-
-
-```xml
-<Window x:Class="NavegadorWeb.SettingsWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d"
-        Title="Opciones del Navegador" Height="450" Width="500"
-        WindowStartupLocation="CenterScreen">
-    <Grid Margin="15">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        <TextBlock Grid.Row="0" Text="Página de Inicio:" FontWeight="Bold" Margin="0,0,0,5"/>
-        <TextBox x:Name="HomePageTextBox" Grid.Row="1" Margin="0,0,0,10"/>
-
-        <TextBlock Grid.Row="2" Text="Bloqueador de Anuncios:" FontWeight="Bold" Margin="0,0,0,5"/>
-        <CheckBox x:Name="AdBlockerCheckBox" Grid.Row="3" Content="Habilitar Bloqueador de Anuncios" Margin="0,0,0,10"/>
-
-        <TextBlock Grid.Row="4" Text="Motor de Búsqueda Predeterminado (URL con ?q=):" FontWeight="Bold" Margin="0,0,0,5"/>
-        <TextBox x:Name="SearchEngineTextBox" Grid.Row="5" Margin="0,0,0,10"/>
-
-        <TextBlock Grid.Row="6" Text="Gestión de Pestañas:" FontWeight="Bold" Margin="0,0,0,5"/>
-        <CheckBox x:Name="TabSuspensionCheckBox" Grid.Row="7" Content="Habilitar Suspensión de Pestañas Inactivas" Margin="0,0,0,10"/>
-
-        <TextBlock Grid.Row="8" Text="Inicio del Navegador:" FontWeight="Bold" Margin="0,0,0,5"/>
-        <CheckBox x:Name="RestoreSessionCheckBox" Grid.Row="9" Content="Restaurar sesión anterior al iniciar" Margin="0,0,0,10"/> <!-- NUEVO CHECKBOX -->
-
-        <StackPanel Grid.Row="10" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-            <Button x:Name="ClearBrowsingDataButton" Content="Borrar Datos de Navegación" Width="180" Height="30" Margin="0,0,10,0" Click="ClearBrowsingDataButton_Click"/>
-            <Button x:Name="SuspendInactiveTabsButton" Content="Suspender Pestañas Inactivas Ahora" Width="220" Height="30" Margin="0,0,10,0" Click="SuspendInactiveTabsButton_Click"/>
-            <Button x:Name="SaveButton" Content="Guardar" Width="80" Height="30" Margin="0,0,10,0" Click="SaveButton_Click"/>
-            <Button x:Name="CancelButton" Content="Cancelar" Width="80" Height="30" Click="CancelButton_Click"/>
-        </StackPanel>
-    </Grid>
-</Window>
-```
-
----
-
-**4. Modificación del archivo: `SettingsWindow.xaml.cs`**
-
-Este archivo manejará el estado de la nueva opción de restaurar sesión.
-
-**Ruta:** `./NavegadorWeb/SettingsWindow.xaml.cs`
-
-
-```csharp
-using System;
-using System.Windows;
-using System.Windows.Controls;
-
-namespace NavegadorWeb
-{
-    /// <summary>
-    /// Lógica de interacción para SettingsWindow.xaml
-    /// </summary>
-    public partial class SettingsWindow : Window
-    {
-        // Propiedades para almacenar las configuraciones
-        public string HomePage { get; private set; }
-        public bool IsAdBlockerEnabled { get; private set; }
-        public string DefaultSearchEngineUrl { get; private set; }
-        public bool IsTabSuspensionEnabled { get; private set; }
-        public bool RestoreSessionOnStartup { get; private set; } // NUEVO: Propiedad para restaurar sesión
-
-        // Eventos para notificar a MainWindow sobre acciones específicas
-        public event Action OnClearBrowsingData;
-        public event Action OnSuspendInactiveTabs;
-
-        public SettingsWindow(string currentHomePage, bool isAdBlockerEnabled, string defaultSearchEngineUrl, bool isTabSuspensionEnabled, bool restoreSessionOnStartup) // NUEVO: Parámetro restoreSessionOnStartup
-        {
-            InitializeComponent();
-
-            // Cargar las configuraciones actuales en los controles de la ventana
-            HomePageTextBox.Text = currentHomePage;
-            AdBlockerCheckBox.IsChecked = isAdBlockerEnabled;
-            SearchEngineTextBox.Text = defaultSearchEngineUrl;
-            TabSuspensionCheckBox.IsChecked = isTabSuspensionEnabled;
-            RestoreSessionCheckBox.IsChecked = restoreSessionOnStartup; // NUEVO: Asignar estado al checkbox
-        }
-
-        /// <summary>
-        /// Maneja el clic en el botón "Guardar".
-        /// </summary>
-        private void SaveButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Validar la URL de la página de inicio
-            if (!Uri.TryCreate(HomePageTextBox.Text, UriKind.Absolute, out Uri homePageUri) ||
-                (homePageUri.Scheme != Uri.UriSchemeHttp && homePageUri.Scheme != Uri.UriSchemeHttps))
-            {
-                MessageBox.Show("Por favor, introduce una URL de página de inicio válida (debe empezar con http:// o https://).", "Error de URL", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            // Validar la URL del motor de búsqueda
-            if (!Uri.TryCreate(SearchEngineTextBox.Text, UriKind.Absolute, out Uri searchEngineUri) ||
-                (searchEngineUri.Scheme != Uri.UriSchemeHttp && searchEngineUri.Scheme != Uri.UriSchemeHttps))
-            {
-                MessageBox.Show("Por favor, introduce una URL de motor de búsqueda válida (debe empezar con http:// o https://).", "Error de URL", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            // Guardar las configuraciones de los controles en las propiedades públicas
-            HomePage = HomePageTextBox.Text;
-            IsAdBlockerEnabled = AdBlockerCheckBox.IsChecked ?? false; // ?? false para manejar nullables
-            DefaultSearchEngineUrl = SearchEngineTextBox.Text;
-            IsTabSuspensionEnabled = TabSuspensionCheckBox.IsChecked ?? false;
-            RestoreSessionOnStartup = RestoreSessionCheckBox.IsChecked ?? false; // NUEVO: Guardar estado
-
-            DialogResult = true; // Indicar que la ventana se cerró con éxito (Guardar)
-            this.Close();
-        }
-
-        /// <summary>
-        /// Maneja el clic en el botón "Cancelar".
-        /// </summary>
-        private void CancelButton_Click(object sender, RoutedEventArgs e)
-        {
-            DialogResult = false; // Indicar que la ventana se cerró sin guardar cambios
-            this.Close();
-        }
-
-        /// <summary>
-        /// Maneja el clic en el botón "Borrar Datos de Navegación".
-        /// </summary>
-        private void ClearBrowsingDataButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBoxResult result = MessageBox.Show("¿Estás seguro de que quieres borrar todos los datos de navegación (caché, cookies, historial, etc.)?", "Confirmar Borrado", MessageBoxButton.YesNo, MessageBoxImage.Question);
-            if (result == MessageBoxResult.Yes)
-            {
-                OnClearBrowsingData?.Invoke(); // Disparar el evento para que MainWindow lo maneje
-            }
-        }
-
-        /// <summary>
-        /// Maneja el clic en el botón "Suspender Pestañas Inactivas Ahora".
-        /// </summary>
-        private void SuspendInactiveTabsButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBoxResult result = MessageBox.Show("¿Estás seguro de que quieres suspender todas las pestañas inactivas ahora para liberar recursos?", "Confirmar Suspensión", MessageBoxButton.YesNo, MessageBoxImage.Question);
-            if (result == MessageBoxResult.Yes)
-            {
-                OnSuspendInactiveTabs?.Invoke(); // Disparar el evento para que MainWindow lo maneje
-            }
         }
     }
 }
