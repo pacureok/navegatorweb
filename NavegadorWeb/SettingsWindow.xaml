@@ -5,14 +5,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:NavegadorWeb"
         mc:Ignorable="d"
-        Title="Opciones del Navegador" Height="300" Width="400"
-        WindowStartupLocation="CenterScreen">
+        Title="Opciones del Navegador" Height="400" Width="450" WindowStartupLocation="CenterScreen">
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
@@ -25,15 +24,21 @@
 
         <CheckBox x:Name="AdBlockerCheckBox" Content="Habilitar Bloqueador de Anuncios" Grid.Row="1" Grid.ColumnSpan="2" Margin="0,15,0,5"/>
 
-        <!-- Nuevo: Opción para el motor de búsqueda predeterminado -->
         <Label Content="Motor de Búsqueda Predeterminado:" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"/>
         <ComboBox x:Name="SearchEngineComboBox" Grid.Row="2" Grid.Column="1" Margin="0,5,0,5">
             <ComboBoxItem Content="Google" Tag="https://www.google.com/search?q="/>
             <ComboBoxItem Content="Bing" Tag="https://www.bing.com/search?q="/>
-            <!-- Puedes añadir más motores de búsqueda aquí -->
-        </ComboBox>
+            </ComboBox>
 
-        <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+        <GroupBox Header="Opciones de Rendimiento y Datos" Grid.Row="3" Grid.ColumnSpan="2" Margin="0,15,0,5">
+            <StackPanel Margin="5">
+                <CheckBox x:Name="EnableTabSuspensionCheckBox" Content="Habilitar suspensión manual de pestañas" Margin="0,5,0,5" ToolTip="Permite suspender pestañas inactivas para ahorrar recursos. Necesita recargar al volver."/>
+                <Button x:Name="SuspendAllInactiveTabsButton" Content="Suspender todas las pestañas inactivas" Margin="0,10,0,5" Click="SuspendAllInactiveTabsButton_Click" ToolTip="Cierra el contenido de las pestañas no activas para liberar memoria."/>
+                <Button x:Name="ClearBrowseDataButton" Content="Borrar datos de navegación (Caché, Cookies)" Margin="0,10,0,5" Click="ClearBrowseDataButton_Click" ToolTip="Borra la caché y las cookies del navegador. Puede acelerar o requerir volver a iniciar sesión en algunos sitios."/>
+            </StackPanel>
+        </GroupBox>
+
+        <StackPanel Grid.Row="6" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
             <Button Content="Guardar" Width="80" Margin="0,0,10,0" Click="SaveButton_Click"/>
             <Button Content="Cancelar" Width="80" Click="CancelButton_Click"/>
         </StackPanel>
