@@ -1,5 +1,6 @@
+using System;
 using System.Windows;
-using System.Windows.Controls; // Necesario para ComboBox
+using System.Windows.Controls;
 
 namespace NavegadorWeb
 {
@@ -8,99 +9,95 @@ namespace NavegadorWeb
     /// </summary>
     public partial class SettingsWindow : Window
     {
-        public string HomePage { get; set; }
-        public bool IsAdBlockerEnabled { get; set; }
-        public string DefaultSearchEngineUrl { get; set; }
-        public bool IsTabSuspensionEnabled { get; set; } // Propiedad para habilitar/deshabilitar la suspensión de pestañas
+        // Propiedades para almacenar las configuraciones
+        public string HomePage { get; private set; }
+        public bool IsAdBlockerEnabled { get; private set; }
+        public string DefaultSearchEngineUrl { get; private set; }
+        public bool IsTabSuspensionEnabled { get; private set; }
+        public bool RestoreSessionOnStartup { get; private set; }
+        public bool IsTrackerProtectionEnabled { get; private set; } // NUEVO: Propiedad para protección contra rastreadores
 
-        // Delegados para los eventos que serán manejados por MainWindow
-        public delegate void ClearBrowsingDataEventHandler(); // Renombrado de ClearBrowseDataEventHandler a ClearBrowsingDataEventHandler
-        public event ClearBrowsingDataEventHandler OnClearBrowsingData; // Renombrado de OnClearBrowseData a OnClearBrowsingData
+        // Eventos para notificar a MainWindow sobre acciones específicas
+        public event Action OnClearBrowsingData;
+        public event Action OnSuspendInactiveTabs;
 
-        public delegate void SuspendInactiveTabsEventHandler();
-        public event SuspendInactiveTabsEventHandler OnSuspendInactiveTabs;
-
-
-        /// <summary>
-        /// Constructor de la ventana de configuración.
-        /// </summary>
-        /// <param name="currentHomePage">La página de inicio actual.</param>
-        /// <param name="currentAdBlockerState">El estado actual del bloqueador de anuncios.</param>
-        /// <param name="currentSearchEngineUrl">La URL actual del motor de búsqueda predeterminado.</param>
-        /// <param name="currentTabSuspensionState">El estado actual de la suspensión de pestañas.</param>
-        public SettingsWindow(string currentHomePage, bool currentAdBlockerState, string currentSearchEngineUrl, bool currentTabSuspensionState)
+        public SettingsWindow(string currentHomePage, bool isAdBlockerEnabled, string defaultSearchEngineUrl, bool isTabSuspensionEnabled, bool restoreSessionOnStartup, bool isTrackerProtectionEnabled) // NUEVO: Parámetro isTrackerProtectionEnabled
         {
             InitializeComponent();
 
-            // Cargar valores iniciales en los controles de la UI
-            HomePage = currentHomePage;
-            HomePageTextBox.Text = HomePage;
-
-            IsAdBlockerEnabled = currentAdBlockerState;
-            AdBlockerCheckBox.IsChecked = IsAdBlockerEnabled;
-
-            DefaultSearchEngineUrl = currentSearchEngineUrl;
-            // Seleccionar el ComboBoxItem correcto basado en la URL del motor de búsqueda
-            foreach (ComboBoxItem item in SearchEngineComboBox.Items)
-            {
-                if (item.Tag?.ToString() == DefaultSearchEngineUrl)
-                {
-                    SearchEngineComboBox.SelectedItem = item;
-                    break;
-                }
-            }
-            // Si no se encuentra una coincidencia, seleccionar el primer elemento si existe
-            if (SearchEngineComboBox.SelectedItem == null && SearchEngineComboBox.Items.Count > 0)
-            {
-                SearchEngineComboBox.SelectedIndex = 0;
-            }
-
-            IsTabSuspensionEnabled = currentTabSuspensionState;
-            EnableTabSuspensionCheckBox.IsChecked = IsTabSuspensionEnabled;
+            // Cargar las configuraciones actuales en los controles de la ventana
+            HomePageTextBox.Text = currentHomePage;
+            AdBlockerCheckBox.IsChecked = isAdBlockerEnabled;
+            SearchEngineTextBox.Text = defaultSearchEngineUrl;
+            TabSuspensionCheckBox.IsChecked = isTabSuspensionEnabled;
+            RestoreSessionCheckBox.IsChecked = restoreSessionOnStartup;
+            TrackerProtectionCheckBox.IsChecked = isTrackerProtectionEnabled; // NUEVO: Asignar estado al checkbox
         }
 
         /// <summary>
-        /// Maneja el clic en el botón "Guardar". Guarda los valores de los controles en las propiedades públicas.
+        /// Maneja el clic en el botón "Guardar".
         /// </summary>
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
-            HomePage = HomePageTextBox.Text;
-            IsAdBlockerEnabled = AdBlockerCheckBox.IsChecked ?? false;
-            DefaultSearchEngineUrl = (SearchEngineComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString();
-            IsTabSuspensionEnabled = EnableTabSuspensionCheckBox.IsChecked ?? false;
+            // Validar la URL de la página de inicio
+            if (!Uri.TryCreate(HomePageTextBox.Text, UriKind.Absolute, out Uri homePageUri) ||
+                (homePageUri.Scheme != Uri.UriSchemeHttp && homePageUri.Scheme != Uri.UriSchemeHttps))
+            {
+                MessageBox.Show("Por favor, introduce una URL de página de inicio válida (debe empezar con http:// o https://).", "Error de URL", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
-            this.DialogResult = true; // Indica que los cambios fueron guardados
+            // Validar la URL del motor de búsqueda
+            if (!Uri.TryCreate(SearchEngineTextBox.Text, UriKind.Absolute, out Uri searchEngineUri) ||
+                (searchEngineUri.Scheme != Uri.UriSchemeHttp && searchEngineUri.Scheme != Uri.UriSchemeHttps))
+            {
+                MessageBox.Show("Por favor, introduce una URL de motor de búsqueda válida (debe empezar con http:// o https://).", "Error de URL", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // Guardar las configuraciones de los controles en las propiedades públicas
+            HomePage = HomePageTextBox.Text;
+            IsAdBlockerEnabled = AdBlockerCheckBox.IsChecked ?? false; // ?? false para manejar nullables
+            DefaultSearchEngineUrl = SearchEngineTextBox.Text;
+            IsTabSuspensionEnabled = TabSuspensionCheckBox.IsChecked ?? false;
+            RestoreSessionOnStartup = RestoreSessionCheckBox.IsChecked ?? false;
+            IsTrackerProtectionEnabled = TrackerProtectionCheckBox.IsChecked ?? false; // NUEVO: Guardar estado
+
+            DialogResult = true; // Indicar que la ventana se cerró con éxito (Guardar)
             this.Close();
         }
 
         /// <summary>
-        /// Maneja el clic en el botón "Cancelar". Cierra la ventana sin guardar los cambios.
+        /// Maneja el clic en el botón "Cancelar".
         /// </summary>
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
-            this.DialogResult = false; // Indica que los cambios no fueron guardados
+            DialogResult = false; // Indicar que la ventana se cerró sin guardar cambios
             this.Close();
         }
 
         /// <summary>
-        /// Manejador para el botón "Borrar datos de navegación".
-        /// Invoca el evento OnClearBrowsingData para que MainWindow lo maneje.
+        /// Maneja el clic en el botón "Borrar Datos de Navegación".
         /// </summary>
-        private async void ClearBrowsingDataButton_Click(object sender, RoutedEventArgs e) // Renombrado de ClearBrowseDataButton_Click
+        private void ClearBrowsingDataButton_Click(object sender, RoutedEventArgs e)
         {
-            OnClearBrowsingData?.Invoke(); // Invocar el evento
-            MessageBox.Show("Se ha iniciado la limpieza de datos de navegación. Los cambios serán visibles después de reiniciar el navegador o recargar las páginas.", "Limpieza de Datos", MessageBoxButton.OK, MessageBoxImage.Information);
-            // No cerramos la ventana de configuración, el usuario puede seguir ajustando otras opciones
+            MessageBoxResult result = MessageBox.Show("¿Estás seguro de que quieres borrar todos los datos de navegación (caché, cookies, historial, etc.)?", "Confirmar Borrado", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (result == MessageBoxResult.Yes)
+            {
+                OnClearBrowsingData?.Invoke(); // Disparar el evento para que MainWindow lo maneje
+            }
         }
 
         /// <summary>
-        /// Manejador para el botón "Suspender todas las pestañas inactivas".
-        /// Invoca el evento OnSuspendInactiveTabs para que MainWindow lo maneje.
+        /// Maneja el clic en el botón "Suspender Pestañas Inactivas Ahora".
         /// </summary>
-        private void SuspendAllInactiveTabsButton_Click(object sender, RoutedEventArgs e)
+        private void SuspendInactiveTabsButton_Click(object sender, RoutedEventArgs e)
         {
-            OnSuspendInactiveTabs?.Invoke(); // Invocar el evento
-            MessageBox.Show("Se han suspendido las pestañas inactivas. Deberán recargarse al volver a ellas para ahorrar recursos.", "Pestañas Suspendidas", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBoxResult result = MessageBox.Show("¿Estás seguro de que quieres suspender todas las pestañas inactivas ahora para liberar recursos?", "Confirmar Suspensión", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (result == MessageBoxResult.Yes)
+            {
+                OnSuspendInactiveTabs?.Invoke(); // Disparar el evento para que MainWindow lo maneje
+            }
         }
     }
 }
