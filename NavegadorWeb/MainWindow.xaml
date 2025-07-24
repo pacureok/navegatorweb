@@ -6,14 +6,13 @@
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         mc:Ignorable="d"
         Title="Mi Navegador Web" Height="720" Width="1280"
-        Loaded="Window_Loaded">
-    <Grid>
+        Loaded="Window_Loaded"
+        Closing="Window_Closing"> <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Barra de Dirección, Botones y Botón Nueva Pestaña -->
         <Border Grid.Row="0" BorderBrush="LightGray" BorderThickness="0,0,0,1" Padding="5">
             <DockPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
@@ -25,8 +24,8 @@
                     <Button x:Name="BookmarksButton" Content="⭐" Width="30" Height="25" Margin="0,0,5,0" Click="BookmarksButton_Click" ToolTip="Mis Marcadores"/>
                     <Button x:Name="DownloadsButton" Content="⬇️" Width="30" Height="25" Margin="0,0,5,0" Click="DownloadsButton_Click" ToolTip="Descargas"/>
                     <Button x:Name="ReaderModeButton" Content="📖" Width="30" Height="25" Margin="0,0,5,0" Click="ReaderModeButton_Click" ToolTip="Modo Lectura"/>
-                    <Button x:Name="ReadAloudButton" Content="🔊" Width="30" Height="25" Margin="0,0,5,0" Click="ReadAloudButton_Click" ToolTip="Leer en Voz Alta"/> <!-- NUEVO BOTÓN LEER EN VOZ ALTA -->
-                </StackPanel>
+                    <Button x:Name="ReadAloudButton" Content="🔊" Width="30" Height="25" Margin="0,0,5,0" Click="ReadAloudButton_Click" ToolTip="Leer en Voz Alta"/>
+                    <Button x:Name="SplitScreenButton" Content="↔️" Width="30" Height="25" Margin="0,0,5,0" Click="SplitScreenButton_Click" ToolTip="Pantalla Dividida"/> </StackPanel>
 
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
                     <Button x:Name="IncognitoButton" Content="🕶️" Width="30" Height="25" Margin="0,0,5,0" Click="IncognitoButton_Click" ToolTip="Nueva Ventana Incógnito"/>
@@ -41,16 +40,13 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <TextBox x:Name="UrlTextBox" VerticalContentAlignment="Center" KeyDown="UrlTextBox_KeyDown" Text="https://www.google.com" Margin="0,0,5,0" Grid.Column="0"/>
-                    <!-- Indicador de Carga -->
                     <ProgressBar x:Name="LoadingProgressBar" Grid.Column="1" Width="50" Height="20" Margin="0,0,5,0" IsIndeterminate="True" Visibility="Collapsed" ToolTip="Cargando..."/>
                 </Grid>
             </DockPanel>
         </Border>
 
-        <!-- Contenedor de Pestañas -->
         <TabControl x:Name="BrowserTabControl" Grid.Row="1" SelectionChanged="BrowserTabControl_SelectionChanged">
-            <!-- Las pestañas se añadirán programáticamente -->
-        </TabControl>
+            </TabControl>
     </Grid>
 </Window>
 ```
@@ -59,7 +55,7 @@
 
 **2. Modificación del archivo: `MainWindow.xaml.cs`**
 
-Este archivo tendrá cambios para integrar la funcionalidad de lectura en voz alta.
+Este archivo tendrá cambios significativos para manejar la lógica de pantalla dividida.
 
 **Ruta:** `./NavegadorWeb/MainWindow.xaml.cs`
 
@@ -76,7 +72,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.IO; // Necesario para Path.Combine y operaciones de archivo
 using System.Text.Json; // Necesario para JsonSerializer (para historial y marcadores)
-using System.Speech.Synthesis; // NUEVO: Necesario para Text-to-Speech
+using System.Speech.Synthesis; // Necesario para Text-to-Speech
 
 namespace NavegadorWeb
 {
@@ -104,7 +100,7 @@ namespace NavegadorWeb
         // Contenido del script de modo lectura
         private string _readerModeScript = string.Empty;
 
-        // NUEVO: Instancia del sintetizador de voz
+        // Instancia del sintetizador de voz
         private SpeechSynthesizer _speechSynthesizer;
         private bool _isReadingAloud = false;
 
@@ -115,7 +111,7 @@ namespace NavegadorWeb
             InitializeEnvironments(); // Inicializar los entornos de WebView2
             LoadReaderModeScript(); // Cargar el script de modo lectura
 
-            // NUEVO: Inicializar el sintetizador de voz
+            // Inicializar el sintetizador de voz
             _speechSynthesizer = new SpeechSynthesizer();
             _speechSynthesizer.SetOutputToDefaultAudioDevice(); // Usar el dispositivo de audio predeterminado
             _speechSynthesizer.SpeakCompleted += SpeechSynthesizer_SpeakCompleted; // Manejar el evento de finalización
@@ -127,7 +123,6 @@ namespace NavegadorWeb
         private void SpeechSynthesizer_SpeakCompleted(object sender, SpeakCompletedEventArgs e)
         {
             _isReadingAloud = false;
-            // Puedes actualizar la UI aquí si tienes un indicador de lectura
             Dispatcher.Invoke(() => ReadAloudButton.Content = "🔊"); // Restaurar icono
         }
 
@@ -145,7 +140,7 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    MessageBox.Show("Advertencia: El archivo 'ReaderMode.js' no se encontró. El modo lectura no funcionará.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("Advertencia: El archivo 'ReaderMode.js' no se encontró. El modo lectura no funcionará.", "Archivo Faltante", MessageBoxButton.OK, Image.Warning);
                 }
             }
             catch (Exception ex)
@@ -216,7 +211,6 @@ namespace NavegadorWeb
             // Crear un nuevo TabItem (la pestaña visual)
             TabItem newTabItem = new TabItem();
             newTabItem.Name = "Tab" + (_browserTabs.Count + 1); // Nombre único para la pestaña
-            newTabItem.Tag = isIncognito; // Guardar el estado de incógnito en el Tag de la pestaña
 
             // Crear un panel para el encabezado de la pestaña (título + botón de cerrar)
             DockPanel tabHeaderPanel = new DockPanel();
@@ -242,36 +236,33 @@ namespace NavegadorWeb
             tabHeaderPanel.Children.Add(closeButton);
             newTabItem.Header = tabHeaderPanel; // Asignar el panel como encabezado de la pestaña
 
-            // Crear una nueva instancia de WebView2 para el contenido de la pestaña
-            WebView2 webView = new WebView2();
-            webView.Source = new Uri(url ?? _defaultHomePage); // Cargar la URL especificada o la página de inicio
-            webView.Name = "WebView" + (_browserTabs.Count + 1); // Nombre único para el WebView
-            webView.HorizontalAlignment = HorizontalAlignment.Stretch;
-            webView.VerticalAlignment = VerticalAlignment.Stretch;
+            // Crear la primera instancia de WebView2 para el contenido de la pestaña
+            WebView2 webView1 = new WebView2();
+            webView1.Source = new Uri(url ?? _defaultHomePage); // Cargar la URL especificada o la página de inicio
+            webView1.Name = "WebView1_Tab" + (_browserTabs.Count + 1); // Nombre único
+            webView1.HorizontalAlignment = HorizontalAlignment.Stretch;
+            webView1.VerticalAlignment = VerticalAlignment.Stretch;
 
-            // ***** Importante: Usar el entorno correcto para el WebView2 *****
-            // La inicialización del CoreWebView2 con el entorno correcto debe ocurrir antes de que se establezca el Source
-            // o se navegue. El evento CoreWebView2InitializationCompleted es el lugar más seguro.
             if (isIncognito)
             {
-                webView.CoreWebView2InitializationCompleted += (s, e) => ConfigureCoreWebView2(s as WebView2, e, _incognitoEnvironment);
+                webView1.CoreWebView2InitializationCompleted += (s, e) => ConfigureCoreWebView2(s as WebView2, e, _incognitoEnvironment);
             }
             else
             {
-                webView.CoreWebView2InitializationCompleted += (s, e) => ConfigureCoreWebView2(s as WebView2, e, _defaultEnvironment);
+                webView1.CoreWebView2InitializationCompleted += (s, e) => ConfigureCoreWebView2(s as WebView2, e, _defaultEnvironment);
             }
 
-            // Enlazar eventos comunes del WebView2 para esta pestaña
-            webView.Loaded += WebView_Loaded;
-            webView.NavigationStarting += WebView_NavigationStarting;
-            webView.SourceChanged += WebView_SourceChanged;
-            webView.NavigationCompleted += WebView_NavigationCompleted;
-            webView.CoreWebView2.DocumentTitleChanged += WebView_DocumentTitleChanged;
+            // Enlazar eventos comunes del WebView2 para esta pestaña (solo al primario por ahora)
+            webView1.Loaded += WebView_Loaded;
+            webView1.NavigationStarting += WebView_NavigationStarting;
+            webView1.SourceChanged += WebView_SourceChanged;
+            webView1.NavigationCompleted += WebView_NavigationCompleted;
+            webView1.CoreWebView2.DocumentTitleChanged += WebView_DocumentTitleChanged;
 
 
-            // Contenido de la pestaña: un Grid que contiene el WebView2
+            // Contenido inicial de la pestaña: solo un WebView2 en un Grid
             Grid tabContent = new Grid();
-            tabContent.Children.Add(webView);
+            tabContent.Children.Add(webView1);
             newTabItem.Content = tabContent;
 
             // Añadir la nueva pestaña al TabControl principal
@@ -282,9 +273,11 @@ namespace NavegadorWeb
             BrowserTabItem browserTab = new BrowserTabItem
             {
                 Tab = newTabItem,
-                WebView = webView,
+                LeftWebView = webView1, // Este es el WebView principal por defecto
+                RightWebView = null, // Inicialmente no hay WebView secundario
                 HeaderTextBlock = headerText,
-                IsIncognito = isIncognito // Marcar si es incógnito
+                IsIncognito = isIncognito, // Marcar si es incógnito
+                IsSplit = false // Inicialmente no está en modo dividido
             };
             _browserTabs.Add(browserTab); // Añadir a la lista de pestañas
 
@@ -310,23 +303,19 @@ namespace NavegadorWeb
         /// Se ejecuta cuando CoreWebView2 ha completado su inicialización.
         /// Configura el CoreWebView2 con el entorno y eventos necesarios.
         /// </summary>
-        private void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2InitializationCompletedEventArgs e, CoreWebView2Environment environment)
+        private void ConfigureCoreWebView2(WebView2 currentWebView, CoreWebView2InitializationCompletedEventArgs e, CoreWebView2Environment environment)
         {
-            WebView2 currentWebView = sender as WebView2;
             if (currentWebView != null && e.IsSuccess)
             {
-                // Asegurar que se use el entorno correcto
-                if (currentWebView.CoreWebView2 == null || currentWebView.CoreWebView2.Environment != environment)
-                {
-                    // Esto solo debería ocurrir si el WebView2 ya estaba inicializado con otro entorno,
-                    // lo cual no debería pasar en AddNewTab. Es una medida de seguridad.
-                    // Para cambiar el entorno de un WebView2 existente, se debe recrear el WebView2.
-                    // currentWebView.CoreWebView2 = await environment.CreateCoreWebView2Async(currentWebView.Handle); // Esto no es directo con el control WPF
-                }
+                currentWebView.CoreWebView2.Environment.SetCustomFileExtensions(new[] { ".pdf", ".docx", ".xlsx" }); // Ejemplo
 
                 // Desvincular eventos antes de (posiblemente) re-adjuntar para evitar duplicados
                 currentWebView.CoreWebView2.WebResourceRequested -= CoreWebView2_WebResourceRequested;
                 currentWebView.CoreWebView2.DownloadStarting -= CoreWebView2_DownloadStarting;
+                currentWebView.CoreWebView2.DocumentTitleChanged -= WebView_DocumentTitleChanged;
+                currentWebView.CoreWebView2.SourceChanged -= WebView_SourceChanged;
+                currentWebView.CoreWebView2.NavigationCompleted -= WebView_NavigationCompleted;
+                currentWebView.CoreWebView2.NavigationStarting -= WebView_NavigationStarting;
 
                 // Adjuntar el manejador de eventos para interceptar solicitudes de red (bloqueador de anuncios).
                 currentWebView.CoreWebView2.WebResourceRequested += CoreWebView2_WebResourceRequested;
@@ -336,8 +325,15 @@ namespace NavegadorWeb
 
                 // Suscribirse al evento DownloadStarting
                 currentWebView.CoreWebView2.DownloadStarting += CoreWebView2_DownloadStarting;
+
+                // Re-adjuntar eventos comunes para este WebView2
+                currentWebView.CoreWebView2.DocumentTitleChanged += WebView_DocumentTitleChanged;
+                currentWebView.CoreWebView2.SourceChanged += WebView_SourceChanged;
+                currentWebView.CoreWebView2.NavigationCompleted += WebView_NavigationCompleted;
+                currentWebView.CoreWebView2.NavigationStarting += WebView_NavigationStarting;
             }
         }
+
 
         /// <summary>
         /// Intercepta las solicitudes de recursos web para implementar el bloqueador de anuncios.
@@ -424,20 +420,21 @@ namespace NavegadorWeb
         }
 
         /// <summary>
-        /// Se ejecuta cuando la URL del WebView2 cambia.
-        /// Actualiza la barra de dirección si es la pestaña activa.
+        /// Se ejecuta cuando la URL de un WebView2 cambia.
+        /// Actualiza la barra de dirección si es la pestaña activa y el WebView principal.
         /// </summary>
         private void WebView_SourceChanged(object sender, CoreWebView2SourceChangedEventArgs e)
         {
             WebView2 currentWebView = sender as WebView2;
-            if (currentWebView != null && BrowserTabControl.SelectedItem != null &&
-                ((TabItem)BrowserTabControl.SelectedItem).Content is Grid contentGrid &&
-                contentGrid.Children.Contains(currentWebView))
+            var browserTab = GetCurrentBrowserTabItem(); // Obtener la pestaña actualmente seleccionada
+
+            // Solo actualiza la barra de dirección si este WebView es el principal (LeftWebView) de la pestaña seleccionada
+            if (browserTab != null && browserTab.LeftWebView == currentWebView)
             {
-                // Solo actualiza la barra de dirección si este WebView pertenece a la pestaña seleccionada actualmente.
                 UrlTextBox.Text = currentWebView.CoreWebView2.Source;
             }
         }
+
 
         /// <summary>
         /// Se ejecuta cuando la navegación en un WebView2 ha completado.
@@ -446,11 +443,9 @@ namespace NavegadorWeb
         private void WebView_NavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
         {
             WebView2 currentWebView = sender as WebView2;
-            var browserTab = _browserTabs.FirstOrDefault(t => t.WebView == currentWebView);
+            var browserTab = _browserTabs.FirstOrDefault(t => t.LeftWebView == currentWebView || t.RightWebView == currentWebView);
 
-            if (currentWebView != null && BrowserTabControl.SelectedItem != null &&
-                ((TabItem)BrowserTabControl.SelectedItem).Content is Grid contentGrid &&
-                contentGrid.Children.Contains(currentWebView))
+            if (browserTab != null && BrowserTabControl.SelectedItem == browserTab.Tab)
             {
                 if (!e.IsSuccess)
                 {
@@ -458,8 +453,8 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    // Añadir la página al historial SOLO SI NO ES UNA PESTAÑA INCÓGNITO
-                    if (browserTab != null && !browserTab.IsIncognito)
+                    // Añadir la página al historial SOLO SI NO ES UNA PESTAÑA INCÓGNITO y es el WebView principal
+                    if (!browserTab.IsIncognito && browserTab.LeftWebView == currentWebView)
                     {
                         HistoryManager.AddHistoryEntry(currentWebView.CoreWebView2.Source, currentWebView.CoreWebView2.DocumentTitle);
                     }
@@ -488,23 +483,26 @@ namespace NavegadorWeb
             if (currentWebView != null)
             {
                 // Encuentra la pestaña asociada a este WebView2.
-                var tabItem = _browserTabs.FirstOrDefault(t => t.WebView == currentWebView);
+                var tabItem = _browserTabs.FirstOrDefault(t => t.LeftWebView == currentWebView || t.RightWebView == currentWebView);
                 if (tabItem != null)
                 {
-                    // Actualiza el texto del encabezado de la pestaña.
-                    string title = currentWebView.CoreWebView2.DocumentTitle;
-                    if (tabItem.IsIncognito)
+                    // Si es el WebView izquierdo (principal), actualiza el encabezado de la pestaña.
+                    if (tabItem.LeftWebView == currentWebView)
                     {
-                        tabItem.HeaderTextBlock.Text = "(Incógnito) " + title;
-                    }
-                    else
-                    {
-                        tabItem.HeaderTextBlock.Text = title;
+                        string title = currentWebView.CoreWebView2.DocumentTitle;
+                        if (tabItem.IsIncognito)
+                        {
+                            tabItem.HeaderTextBlock.Text = "(Incógnito) " + title;
+                        }
+                        else
+                        {
+                            tabItem.HeaderTextBlock.Text = title;
+                        }
                     }
                 }
 
-                // Si es la pestaña activa, actualiza también el título de la ventana principal.
-                if (BrowserTabControl.SelectedItem == tabItem?.Tab)
+                // Si es la pestaña activa y es el WebView principal, actualiza también el título de la ventana principal.
+                if (BrowserTabControl.SelectedItem == tabItem?.Tab && tabItem.LeftWebView == currentWebView)
                 {
                     this.Title = currentWebView.CoreWebView2.DocumentTitle + " - Mi Navegador Web";
                 }
@@ -536,7 +534,7 @@ namespace NavegadorWeb
         /// </summary>
         private void NavigateToUrlInCurrentTab()
         {
-            WebView2 currentWebView = GetCurrentWebView();
+            WebView2 currentWebView = GetCurrentWebView(); // Obtiene el WebView principal de la pestaña activa
             if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
                 MessageBox.Show("No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, Image.Error);
@@ -595,7 +593,7 @@ namespace NavegadorWeb
         }
 
         /// <summary>
-        /// Recarga la página actual en la pestaña activa.
+        /// Recarga la página actual en la pestaña activa (panel izquierdo si está dividido).
         /// </summary>
         private void ReloadButton_Click(object sender, RoutedEventArgs e)
         {
@@ -607,7 +605,7 @@ namespace NavegadorWeb
         }
 
         /// <summary>
-        /// Navega a la página de inicio predeterminada en la pestaña activa.
+        /// Navega a la página de inicio predeterminada en la pestaña activa (panel izquierdo si está dividido).
         /// </summary>
         private void HomeButton_Click(object sender, RoutedEventArgs e)
         {
@@ -668,7 +666,7 @@ namespace NavegadorWeb
             WebView2 currentWebView = GetCurrentWebView();
             if (currentWebView != null && currentWebView.CoreWebView2 != null)
             {
-                var browserTab = _browserTabs.FirstOrDefault(t => t.WebView == currentWebView);
+                var browserTab = GetCurrentBrowserTabItem();
                 if (browserTab != null && browserTab.IsIncognito)
                 {
                     MessageBox.Show("No se pueden añadir marcadores en modo incógnito.", "Error al Añadir Marcador", MessageBoxButton.OK, Image.Warning);
@@ -734,7 +732,7 @@ namespace NavegadorWeb
         }
 
         /// <summary>
-        /// NUEVO: Maneja el clic en el botón "Leer en Voz Alta". Inicia o detiene la lectura del contenido de la página.
+        /// Maneja el clic en el botón "Leer en Voz Alta". Inicia o detiene la lectura del contenido de la página.
         /// </summary>
         private async void ReadAloudButton_Click(object sender, RoutedEventArgs e)
         {
@@ -798,6 +796,124 @@ namespace NavegadorWeb
             }
         }
 
+        /// <summary>
+        /// NUEVO: Maneja el clic en el botón "Pantalla Dividida". Alterna el modo de pantalla dividida para la pestaña actual.
+        /// </summary>
+        private async void SplitScreenButton_Click(object sender, RoutedEventArgs e)
+        {
+            var currentTab = GetCurrentBrowserTabItem();
+            if (currentTab == null || currentTab.LeftWebView == null || currentTab.LeftWebView.CoreWebView2 == null)
+            {
+                MessageBox.Show("No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, Image.Error);
+                return;
+            }
+
+            if (currentTab.IsSplit)
+            {
+                // Desactivar modo dividido
+                DisableSplitScreenForCurrentTab(currentTab);
+                SplitScreenButton.Content = "↔️"; // Restaurar icono
+            }
+            else
+            {
+                // Activar modo dividido
+                await EnableSplitScreenForCurrentTab(currentTab);
+                SplitScreenButton.Content = "➡️"; // Cambiar icono a "derecha" (indicando que está dividido)
+            }
+        }
+
+        /// <summary>
+        /// Activa el modo de pantalla dividida para la pestaña actual.
+        /// </summary>
+        private async System.Threading.Tasks.Task EnableSplitScreenForCurrentTab(BrowserTabItem tabItem)
+        {
+            // Detener lectura en voz alta si está activa
+            if (_isReadingAloud)
+            {
+                _speechSynthesizer.SpeakAsyncCancelAll();
+                _isReadingAloud = false;
+                ReadAloudButton.Content = "🔊";
+            }
+
+            // Crear el segundo WebView2
+            WebView2 webView2 = new WebView2();
+            webView2.Source = new Uri(_defaultHomePage); // La segunda vista empieza en la página de inicio
+            webView2.Name = "WebView2_Tab" + _browserTabs.IndexOf(tabItem); // Nombre único
+            webView2.HorizontalAlignment = HorizontalAlignment.Stretch;
+            webView2.VerticalAlignment = VerticalAlignment.Stretch;
+
+            // Usar el mismo entorno que el LeftWebView para consistencia
+            CoreWebView2Environment envToUse = tabItem.IsIncognito ? _incognitoEnvironment : _defaultEnvironment;
+            webView2.CoreWebView2InitializationCompleted += (s, ev) => ConfigureCoreWebView2(webView2, ev, envToUse);
+
+            await webView2.EnsureCoreWebView2Async(null); // Asegurar inicialización
+
+            // Crear el Grid para los dos WebView2s
+            Grid splitGrid = new Grid();
+            splitGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            splitGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Para el splitter
+            splitGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            // Mover el LeftWebView al primer panel
+            Grid.SetColumn(tabItem.LeftWebView, 0);
+            splitGrid.Children.Add(tabItem.LeftWebView);
+
+            // Añadir el GridSplitter
+            GridSplitter splitter = new GridSplitter
+            {
+                Width = 5,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                Background = Brushes.LightGray,
+                ResizeBehavior = GridResizeBehavior.PreviousAndNext
+            };
+            Grid.SetColumn(splitter, 1);
+            splitGrid.Children.Add(splitter);
+
+            // Añadir el nuevo WebView2 al segundo panel
+            Grid.SetColumn(webView2, 2);
+            splitGrid.Children.Add(webView2);
+
+            // Actualizar el contenido de la pestaña
+            tabItem.Tab.Content = splitGrid;
+            tabItem.RightWebView = webView2;
+            tabItem.IsSplit = true;
+        }
+
+        /// <summary>
+        /// Desactiva el modo de pantalla dividida para la pestaña dada.
+        /// </summary>
+        private void DisableSplitScreenForCurrentTab(BrowserTabItem tabItem)
+        {
+            // Detener lectura en voz alta si está activa
+            if (_isReadingAloud)
+            {
+                _speechSynthesizer.SpeakAsyncCancelAll();
+                _isReadingAloud = false;
+                ReadAloudButton.Content = "🔊";
+            }
+
+            // Asegurarse de que el LeftWebView no se deseche (es el principal)
+            // Quitar el LeftWebView de su contenedor actual (el splitGrid)
+            Grid currentGrid = tabItem.Tab.Content as Grid;
+            if (currentGrid != null)
+            {
+                currentGrid.Children.Remove(tabItem.LeftWebView);
+            }
+
+            // Desechar el RightWebView
+            if (tabItem.RightWebView != null)
+            {
+                tabItem.RightWebView.Dispose();
+                tabItem.RightWebView = null;
+            }
+
+            // Restaurar el contenido de la pestaña a solo el LeftWebView
+            Grid singleViewGrid = new Grid();
+            singleViewGrid.Children.Add(tabItem.LeftWebView); // Vuelve a añadirlo a un Grid simple
+            tabItem.Tab.Content = singleViewGrid;
+            tabItem.IsSplit = false;
+        }
 
         /// <summary>
         /// Maneja el clic en el botón "Modo Incógnito". Abre una nueva ventana en modo incógnito.
@@ -822,8 +938,9 @@ namespace NavegadorWeb
                 var browserTabItem = _browserTabs.FirstOrDefault(t => t.Tab == tabToClose);
                 if (browserTabItem != null)
                 {
-                    // Desechar el WebView2 para liberar recursos asociados a esa pestaña.
-                    browserTabItem.WebView?.Dispose(); // Usar ?. para seguridad si WebView ya es null
+                    // Desechar ambos WebView2 si están presentes
+                    browserTabItem.LeftWebView?.Dispose();
+                    browserTabItem.RightWebView?.Dispose();
                     _browserTabs.Remove(browserTabItem); // Eliminar de nuestra lista de seguimiento
                 }
 
@@ -852,11 +969,22 @@ namespace NavegadorWeb
                 ReadAloudButton.Content = "🔊"; // Restaurar icono
             }
 
+            // Actualizar el icono del botón de pantalla dividida
+            var currentTab = GetCurrentBrowserTabItem();
+            if (currentTab != null)
+            {
+                SplitScreenButton.Content = currentTab.IsSplit ? "➡️" : "↔️";
+            }
+            else
+            {
+                SplitScreenButton.Content = "↔️";
+            }
+
             // Si la pestaña seleccionada está suspendida, reactivarla
             if (BrowserTabControl.SelectedItem is TabItem selectedTabItem)
             {
                 var browserTab = _browserTabs.FirstOrDefault(t => t.Tab == selectedTabItem);
-                if (browserTab != null && browserTab.WebView == null) // Si el WebView es nulo, la pestaña está suspendida
+                if (browserTab != null && browserTab.LeftWebView == null) // Si el LeftWebView es nulo, la pestaña está suspendida
                 {
                     if (_isTabSuspensionEnabled) // Solo reactivar si la suspensión está habilitada
                     {
@@ -865,26 +993,24 @@ namespace NavegadorWeb
 
                         WebView2 newWebView = new WebView2();
                         newWebView.Source = new Uri(urlToReload ?? _defaultHomePage);
-                        newWebView.Name = "WebView" + (BrowserTabControl.Items.IndexOf(selectedTabItem) + 1);
+                        newWebView.Name = "WebView1_Tab" + (BrowserTabControl.Items.IndexOf(selectedTabItem) + 1);
                         newWebView.HorizontalAlignment = HorizontalAlignment.Stretch;
                         newWebView.VerticalAlignment = VerticalAlignment.Stretch;
 
                         // Enlazar eventos (similar a AddNewTab, asegurando el entorno correcto)
                         newWebView.Loaded += WebView_Loaded;
-                        // Usar el entorno por defecto para pestañas reactivadas si no eran incógnito
                         CoreWebView2Environment envToUse = browserTab.IsIncognito ? _incognitoEnvironment : _defaultEnvironment;
-                        newWebView.CoreWebView2InitializationCompleted += (s, ev) => ConfigureCoreWebView2(newWebView, ev, envToUse); // Pasar e y envToUse
-                        newWebView.NavigationStarting += WebView_NavigationStarting;
-                        newWebView.SourceChanged += WebView_SourceChanged;
-                        newWebView.NavigationCompleted += WebView_NavigationCompleted;
-                        newWebView.CoreWebView2.DocumentTitleChanged += WebView_DocumentTitleChanged;
+                        newWebView.CoreWebView2InitializationCompleted += (s, ev) => ConfigureCoreWebView2(newWebView, ev, envToUse);
+                        // Los eventos de navegación, fuente y título se re-adjuntan en ConfigureCoreWebView2
 
-                        // Reemplazar el contenido de la pestaña
+                        // Reemplazar el contenido de la pestaña (volverá a ser una vista simple)
                         Grid tabContent = new Grid();
                         tabContent.Children.Add(newWebView);
                         selectedTabItem.Content = tabContent;
 
-                        browserTab.WebView = newWebView; // Actualizar la referencia al nuevo WebView
+                        browserTab.LeftWebView = newWebView; // Actualizar la referencia al nuevo WebView
+                        browserTab.RightWebView = null; // Asegurar que el derecho sea nulo
+                        browserTab.IsSplit = false; // No está en modo dividido al reactivar
 
                         // Restaurar el título original (quitar "(Suspendida)")
                         string originalHeaderText = browserTab.HeaderTextBlock.Text;
@@ -911,7 +1037,7 @@ namespace NavegadorWeb
         /// </summary>
         private void UpdateUrlTextBoxFromCurrentTab()
         {
-            WebView2 currentWebView = GetCurrentWebView();
+            WebView2 currentWebView = GetCurrentWebView(); // Esto ahora devuelve el LeftWebView por defecto
             if (currentWebView != null && currentWebView.CoreWebView2 != null)
             {
                 UrlTextBox.Text = currentWebView.CoreWebView2.Source;
@@ -919,24 +1045,30 @@ namespace NavegadorWeb
             }
             else
             {
-                // Si no hay pestaña activa o el WebView no está listo, limpia la barra de URL y el título.
+                // Si no hay pestaña activa o el WebView principal no está listo, limpia la barra de URL y el título.
                 UrlTextBox.Text = string.Empty;
                 this.Title = "Mi Navegador Web";
             }
         }
 
         /// <summary>
-        /// Obtiene la instancia de WebView2 de la pestaña actualmente seleccionada.
+        /// Obtiene la instancia de WebView2 principal (izquierda) de la pestaña actualmente seleccionada.
         /// </summary>
-        /// <returns>El WebView2 de la pestaña activa, o null si no hay una pestaña seleccionada o su contenido no es un WebView2.</returns>
+        /// <returns>El LeftWebView de la pestaña activa, o null si no hay una pestaña seleccionada o su contenido no es válido.</returns>
         private WebView2 GetCurrentWebView()
+        {
+            return GetCurrentBrowserTabItem()?.LeftWebView;
+        }
+
+        /// <summary>
+        /// Obtiene el objeto BrowserTabItem de la pestaña actualmente seleccionada.
+        /// </summary>
+        /// <returns>El BrowserTabItem de la pestaña activa, o null.</returns>
+        private BrowserTabItem GetCurrentBrowserTabItem()
         {
             if (BrowserTabControl.SelectedItem is TabItem selectedTabItem)
             {
-                if (selectedTabItem.Content is Grid contentGrid && contentGrid.Children.Count > 0 && contentGrid.Children[0] is WebView2 webView)
-                {
-                    return webView;
-                }
+                return _browserTabs.FirstOrDefault(t => t.Tab == selectedTabItem);
             }
             return null;
         }
@@ -950,7 +1082,7 @@ namespace NavegadorWeb
             SettingsWindow settingsWindow = new SettingsWindow(_defaultHomePage, AdBlocker.IsEnabled, _defaultSearchEngineUrl, _isTabSuspensionEnabled);
 
             // Suscribirse a los nuevos eventos de la ventana de configuración
-            settingsWindow.OnClearBrowsingData += SettingsWindow_OnClearBrowsingData;
+            settingsWindow.OnClearBrowseData += SettingsWindow_OnClearBrowseData;
             settingsWindow.OnSuspendInactiveTabs += SettingsWindow_OnSuspendInactiveTabs;
 
 
@@ -966,7 +1098,7 @@ namespace NavegadorWeb
             }
 
             // Es importante desuscribirse de los eventos para evitar fugas de memoria
-            settingsWindow.OnClearBrowsingData -= SettingsWindow_OnClearBrowsingData;
+            settingsWindow.OnClearBrowseData -= SettingsWindow_OnClearBrowseData;
             settingsWindow.OnSuspendInactiveTabs -= SettingsWindow_OnSuspendInactiveTabs;
         }
 
@@ -974,7 +1106,7 @@ namespace NavegadorWeb
         /// Nuevo: Manejador para borrar datos de navegación.
         /// Se invoca desde la ventana de configuración.
         /// </summary>
-        private async void SettingsWindow_OnClearBrowsingData()
+        private async void SettingsWindow_OnClearBrowseData()
         {
             // Esto borrará datos de la carpeta UserData del entorno predeterminado.
             WebView2 anyWebView = GetCurrentWebView(); // Solo necesitamos una instancia para acceder al entorno
@@ -993,7 +1125,7 @@ namespace NavegadorWeb
                     CoreWebView2BrowserDataKinds.PasswordAutofill |
                     CoreWebView2BrowserDataKinds.OtherData;
 
-                await _defaultEnvironment.ClearBrowsingDataAsync(dataKinds);
+                await _defaultEnvironment.ClearBrowseDataAsync(dataKinds);
                 MessageBox.Show("Datos de navegación (caché, cookies, etc.) borrados con éxito.", "Limpieza Completa", MessageBoxButton.OK, Image.Information);
             }
             else
@@ -1017,18 +1149,19 @@ namespace NavegadorWeb
             foreach (var tabItem in _browserTabs)
             {
                 // No suspender la pestaña activa ni las pestañas incógnito (ya que su data no es persistente)
-                if (tabItem.Tab != BrowserTabControl.SelectedItem && !tabItem.IsIncognito)
+                // Tampoco suspender pestañas en modo dividido, para evitar complejidad adicional
+                if (tabItem.Tab != BrowserTabControl.SelectedItem && !tabItem.IsIncognito && !tabItem.IsSplit)
                 {
-                    // Un enfoque simple para "suspender": reemplazar el contenido con un mensaje y liberar el WebView2.
+                    // Un enfoque simple para "suspender": reemplazar el contenido con un mensaje y liberar el LeftWebView.
                     // Cuando el usuario vuelve a la pestaña, el WebView2 se recrea y se recarga la URL.
-                    if (tabItem.WebView != null && tabItem.WebView.CoreWebView2 != null)
+                    if (tabItem.LeftWebView != null && tabItem.LeftWebView.CoreWebView2 != null)
                     {
                         // Guardar la URL actual antes de desechar
-                        string suspendedUrl = tabItem.WebView.Source.OriginalString;
+                        string suspendedUrl = tabItem.LeftWebView.Source.OriginalString;
 
                         // Desechar el WebView2 para liberar recursos
-                        tabItem.WebView.Dispose();
-                        tabItem.WebView = null; // Marcar como nulo para indicar que está suspendido
+                        tabItem.LeftWebView.Dispose();
+                        tabItem.LeftWebView = null; // Marcar como nulo para indicar que está suspendido
 
                         // Cambiar el contenido de la pestaña a una pantalla de "suspendido"
                         TextBlock suspendedMessage = new TextBlock
@@ -1136,14 +1269,29 @@ namespace NavegadorWeb
         /// <summary>
         /// Se ejecuta cuando la ventana se está cerrando. Limpia los recursos del entorno incógnito y del sintetizador de voz.
         /// </summary>
-        private void Window_Closed(object sender, EventArgs e)
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            // Asegúrate de desechar los entornos de WebView2 al cerrar la aplicación
-            // Esto es crucial para liberar recursos y limpiar el directorio temporal del modo incógnito.
+            // Detener y desechar el sintetizador de voz
+            if (_speechSynthesizer != null)
+            {
+                _speechSynthesizer.SpeakAsyncCancelAll();
+                _speechSynthesizer.Dispose();
+                _speechSynthesizer = null;
+            }
+
+            // Desechar todos los WebViews de todas las pestañas
+            foreach (var tab in _browserTabs)
+            {
+                tab.LeftWebView?.Dispose();
+                tab.RightWebView?.Dispose();
+            }
+            _browserTabs.Clear(); // Limpiar la lista de pestañas
+
+            // Limpiar los entornos de WebView2 (especialmente el de incógnito)
             if (_incognitoEnvironment != null)
             {
                 string incognitoUserDataFolder = _incognitoEnvironment.UserDataFolder;
-                _incognitoEnvironment = null; // Liberar la referencia para que GC pueda limpiar
+                _incognitoEnvironment = null; // Liberar la referencia
                 try
                 {
                     if (Directory.Exists(incognitoUserDataFolder))
@@ -1158,27 +1306,23 @@ namespace NavegadorWeb
             }
             if (_defaultEnvironment != null)
             {
-                _defaultEnvironment = null;
-            }
-
-            // NUEVO: Detener y desechar el sintetizador de voz
-            if (_speechSynthesizer != null)
-            {
-                _speechSynthesizer.SpeakAsyncCancelAll();
-                _speechSynthesizer.Dispose();
-                _speechSynthesizer = null;
+                _defaultEnvironment = null; // Liberar la referencia
             }
         }
 
+
         /// <summary>
-        /// Clase auxiliar para gestionar la información de cada pestaña del navegador.
+        /// Clase auxiliar para gestionar la información de cada pestaña del navegador,
+        /// incluyendo si está en modo dividido y referencias a ambos WebView2.
         /// </summary>
         private class BrowserTabItem
         {
             public TabItem Tab { get; set; } // El control TabItem de WPF
-            public WebView2 WebView { get; set; } // La instancia de WebView2 dentro de la pestaña (puede ser null si la pestaña está suspendida)
+            public WebView2 LeftWebView { get; set; } // La instancia de WebView2 del panel izquierdo (principal)
+            public WebView2 RightWebView { get; set; } // La instancia de WebView2 del panel derecho (puede ser null)
             public TextBlock HeaderTextBlock { get; set; } // El TextBlock que muestra el título en el encabezado de la pestaña
             public bool IsIncognito { get; set; } // Indica si la pestaña está en modo incógnito
+            public bool IsSplit { get; set; } // NUEVO: Indica si la pestaña está en modo dividido
         }
     }
 }
