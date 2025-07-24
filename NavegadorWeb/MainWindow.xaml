@@ -13,6 +13,7 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <!-- Barra de Dirección, Botones y Botón Nueva Pestaña -->
         <Border Grid.Row="0" BorderBrush="LightGray" BorderThickness="0,0,0,1" Padding="5">
             <DockPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
@@ -23,10 +24,12 @@
                     <Button x:Name="HistoryButton" Content="🕒" Width="30" Height="25" Margin="0,0,5,0" Click="HistoryButton_Click" ToolTip="Historial"/>
                     <Button x:Name="BookmarksButton" Content="⭐" Width="30" Height="25" Margin="0,0,5,0" Click="BookmarksButton_Click" ToolTip="Mis Marcadores"/>
                     <Button x:Name="DownloadsButton" Content="⬇️" Width="30" Height="25" Margin="0,0,5,0" Click="DownloadsButton_Click" ToolTip="Descargas"/>
+                    <Button x:Name="ReaderModeButton" Content="📖" Width="30" Height="25" Margin="0,0,5,0" Click="ReaderModeButton_Click" ToolTip="Modo Lectura"/> <!-- NUEVO BOTÓN MODO LECTURA -->
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
-                    <Button x:Name="IncognitoButton" Content="🕶️" Width="30" Height="25" Margin="0,0,5,0" Click="IncognitoButton_Click" ToolTip="Nueva Ventana Incógnito"/> <Button x:Name="AddBookmarkButton" Content="➕⭐" Width="40" Height="25" Margin="0,0,5,0" Click="AddBookmarkButton_Click" ToolTip="Añadir página actual a Marcadores"/>
+                    <Button x:Name="IncognitoButton" Content="🕶️" Width="30" Height="25" Margin="0,0,5,0" Click="IncognitoButton_Click" ToolTip="Nueva Ventana Incógnito"/>
+                    <Button x:Name="AddBookmarkButton" Content="➕⭐" Width="40" Height="25" Margin="0,0,5,0" Click="AddBookmarkButton_Click" ToolTip="Añadir página actual a Marcadores"/>
                     <Button x:Name="NewTabButton" Content="+" Width="30" Height="25" Margin="0,0,5,0" Click="NewTabButton_Click" ToolTip="Nueva Pestaña"/>
                     <Button x:Name="SettingsButton" Content="⚙️" Width="30" Height="25" Click="SettingsButton_Click" ToolTip="Opciones"/>
                 </StackPanel>
@@ -37,12 +40,15 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <TextBox x:Name="UrlTextBox" VerticalContentAlignment="Center" KeyDown="UrlTextBox_KeyDown" Text="https://www.google.com" Margin="0,0,5,0" Grid.Column="0"/>
+                    <!-- Indicador de Carga -->
                     <ProgressBar x:Name="LoadingProgressBar" Grid.Column="1" Width="50" Height="20" Margin="0,0,5,0" IsIndeterminate="True" Visibility="Collapsed" ToolTip="Cargando..."/>
                 </Grid>
             </DockPanel>
         </Border>
 
+        <!-- Contenedor de Pestañas -->
         <TabControl x:Name="BrowserTabControl" Grid.Row="1" SelectionChanged="BrowserTabControl_SelectionChanged">
-            </TabControl>
+            <!-- Las pestañas se añadirán programáticamente -->
+        </TabControl>
     </Grid>
 </Window>
