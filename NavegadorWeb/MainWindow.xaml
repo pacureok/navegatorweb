@@ -33,7 +33,8 @@
                     <Button x:Name="TabManagerButton" Content="🗂️" Width="30" Height="25" Margin="0,0,5,0" Click="TabManagerButton_Click" ToolTip="Administrador de Pestañas"/>
                     <Button x:Name="DataExtractionButton" Content="📋" Width="30" Height="25" Margin="0,0,5,0" Click="DataExtractionButton_Click" ToolTip="Extractor de Datos Web"/>
                     <Button x:Name="DarkModeButton" Content="🌙" Width="30" Height="25" Margin="0,0,5,0" Click="DarkModeButton_Click" ToolTip="Activar/Desactivar Modo Oscuro Global"/>
-                    <Button x:Name="PerformanceMonitorButton" Content="📊" Width="30" Height="25" Margin="0,0,5,0" Click="PerformanceMonitorButton_Click" ToolTip="Monitor de Rendimiento"/> <!-- NUEVO BOTÓN MONITOR DE RENDIMIENTO -->
+                    <Button x:Name="PerformanceMonitorButton" Content="📊" Width="30" Height="25" Margin="0,0,5,0" Click="PerformanceMonitorButton_Click" ToolTip="Monitor de Rendimiento"/>
+                    <Button x:Name="FindButton" Content="🔍" Width="30" Height="25" Margin="0,0,5,0" Click="FindButton_Click" ToolTip="Buscar en Página"/> <!-- NUEVO BOTÓN BUSCAR EN PÁGINA -->
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
@@ -59,15 +60,35 @@
         <TabControl x:Name="BrowserTabControl" Grid.Row="1" SelectionChanged="BrowserTabControl_SelectionChanged">
             <!-- Las pestañas se añadirán programáticamente -->
         </TabControl>
+
+        <!-- Barra de Búsqueda en Página (inicialmente oculta) -->
+        <Grid x:Name="FindBar" Grid.Row="1" VerticalAlignment="Top" HorizontalAlignment="Right"
+              Background="{StaticResource {x:Static SystemColors.ControlBrush}}"
+              BorderBrush="LightGray" BorderThickness="1" Padding="5" Margin="10"
+              Visibility="Collapsed" Width="300">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="FindTextBox" Grid.Column="0" VerticalContentAlignment="Center"
+                     KeyDown="FindTextBox_KeyDown" TextChanged="FindTextBox_TextChanged"
+                     Margin="0,0,5,0" ToolTip="Escribe el texto a buscar"/>
+            <TextBlock x:Name="FindResultsTextBlock" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,5,0" Text="0/0"/>
+            <Button x:Name="FindPreviousButton" Content="▲" Grid.Column="2" Width="25" Height="25" Margin="0,0,2,0" Click="FindPreviousButton_Click" ToolTip="Coincidencia Anterior"/>
+            <Button x:Name="FindNextButton" Content="▼" Grid.Column="3" Width="25" Height="25" Click="FindNextButton_Click" ToolTip="Coincidencia Siguiente"/>
+            <Button x:Name="CloseFindBarButton" Content="✖" Grid.Column="4" Width="25" Height="25" Margin="5,0,0,0" Click="CloseFindBarButton_Click" ToolTip="Cerrar Búsqueda"/>
+        </Grid>
     </Grid>
 </Window>
 ```
 
 ---
 
-**5. Modificación del archivo: `MainWindow.xaml.cs`**
+**2. Modificación del archivo: `MainWindow.xaml.cs`**
 
-Este archivo tendrá el nuevo manejador de eventos para el botón del monitor de rendimiento.
+Este archivo contendrá la lógica para mostrar/ocultar la barra de búsqueda y para interactuar con la función `FindInPage` de `WebView2`.
 
 **Ruta:** `./NavegadorWeb/MainWindow.xaml.cs`
 
@@ -119,6 +140,11 @@ namespace NavegadorWeb
         // Instancia del sintetizador de voz
         private SpeechSynthesizer _speechSynthesizer;
         private bool _isReadingAloud = false;
+
+        // NUEVO: Variables para la función Buscar en Página
+        private bool _isFindBarVisible = false;
+        private CoreWebView2FindInPage _findInPage;
+
 
         public MainWindow()
         {
@@ -298,6 +324,8 @@ namespace NavegadorWeb
             webView1.SourceChanged += WebView_SourceChanged;
             webView1.NavigationCompleted += WebView_NavigationCompleted;
             webView1.CoreWebView2.DocumentTitleChanged += WebView_DocumentTitleChanged;
+            // NUEVO: Suscribirse al evento FindInPageCompleted para actualizar los resultados de búsqueda
+            webView1.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted;
 
 
             // Contenido inicial de la pestaña: solo un WebView2 en un Grid
@@ -356,6 +384,7 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.SourceChanged -= WebView_SourceChanged;
                 currentWebView.CoreWebView2.NavigationCompleted -= WebView_NavigationCompleted;
                 currentWebView.CoreWebView2.NavigationStarting -= WebView_NavigationStarting;
+                currentWebView.CoreWebView2.FindInPageCompleted -= CoreWebView2_FindInPageCompleted; // Desvincular también este
 
                 // Adjuntar el manejador de eventos para interceptar solicitudes de red (bloqueador de anuncios).
                 currentWebView.CoreWebView2.WebResourceRequested += CoreWebView2_WebResourceRequested;
@@ -371,6 +400,7 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.SourceChanged += WebView_SourceChanged;
                 currentWebView.CoreWebView2.NavigationCompleted += WebView_NavigationCompleted;
                 currentWebView.CoreWebView2.NavigationStarting += WebView_NavigationStarting;
+                currentWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted; // Re-adjuntar este también
             }
         }
 
@@ -762,7 +792,7 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    MessageBox.Show("El script de modo lectura no está cargado. Asegúrate de que 'ReaderMode.js' exista.", "Error de Modo Lectura", MessageBoxButton.OK, Image.Warning);
+                    MessageBox.Show("Advertencia: El script de modo lectura no está cargado. Asegúrate de que 'ReaderMode.js' exista.", "Error de Modo Lectura", MessageBoxButton.OK, Image.Warning);
                 }
             }
             else
@@ -992,18 +1022,139 @@ namespace NavegadorWeb
             }
             else
             {
-                MessageBox.Show("El script de modo oscuro no está cargado. Asegúrate de que 'DarkMode.js' exista.", "Error de Modo Oscuro", MessageBoxButton.OK, Image.Warning);
+                MessageBox.Show("Advertencia: El script de modo oscuro no está cargado. Asegúrate de que 'DarkMode.js' exista.", "Error de Modo Oscuro", MessageBoxButton.OK, Image.Warning);
             }
         }
 
         /// <summary>
-        /// NUEVO: Maneja el clic en el botón "Monitor de Rendimiento". Abre la ventana del monitor.
+        /// Maneja el clic en el botón "Monitor de Rendimiento". Abre la ventana del monitor.
         /// </summary>
         private void PerformanceMonitorButton_Click(object sender, RoutedEventArgs e)
         {
             // Pasamos un delegado para que la ventana del monitor pueda obtener la lista de pestañas
             PerformanceMonitorWindow monitorWindow = new PerformanceMonitorWindow(GetBrowserTabItems);
             monitorWindow.Show(); // Mostrar la ventana (no modal)
+        }
+
+        /// <summary>
+        /// NUEVO: Maneja el clic en el botón "Buscar en Página". Muestra u oculta la barra de búsqueda.
+        /// </summary>
+        private void FindButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Alternar la visibilidad de la barra de búsqueda
+            _isFindBarVisible = !_isFindBarVisible;
+            FindBar.Visibility = _isFindBarVisible ? Visibility.Visible : Visibility.Collapsed;
+
+            if (_isFindBarVisible)
+            {
+                FindTextBox.Focus(); // Poner el foco en el campo de texto de búsqueda
+                // Limpiar resultados anteriores al abrir la barra
+                FindResultsTextBlock.Text = "0/0";
+                ClearFindResults(); // Limpiar el resaltado anterior
+            }
+            else
+            {
+                ClearFindResults(); // Limpiar el resaltado al cerrar la barra
+            }
+        }
+
+        /// <summary>
+        /// NUEVO: Maneja el cambio de texto en el cuadro de búsqueda. Inicia una nueva búsqueda.
+        /// </summary>
+        private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            PerformFindInPage(FindTextBox.Text);
+        }
+
+        /// <summary>
+        /// NUEVO: Maneja la pulsación de tecla Enter en el cuadro de búsqueda.
+        /// </summary>
+        private void FindTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                PerformFindInPage(FindTextBox.Text, CoreWebView2FindInPageKind.Next); // Buscar siguiente al presionar Enter
+            }
+        }
+
+        /// <summary>
+        /// NUEVO: Realiza la búsqueda en la página actual.
+        /// </summary>
+        /// <param name="searchText">El texto a buscar.</param>
+        /// <param name="findKind">El tipo de búsqueda (siguiente, anterior, etc.).</param>
+        private async void PerformFindInPage(string searchText, CoreWebView2FindInPageKind findKind = CoreWebView2FindInPageKind.None)
+        {
+            WebView2 currentWebView = GetCurrentWebView();
+            if (currentWebView == null || currentWebView.CoreWebView2 == null || string.IsNullOrWhiteSpace(searchText))
+            {
+                FindResultsTextBlock.Text = "0/0";
+                ClearFindResults();
+                return;
+            }
+
+            // Si es una nueva búsqueda o el texto ha cambiado, reiniciamos la búsqueda
+            if (_findInPage == null || _findInPage.SearchText != searchText || findKind == CoreWebView2FindInPageKind.None)
+            {
+                // Iniciar una nueva búsqueda
+                _findInPage = currentWebView.CoreWebView2.FindInPage(searchText, CoreWebView2FindInPageKind.None);
+            }
+            else
+            {
+                // Continuar la búsqueda
+                _findInPage = currentWebView.CoreWebView2.FindInPage(searchText, findKind);
+            }
+        }
+
+        /// <summary>
+        /// NUEVO: Maneja el evento de finalización de búsqueda en página.
+        /// </summary>
+        private void CoreWebView2_FindInPageCompleted(object sender, CoreWebView2FindInPageCompletedEventArgs e)
+        {
+            // Actualizar la interfaz de usuario con los resultados de la búsqueda
+            FindResultsTextBlock.Text = $"{e.ActiveMatchIndex + 1}/{e.Matches}"; // +1 porque ActiveMatchIndex es base 0
+            if (e.Matches == 0)
+            {
+                FindResultsTextBlock.Text = "0/0"; // No hay coincidencias
+            }
+        }
+
+        /// <summary>
+        /// NUEVO: Limpia el resaltado de búsqueda en la página.
+        /// </summary>
+        private void ClearFindResults()
+        {
+            WebView2 currentWebView = GetCurrentWebView();
+            if (currentWebView != null && currentWebView.CoreWebView2 != null)
+            {
+                currentWebView.CoreWebView2.FindInPage(string.Empty, CoreWebView2FindInPageKind.None); // Buscar cadena vacía para limpiar
+                FindResultsTextBlock.Text = "0/0";
+            }
+        }
+
+        /// <summary>
+        /// NUEVO: Maneja el clic en el botón "Siguiente" de la búsqueda.
+        /// </summary>
+        private void FindNextButton_Click(object sender, RoutedEventArgs e)
+        {
+            PerformFindInPage(FindTextBox.Text, CoreWebView2FindInPageKind.Next);
+        }
+
+        /// <summary>
+        /// NUEVO: Maneja el clic en el botón "Anterior" de la búsqueda.
+        /// </summary>
+        private void FindPreviousButton_Click(object sender, RoutedEventArgs e)
+        {
+            PerformFindInPage(FindTextBox.Text, CoreWebView2FindInPageKind.Previous);
+        }
+
+        /// <summary>
+        /// NUEVO: Maneja el clic en el botón "Cerrar" de la barra de búsqueda.
+        /// </summary>
+        private void CloseFindBarButton_Click(object sender, RoutedEventArgs e)
+        {
+            _isFindBarVisible = false;
+            FindBar.Visibility = Visibility.Collapsed;
+            ClearFindResults();
         }
 
 
@@ -1021,7 +1172,7 @@ namespace NavegadorWeb
         /// Se llama al método CloseTabButton_Click interno para reutilizar la lógica de cierre.
         /// </summary>
         /// <param name="tabToClose">El TabItem que se desea cerrar.</param>
-        public void CloseBrowserTab(TabItem tabToClose)
+        public void CloseBrowserTab(TabItem tabToClose) // Hacemos público para que TabManagerWindow pueda llamarlo
         {
             // Simular un clic en el botón de cerrar de la pestaña para reutilizar la lógica existente.
             // Esto es un poco hacky, pero funciona si el botón de cerrar usa el TabItem como Tag.
@@ -1083,7 +1234,7 @@ namespace NavegadorWeb
             webView2.Source = new Uri(rightPanelUrl); // La segunda vista empieza en la URL especificada
             webView2.Name = "WebView2_Tab" + _browserTabs.IndexOf(tabItem); // Nombre único
             webView2.HorizontalAlignment = HorizontalAlignment.Stretch;
-            webView2.VerticalAlignment = VerticalAlignment.Stretch;
+            webView2.VerticalAlignment = VerticalAlignment.VerticalAlignment.Stretch; // Corregido el typo
 
             // Usar el mismo entorno que el LeftWebView para consistencia
             CoreWebView2Environment envToUse = tabItem.IsIncognito ? _incognitoEnvironment : _defaultEnvironment;
@@ -1170,7 +1321,7 @@ namespace NavegadorWeb
         /// <summary>
         /// Cierra una pestaña cuando se hace clic en su botón "X".
         /// </summary>
-        public void CloseTabButton_Click(object sender, RoutedEventArgs e) // Hacemos público para que TabManagerWindow pueda llamarlo
+        public void CloseTabButton_Click(object sender, RoutedEventArgs e)
         {
             Button closeButton = sender as Button;
             TabItem tabToClose = closeButton?.Tag as TabItem; // Obtener el TabItem asociado al botón
@@ -1245,6 +1396,7 @@ namespace NavegadorWeb
                         CoreWebView2Environment envToUse = browserTab.IsIncognito ? _incognitoEnvironment : _defaultEnvironment;
                         newWebView.CoreWebView2InitializationCompleted += (s, ev) => ConfigureCoreWebView2(newWebView, ev, envToUse); // Pasar e y envToUse
                         // Los eventos de navegación, fuente y título se re-adjuntan en ConfigureCoreWebView2
+                        newWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted; // Asegurarse de re-adjuntar este también
 
                         // Reemplazar el contenido de la pestaña (volverá a ser una vista simple)
                         Grid tabContent = new Grid();
@@ -1272,6 +1424,10 @@ namespace NavegadorWeb
                     }
                 }
             }
+            // Al cambiar de pestaña, ocultar la barra de búsqueda y limpiar resultados anteriores
+            _isFindBarVisible = false;
+            FindBar.Visibility = Visibility.Collapsed;
+            ClearFindResults();
         }
 
         /// <summary>
@@ -1558,7 +1714,7 @@ namespace NavegadorWeb
         /// Clase auxiliar para gestionar la información de cada pestaña del navegador,
         /// incluyendo si está en modo dividido y referencias a ambos WebView2.
         /// </summary>
-        public class BrowserTabItem // Hacemos pública para que PerformanceMonitorWindow pueda acceder a ella
+        public class BrowserTabItem
         {
             public TabItem Tab { get; set; } // El control TabItem de WPF
             public WebView2 LeftWebView { get; set; } // La instancia de WebView2 del panel izquierdo (principal)
