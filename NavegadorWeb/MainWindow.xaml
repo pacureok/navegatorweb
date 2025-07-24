@@ -28,7 +28,8 @@
                     <Button x:Name="ReaderModeButton" Content="📖" Width="30" Height="25" Margin="0,0,5,0" Click="ReaderModeButton_Click" ToolTip="Modo Lectura"/>
                     <Button x:Name="ReadAloudButton" Content="🔊" Width="30" Height="25" Margin="0,0,5,0" Click="ReadAloudButton_Click" ToolTip="Leer en Voz Alta"/>
                     <Button x:Name="SplitScreenButton" Content="↔️" Width="30" Height="25" Margin="0,0,5,0" Click="SplitScreenButton_Click" ToolTip="Pantalla Dividida"/>
-                    <Button x:Name="AIButton" Content="🤖" Width="30" Height="25" Margin="0,0,5,0" Click="AIButton_Click" ToolTip="Abrir Gemini (IA) en Pantalla Dividida"/> <!-- NUEVO BOTÓN IA -->
+                    <Button x:Name="AIButton" Content="🤖" Width="30" Height="25" Margin="0,0,5,0" Click="AIButton_Click" ToolTip="Abrir Gemini (IA) en Pantalla Dividida"/>
+                    <Button x:Name="ScreenshotButton" Content="📸" Width="30" Height="25" Margin="0,0,5,0" Click="ScreenshotButton_Click" ToolTip="Captura de Pantalla"/> <!-- NUEVO BOTÓN CAPTURA -->
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
@@ -62,7 +63,7 @@
 
 **2. Modificación del archivo: `MainWindow.xaml.cs`**
 
-Este archivo tendrá el nuevo manejador de eventos para el botón de IA.
+Este archivo tendrá el nuevo manejador de eventos para el botón de captura de pantalla.
 
 **Ruta:** `./NavegadorWeb/MainWindow.xaml.cs`
 
@@ -80,6 +81,7 @@ using System.Windows.Input;
 using System.IO; // Necesario para Path.Combine y operaciones de archivo
 using System.Text.Json; // Necesario para JsonSerializer (para historial y marcadores)
 using System.Speech.Synthesis; // Necesario para Text-to-Speech
+using System.Windows.Media.Imaging; // NUEVO: Necesario para BitmapFrame, PngBitmapEncoder
 
 namespace NavegadorWeb
 {
@@ -830,7 +832,7 @@ namespace NavegadorWeb
         }
 
         /// <summary>
-        /// NUEVO: Maneja el clic en el botón "IA". Activa la pantalla dividida y carga Gemini en el panel derecho.
+        /// Maneja el clic en el botón "IA". Activa la pantalla dividida y carga Gemini en el panel derecho.
         /// </summary>
         private async void AIButton_Click(object sender, RoutedEventArgs e)
         {
@@ -862,6 +864,53 @@ namespace NavegadorWeb
             }
         }
 
+        /// <summary>
+        /// NUEVO: Maneja el clic en el botón "Captura de Pantalla". Captura la vista actual del WebView2.
+        /// </summary>
+        private async void ScreenshotButton_Click(object sender, RoutedEventArgs e)
+        {
+            WebView2 currentWebView = GetCurrentWebView(); // Obtiene el WebView principal de la pestaña activa
+            if (currentWebView == null || currentWebView.CoreWebView2 == null)
+            {
+                MessageBox.Show("No hay una página activa para capturar.", "Error de Captura", MessageBoxButton.OK, Image.Error);
+                return;
+            }
+
+            try
+            {
+                // Crear un SaveFileDialog para que el usuario elija dónde guardar la imagen
+                Microsoft.Win32.SaveFileDialog saveFileDialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    FileName = $"Captura_{DateTime.Now:yyyyMMdd_HHmmss}.png",
+                    DefaultExt = ".png",
+                    Filter = "Archivos PNG (*.png)|*.png|Todos los archivos (*.*)|*.*",
+                    Title = "Guardar Captura de Pantalla"
+                };
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    string filePath = saveFileDialog.FileName;
+
+                    // Capturar la vista del WebView2 en un MemoryStream
+                    using (MemoryStream stream = new MemoryStream())
+                    {
+                        await currentWebView.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream);
+
+                        // Guardar el stream en el archivo elegido
+                        using (FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
+                        {
+                            stream.WriteTo(fileStream);
+                        }
+                    }
+                    MessageBox.Show($"Captura de pantalla guardada en:\n{filePath}", "Captura Exitosa", MessageBoxButton.OK, Image.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al realizar la captura de pantalla: {ex.Message}", "Error de Captura", MessageBoxButton.OK, Image.Error);
+            }
+        }
+
 
         /// <summary>
         /// Activa el modo de pantalla dividida para la pestaña actual.
@@ -875,7 +924,7 @@ namespace NavegadorWeb
             {
                 _speechSynthesizer.SpeakAsyncCancelAll();
                 _isReadingAloud = false;
-                ReadAloudButton.Content = "�";
+                ReadAloudButton.Content = "🔊";
             }
 
             // Crear el segundo WebView2
@@ -1369,3 +1418,4 @@ namespace NavegadorWeb
         }
     }
 }
+
