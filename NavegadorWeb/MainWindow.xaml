@@ -30,7 +30,8 @@
                     <Button x:Name="SplitScreenButton" Content="↔️" Width="30" Height="25" Margin="0,0,5,0" Click="SplitScreenButton_Click" ToolTip="Pantalla Dividida"/>
                     <Button x:Name="AIButton" Content="🤖" Width="30" Height="25" Margin="0,0,5,0" Click="AIButton_Click" ToolTip="Abrir Gemini (IA) en Pantalla Dividida"/>
                     <Button x:Name="ScreenshotButton" Content="📸" Width="30" Height="25" Margin="0,0,5,0" Click="ScreenshotButton_Click" ToolTip="Captura de Pantalla"/>
-                    <Button x:Name="TabManagerButton" Content="🗂️" Width="30" Height="25" Margin="0,0,5,0" Click="TabManagerButton_Click" ToolTip="Administrador de Pestañas"/> <!-- NUEVO BOTÓN ADMINISTRADOR DE PESTAÑAS -->
+                    <Button x:Name="TabManagerButton" Content="🗂️" Width="30" Height="25" Margin="0,0,5,0" Click="TabManagerButton_Click" ToolTip="Administrador de Pestañas"/>
+                    <Button x:Name="DataExtractionButton" Content="📋" Width="30" Height="25" Margin="0,0,5,0" Click="DataExtractionButton_Click" ToolTip="Extractor de Datos Web"/> <!-- NUEVO BOTÓN EXTRACCIÓN DE DATOS -->
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
@@ -62,9 +63,9 @@
 
 ---
 
-**5. Modificación del archivo: `MainWindow.xaml.cs`**
+**4. Modificación del archivo: `MainWindow.xaml.cs`**
 
-Este archivo tendrá el nuevo manejador de eventos para el botón del administrador de pestañas y los métodos públicos para que `TabManagerWindow` pueda interactuar.
+Este archivo tendrá el nuevo manejador de eventos para el botón de extracción de datos.
 
 **Ruta:** `./NavegadorWeb/MainWindow.xaml.cs`
 
@@ -913,7 +914,7 @@ namespace NavegadorWeb
         }
 
         /// <summary>
-        /// NUEVO: Maneja el clic en el botón "Administrador de Pestañas". Abre la ventana del administrador.
+        /// Maneja el clic en el botón "Administrador de Pestañas". Abre la ventana del administrador.
         /// </summary>
         private void TabManagerButton_Click(object sender, RoutedEventArgs e)
         {
@@ -921,6 +922,17 @@ namespace NavegadorWeb
             TabManagerWindow tabManagerWindow = new TabManagerWindow(GetBrowserTabItems, CloseBrowserTab, GetCurrentBrowserTabItemInternal);
             tabManagerWindow.Show(); // Mostrar la ventana (no modal)
         }
+
+        /// <summary>
+        /// NUEVO: Maneja el clic en el botón "Extractor de Datos Web". Abre la ventana de extracción de datos.
+        /// </summary>
+        private void DataExtractionButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Pasamos un delegado para que la ventana de extracción pueda obtener el WebView2 actual
+            DataExtractionWindow dataExtractionWindow = new DataExtractionWindow(GetCurrentWebView);
+            dataExtractionWindow.Show(); // Mostrar la ventana (no modal)
+        }
+
 
         /// <summary>
         /// Método público para que el Administrador de Pestañas pueda obtener la lista de todas las pestañas.
