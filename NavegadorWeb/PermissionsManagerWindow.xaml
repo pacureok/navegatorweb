@@ -1,0 +1,41 @@
+<Window x:Class="NavegadorWeb.PermissionsManagerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Gestor de Permisos de Sitios Web" Height="500" Width="700"
+        WindowStartupLocation="CenterScreen"
+        Loaded="Window_Loaded">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Permisos Concedidos a Sitios Web:" FontWeight="Bold" Margin="0,0,0,10"/>
+
+        <ListView x:Name="PermissionsListView" Grid.Row="1" Margin="0,0,0,10">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Sitio Web" Width="250" DisplayMemberBinding="{Binding Origin}"/>
+                    <GridViewColumn Header="Permiso" Width="150" DisplayMemberBinding="{Binding PermissionType}"/>
+                    <GridViewColumn Header="Estado" Width="100" DisplayMemberBinding="{Binding State}"/>
+                    <GridViewColumn Header="Acciones" Width="100">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="Revocar" Click="RevokePermission_Click" Tag="{Binding}"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                </GridView>
+            </ListView.View>
+        </ListView>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="RefreshButton" Content="Actualizar" Width="80" Height="25" Margin="0,0,10,0" Click="RefreshButton_Click"/>
+            <Button x:Name="CloseButton" Content="Cerrar" Width="80" Height="25" Click="CloseButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
