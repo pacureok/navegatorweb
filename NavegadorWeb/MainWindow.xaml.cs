@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.IO; // Necesario para Path.Combine y operaciones de archivo
+using System.Text.Json; // NUEVO: Necesario para JsonSerializer (para el historial)
 
 namespace NavegadorWeb
 {
@@ -195,6 +196,11 @@ namespace NavegadorWeb
                 {
                     MessageBox.Show($"La navegación a {currentWebView.CoreWebView2.Source} falló con el código de error {e.WebErrorStatus}", "Error de Navegación", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
+                else
+                {
+                    // NUEVO: Añadir la página al historial si la navegación fue exitosa
+                    HistoryManager.AddHistoryEntry(currentWebView.CoreWebView2.Source, currentWebView.CoreWebView2.DocumentTitle);
+                }
             }
             LoadingProgressBar.Visibility = Visibility.Collapsed; // Ocultar el indicador de carga
         }
@@ -350,6 +356,23 @@ namespace NavegadorWeb
         }
 
         /// <summary>
+        /// Maneja el clic en el botón "Historial". Abre la ventana del historial.
+        /// </summary>
+        private void HistoryButton_Click(object sender, RoutedEventArgs e)
+        {
+            HistoryWindow historyWindow = new HistoryWindow();
+            if (historyWindow.ShowDialog() == true) // Muestra la ventana del historial como un diálogo
+            {
+                // Si el usuario seleccionó una URL del historial y hizo doble clic
+                if (!string.IsNullOrEmpty(historyWindow.SelectedUrl))
+                {
+                    UrlTextBox.Text = historyWindow.SelectedUrl;
+                    NavigateToUrlInCurrentTab(); // Navega a la URL seleccionada
+                }
+            }
+        }
+
+        /// <summary>
         /// Cierra una pestaña cuando se hace clic en su botón "X".
         /// </summary>
         private void CloseTabButton_Click(object sender, RoutedEventArgs e)
@@ -418,7 +441,7 @@ namespace NavegadorWeb
 
                         // Restaurar el título original (quitar "(Suspendida)")
                         string originalHeaderText = browserTab.HeaderTextBlock.Text;
-                        if (originalHeaderText.StartsWith("(Suspendida) "))
+                        if (originalHeaderText.StartsWith("(Suspendida) ")) // Evitar duplicar el prefijo
                         {
                             browserTab.HeaderTextBlock.Text = originalHeaderText.Replace("(Suspendida) ", "");
                         }
@@ -481,7 +504,7 @@ namespace NavegadorWeb
             SettingsWindow settingsWindow = new SettingsWindow(_defaultHomePage, AdBlocker.IsEnabled, _defaultSearchEngineUrl, _isTabSuspensionEnabled);
 
             // Suscribirse a los nuevos eventos de la ventana de configuración
-            settingsWindow.OnClearBrowsingData += SettingsWindow_OnClearBrowsingData; // Renombrado de OnClearBrowseData
+            settingsWindow.OnClearBrowsingData += SettingsWindow_OnClearBrowsingData;
             settingsWindow.OnSuspendInactiveTabs += SettingsWindow_OnSuspendInactiveTabs;
 
 
@@ -497,7 +520,7 @@ namespace NavegadorWeb
             }
 
             // Es importante desuscribirse de los eventos para evitar fugas de memoria
-            settingsWindow.OnClearBrowsingData -= SettingsWindow_OnClearBrowsingData; // Renombrado de OnClearBrowseData
+            settingsWindow.OnClearBrowsingData -= SettingsWindow_OnClearBrowsingData;
             settingsWindow.OnSuspendInactiveTabs -= SettingsWindow_OnSuspendInactiveTabs;
         }
 
@@ -505,7 +528,7 @@ namespace NavegadorWeb
         /// Nuevo: Manejador para borrar datos de navegación.
         /// Se invoca desde la ventana de configuración.
         /// </summary>
-        private async void SettingsWindow_OnClearBrowsingData() // Renombrado de SettingsWindow_OnClearBrowseData
+        private async void SettingsWindow_OnClearBrowsingData()
         {
             // Esto borrará datos de todas las instancias de WebView2 que usen el mismo UserDataFolder.
             // Por defecto, WebView2 usa una carpeta de datos de usuario separada para cada aplicación,
@@ -519,6 +542,7 @@ namespace NavegadorWeb
                     CoreWebView2BrowserDataKinds.DiskCache |
                     CoreWebView2BrowserDataKinds.Downloads |
                     CoreWebView2BrowserDataKinds.GeneralAutofill |
+                    CoreWebView2BrowserDataKinds.ReadAloud | // Incluido por si acaso
                     CoreWebView2BrowserDataKinds.History |
                     CoreWebView2BrowserDataKinds.IndexedDb |
                     CoreWebView2BrowserDataKinds.LocalStorage |
