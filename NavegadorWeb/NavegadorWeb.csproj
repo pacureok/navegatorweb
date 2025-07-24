@@ -1,15 +1,38 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UseWPF>true</UseWWidth>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2592.34" />
+<ItemGroup>
+    <Compile Include="CustomExtension.cs" />
+    <Compile Include="ExtensionManager.cs" />
+    <Compile Include="ExtensionsWindow.xaml.cs">
+      <DependentUpon>ExtensionsWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="TabGroup.cs" />
+    <Compile Include="TabGroupManager.cs" />
   </ItemGroup>
 
-</Project>
+  <ItemGroup>
+    <Page Include="ExtensionsWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="CustomErrorPage.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="DarkMode.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="HighlighterExtension.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ReaderMode.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\audio_playing_icon.png" />
+    <Resource Include="Resources\blocked_icon.png" />
+    <Resource Include="Resources\extension_icon.png" />
+    <Resource Include="Resources\globe_icon.png" />
+  </ItemGroup>
