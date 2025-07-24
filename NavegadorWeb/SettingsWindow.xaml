@@ -3,44 +3,48 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:NavegadorWeb"
         mc:Ignorable="d"
-        Title="Opciones del Navegador" Height="400" Width="450" WindowStartupLocation="CenterScreen">
-    <Grid Margin="10">
+        Title="Opciones del Navegador" Height="500" Width="500"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="15">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
 
-        <Label Content="Página de Inicio Predeterminada:" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"/>
-        <TextBox x:Name="HomePageTextBox" Grid.Row="0" Grid.Column="1" Margin="0,5,0,5" Text="https://www.google.com"/>
+        <TextBlock Grid.Row="0" Text="Página de Inicio:" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBox x:Name="HomePageTextBox" Grid.Row="1" Margin="0,0,0,10"/>
 
-        <CheckBox x:Name="AdBlockerCheckBox" Content="Habilitar Bloqueador de Anuncios" Grid.Row="1" Grid.ColumnSpan="2" Margin="0,15,0,5"/>
+        <TextBlock Grid.Row="2" Text="Bloqueador de Anuncios:" FontWeight="Bold" Margin="0,0,0,5"/>
+        <CheckBox x:Name="AdBlockerCheckBox" Grid.Row="3" Content="Habilitar Bloqueador de Anuncios" Margin="0,0,0,10"/>
 
-        <Label Content="Motor de Búsqueda Predeterminado:" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"/>
-        <ComboBox x:Name="SearchEngineComboBox" Grid.Row="2" Grid.Column="1" Margin="0,5,0,5">
-            <ComboBoxItem Content="Google" Tag="https://www.google.com/search?q="/>
-            <ComboBoxItem Content="Bing" Tag="https://www.bing.com/search?q="/>
-            </ComboBox>
+        <TextBlock Grid.Row="4" Text="Motor de Búsqueda Predeterminado (URL con ?q=):" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBox x:Name="SearchEngineTextBox" Grid.Row="5" Margin="0,0,0,10"/>
 
-        <GroupBox Header="Opciones de Rendimiento y Datos" Grid.Row="3" Grid.ColumnSpan="2" Margin="0,15,0,5">
-            <StackPanel Margin="5">
-                <CheckBox x:Name="EnableTabSuspensionCheckBox" Content="Habilitar suspensión manual de pestañas" Margin="0,5,0,5" ToolTip="Permite suspender pestañas inactivas para ahorrar recursos. Necesita recargar al volver."/>
-                <Button x:Name="SuspendAllInactiveTabsButton" Content="Suspender todas las pestañas inactivas" Margin="0,10,0,5" Click="SuspendAllInactiveTabsButton_Click" ToolTip="Cierra el contenido de las pestañas no activas para liberar memoria."/>
-                <Button x:Name="ClearBrowseDataButton" Content="Borrar datos de navegación (Caché, Cookies)" Margin="0,10,0,5" Click="ClearBrowseDataButton_Click" ToolTip="Borra la caché y las cookies del navegador. Puede acelerar o requerir volver a iniciar sesión en algunos sitios."/>
-            </StackPanel>
-        </GroupBox>
+        <TextBlock Grid.Row="6" Text="Gestión de Pestañas:" FontWeight="Bold" Margin="0,0,0,5"/>
+        <CheckBox x:Name="TabSuspensionCheckBox" Grid.Row="7" Content="Habilitar Suspensión de Pestañas Inactivas" Margin="0,0,0,10"/>
 
-        <StackPanel Grid.Row="6" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-            <Button Content="Guardar" Width="80" Margin="0,0,10,0" Click="SaveButton_Click"/>
-            <Button Content="Cancelar" Width="80" Click="CancelButton_Click"/>
+        <TextBlock Grid.Row="8" Text="Inicio del Navegador:" FontWeight="Bold" Margin="0,0,0,5"/>
+        <CheckBox x:Name="RestoreSessionCheckBox" Grid.Row="9" Content="Restaurar sesión anterior al iniciar" Margin="0,0,0,10"/>
+
+        <TextBlock Grid.Row="10" Text="Privacidad y Seguridad:" FontWeight="Bold" Margin="0,0,0,5"/>
+        <CheckBox x:Name="TrackerProtectionCheckBox" Grid.Row="11" Content="Habilitar Protección contra Rastreadores" Margin="0,0,0,10"/> <!-- NUEVO CHECKBOX -->
+
+        <StackPanel Grid.Row="12" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button x:Name="ClearBrowsingDataButton" Content="Borrar Datos de Navegación" Width="180" Height="30" Margin="0,0,10,0" Click="ClearBrowsingDataButton_Click"/>
+            <Button x:Name="SuspendInactiveTabsButton" Content="Suspender Pestañas Inactivas Ahora" Width="220" Height="30" Margin="0,0,10,0" Click="SuspendInactiveTabsButton_Click"/>
+            <Button x:Name="SaveButton" Content="Guardar" Width="80" Height="30" Margin="0,0,10,0" Click="SaveButton_Click"/>
+            <Button x:Name="CancelButton" Content="Cancelar" Width="80" Height="30" Click="CancelButton_Click"/>
         </StackPanel>
     </Grid>
 </Window>
