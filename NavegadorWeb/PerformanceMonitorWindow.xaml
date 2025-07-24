@@ -1,0 +1,38 @@
+<Window x:Class="NavegadorWeb.PerformanceMonitorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:NavegadorWeb"
+        mc:Ignorable="d"
+        Title="Monitor de Rendimiento" Height="500" Width="800"
+        WindowStartupLocation="CenterScreen"
+        Loaded="Window_Loaded">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBlock Text="Uso Total de Memoria del Navegador:" FontWeight="Bold" VerticalAlignment="Center"/>
+            <TextBlock x:Name="TotalMemoryUsageTextBlock" Text="Calculando..." Margin="5,0,0,0" VerticalAlignment="Center"/>
+            <Button x:Name="RefreshButton" Content="Actualizar" Width="80" Height="25" Margin="20,0,0,0" Click="RefreshButton_Click"/>
+        </StackPanel>
+
+        <ListView x:Name="TabsPerformanceListView" Grid.Row="1" Margin="0,0,0,10">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Título de Pestaña" Width="300" DisplayMemberBinding="{Binding Title}"/>
+                    <GridViewColumn Header="URL" Width="350" DisplayMemberBinding="{Binding Url}"/>
+                    <GridViewColumn Header="Estado" Width="100" DisplayMemberBinding="{Binding Status}"/>
+                </GridView>
+            </ListView.View>
+        </ListView>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="CloseButton" Content="Cerrar" Width="80" Height="25" Click="CloseButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
