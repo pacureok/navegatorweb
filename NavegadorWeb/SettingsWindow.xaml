@@ -4,10 +4,13 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Opciones del Navegador" Height="500" Width="500"
+        Title="Opciones del Navegador" Height="550" Width="500"
         WindowStartupLocation="CenterScreen">
     <Grid Margin="15">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -38,9 +41,12 @@
         <CheckBox x:Name="RestoreSessionCheckBox" Grid.Row="9" Content="Restaurar sesión anterior al iniciar" Margin="0,0,0,10"/>
 
         <TextBlock Grid.Row="10" Text="Privacidad y Seguridad:" FontWeight="Bold" Margin="0,0,0,5"/>
-        <CheckBox x:Name="TrackerProtectionCheckBox" Grid.Row="11" Content="Habilitar Protección contra Rastreadores" Margin="0,0,0,10"/> <!-- NUEVO CHECKBOX -->
+        <CheckBox x:Name="TrackerProtectionCheckBox" Grid.Row="11" Content="Habilitar Protección contra Rastreadores" Margin="0,0,0,10"/>
+        
+        <TextBlock Grid.Row="12" Text="Visor de Documentos:" FontWeight="Bold" Margin="0,0,0,5"/>
+        <CheckBox x:Name="PdfViewerCheckBox" Grid.Row="13" Content="Habilitar Visor de PDF Integrado" Margin="0,0,0,10"/> <!-- NUEVO CHECKBOX -->
 
-        <StackPanel Grid.Row="12" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+        <StackPanel Grid.Row="14" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
             <Button x:Name="ClearBrowsingDataButton" Content="Borrar Datos de Navegación" Width="180" Height="30" Margin="0,0,10,0" Click="ClearBrowsingDataButton_Click"/>
             <Button x:Name="SuspendInactiveTabsButton" Content="Suspender Pestañas Inactivas Ahora" Width="220" Height="30" Margin="0,0,10,0" Click="SuspendInactiveTabsButton_Click"/>
             <Button x:Name="SaveButton" Content="Guardar" Width="80" Height="30" Margin="0,0,10,0" Click="SaveButton_Click"/>
