@@ -5,9 +5,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         mc:Ignorable="d"
-        Title="Aurora Browser" Height="720" Width="1280" <!-- Título cambiado a Aurora Browser -->
+        Title="Aurora Browser" Height="720" Width="1280"
         Loaded="Window_Loaded"
         Closing="Window_Closing">
+    <Window.Resources>
+        <!-- Convertidor para la visibilidad del icono de audio -->
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -38,6 +42,7 @@
                     <Button x:Name="PermissionsButton" Content="🔒" Width="30" Height="25" Margin="0,0,5,0" Click="PermissionsButton_Click" ToolTip="Gestor de Permisos"/>
                     <Button x:Name="PipButton" Content="📺" Width="30" Height="25" Margin="0,0,5,0" Click="PipButton_Click" ToolTip="Modo Picture-in-Picture (PIP)"/>
                     <Button x:Name="PasswordManagerButton" Content="🔑" Width="30" Height="25" Margin="0,0,5,0" Click="PasswordManagerButton_Click" ToolTip="Gestor de Contraseñas"/>
+                    <Button x:Name="HighlightButton" Content="✨" Width="30" Height="25" Margin="0,0,5,0" Click="HighlightButton_Click" ToolTip="Resaltar Texto (Extensión)"/> <!-- NUEVO BOTÓN PARA EXTENSIÓN -->
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
@@ -59,38 +64,56 @@
             </DockPanel>
         </Border>
 
-        <!-- Contenedor de Pestañas -->
-        <TabControl x:Name="BrowserTabControl" Grid.Row="1" SelectionChanged="BrowserTabControl_SelectionChanged">
-            <!-- Estilo para el encabezado de la pestaña (TabItem Header) -->
-            <TabControl.Resources>
-                <Style TargetType="TabItem">
-                    <Setter Property="HeaderTemplate">
-                        <Setter.Value>
-                            <DataTemplate>
-                                <DockPanel>
-                                    <!-- Icono de la página (Favicon) -->
-                                    <Image x:Name="FaviconImage" Source="{Binding FaviconSource}" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                    <!-- Icono de audio reproduciéndose -->
-                                    <Image x:Name="AudioIconImage" Source="{x:Static NavegadorWeb:BrowserTabItem.GetAudioPlayingIcon}"
-                                           Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"
-                                           Visibility="{Binding IsAudioPlaying, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                           ToolTip="Reproduciendo audio (clic para silenciar/reactivar)"
-                                           MouseLeftButtonUp="AudioIcon_MouseLeftButtonUp"/> <!-- Evento para silenciar/reactivar -->
-                                    <!-- Título de la pestaña -->
-                                    <TextBlock x:Name="HeaderText" Text="{Binding HeaderTextBlock.Text}" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                    <!-- Botón de cerrar pestaña -->
-                                    <Button Content="✖" Width="20" Height="20" Margin="5,0,0,0"
-                                            VerticalAlignment="Center" ToolTip="Cerrar Pestaña"
-                                            Click="CloseTabButton_Click"
-                                            Tag="{Binding Tab}"/> <!-- Tag para pasar el TabItem -->
-                                </DockPanel>
-                            </DataTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
-            </TabControl.Resources>
-            <!-- Las pestañas se añadirán programáticamente -->
-        </TabControl>
+        <!-- Contenedor de Pestañas (AHORA CON AGRUPACIÓN) -->
+        <ItemsControl x:Name="TabGroupContainer" Grid.Row="1" ItemsSource="{Binding TabGroups}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Vertical"/> <!-- Los grupos se apilan verticalmente -->
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Expander Header="{Binding GroupName}" IsExpanded="True" Margin="0,5,0,0">
+                        <Border BorderBrush="LightGray" BorderThickness="1" Margin="5">
+                            <TabControl x:Name="BrowserTabControl" ItemsSource="{Binding TabsInGroup}"
+                                        SelectedItem="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.SelectedTabItem}"
+                                        SelectionChanged="BrowserTabControl_SelectionChanged_Grouped"> <!-- NUEVO EVENTO PARA SELECCIÓN EN GRUPOS -->
+                                <!-- Estilo para el encabezado de la pestaña (TabItem Header) -->
+                                <TabControl.Resources>
+                                    <Style TargetType="TabItem">
+                                        <Setter Property="HeaderTemplate">
+                                            <Setter.Value>
+                                                <DataTemplate>
+                                                    <DockPanel>
+                                                        <!-- Icono de la página (Favicon) -->
+                                                        <Image x:Name="FaviconImage" Source="{Binding FaviconSource}" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                                        <!-- Icono de audio reproduciéndose -->
+                                                        <Image x:Name="AudioIconImage" Source="{x:Static NavegadorWeb:BrowserTabItem.GetAudioPlayingIcon}"
+                                                               Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"
+                                                               Visibility="{Binding IsAudioPlaying, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                               ToolTip="Reproduciendo audio (clic para silenciar/reactivar)"
+                                                               MouseLeftButtonUp="AudioIcon_MouseLeftButtonUp"/> <!-- Evento para silenciar/reactivar -->
+                                                        <!-- Título de la pestaña -->
+                                                        <TextBlock x:Name="HeaderText" Text="{Binding HeaderTextBlock.Text}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                        <!-- Botón de cerrar pestaña -->
+                                                        <Button Content="✖" Width="20" Height="20" Margin="5,0,0,0"
+                                                                VerticalAlignment="Center" ToolTip="Cerrar Pestaña"
+                                                                Click="CloseTabButton_Click"
+                                                                Tag="{Binding Tab}"/> <!-- Tag para pasar el TabItem -->
+                                                    </DockPanel>
+                                                </DataTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </TabControl.Resources>
+                                <!-- Las pestañas se añadirán programáticamente -->
+                            </TabControl>
+                        </Border>
+                    </Expander>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
 
         <!-- Barra de Búsqueda en Página (inicialmente oculta) -->
         <Grid x:Name="FindBar" Grid.Row="1" VerticalAlignment="Top" HorizontalAlignment="Right"
