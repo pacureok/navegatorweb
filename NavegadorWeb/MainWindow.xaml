@@ -35,7 +35,8 @@
                     <Button x:Name="DarkModeButton" Content="🌙" Width="30" Height="25" Margin="0,0,5,0" Click="DarkModeButton_Click" ToolTip="Activar/Desactivar Modo Oscuro Global"/>
                     <Button x:Name="PerformanceMonitorButton" Content="📊" Width="30" Height="25" Margin="0,0,5,0" Click="PerformanceMonitorButton_Click" ToolTip="Monitor de Rendimiento"/>
                     <Button x:Name="FindButton" Content="🔍" Width="30" Height="25" Margin="0,0,5,0" Click="FindButton_Click" ToolTip="Buscar en Página"/>
-                    <Button x:Name="PermissionsButton" Content="🔒" Width="30" Height="25" Margin="0,0,5,0" Click="PermissionsButton_Click" ToolTip="Gestor de Permisos"/> <!-- NUEVO BOTÓN GESTOR DE PERMISOS -->
+                    <Button x:Name="PermissionsButton" Content="🔒" Width="30" Height="25" Margin="0,0,5,0" Click="PermissionsButton_Click" ToolTip="Gestor de Permisos"/>
+                    <Button x:Name="PipButton" Content="📺" Width="30" Height="25" Margin="0,0,5,0" Click="PipButton_Click" ToolTip="Modo Picture-in-Picture (PIP)"/> <!-- NUEVO BOTÓN PIP -->
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
@@ -90,7 +91,7 @@
 
 **4. Modificación del archivo: `MainWindow.xaml.cs`**
 
-Este archivo contendrá el manejador para el nuevo botón del gestor de permisos y un delegado para pasar el entorno de WebView2.
+Este archivo contendrá la lógica para detectar y extraer el video para el modo PIP.
 
 **Ruta:** `./NavegadorWeb/MainWindow.xaml.cs`
 
@@ -373,7 +374,7 @@ namespace NavegadorWeb
             webView1.CoreWebView2.DocumentTitleChanged += WebView_DocumentTitleChanged;
             // Suscribirse al evento FindInPageCompleted para actualizar los resultados de búsqueda
             webView1.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted;
-            // NUEVO: Suscribirse al evento PermissionRequested para gestionar permisos
+            // Suscribirse al evento PermissionRequested para gestionar permisos
             webView1.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
 
 
@@ -434,7 +435,7 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.NavigationCompleted -= WebView_NavigationCompleted;
                 currentWebView.CoreWebView2.NavigationStarting -= WebView_NavigationStarting;
                 currentWebView.CoreWebView2.FindInPageCompleted -= CoreWebView2_FindInPageCompleted; // Desvincular también este
-                currentWebView.CoreWebView2.PermissionRequested -= CoreWebView2_PermissionRequested; // NUEVO: Desvincular este
+                currentWebView.CoreWebView2.PermissionRequested -= CoreWebView2_PermissionRequested; // Desvincular este
 
                 // Adjuntar el manejador de eventos para interceptar solicitudes de red (bloqueador de anuncios).
                 currentWebView.CoreWebView2.WebResourceRequested += CoreWebView2_WebResourceRequested;
@@ -451,7 +452,7 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.NavigationCompleted += WebView_NavigationCompleted;
                 currentWebView.CoreWebView2.NavigationStarting += WebView_NavigationStarting;
                 currentWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted; // Re-adjuntar este también
-                currentWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested; // NUEVO: Re-adjuntar este
+                currentWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested; // Re-adjuntar este
             }
         }
 
@@ -866,7 +867,7 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    MessageBox.Show("Advertencia: El archivo 'ReaderMode.js' no se encontró. El modo lectura no funcionará.", "Archivo Faltante", MessageBoxButton.OK, Image.Warning);
+                    MessageBox.Show("Advertencia: El archivo 'ReaderMode.js' no se encontró. El modo lectura no funcionará.", "Error de Modo Lectura", MessageBoxButton.OK, Image.Warning);
                 }
             }
             else
@@ -1232,7 +1233,7 @@ namespace NavegadorWeb
         }
 
         /// <summary>
-        /// NUEVO: Maneja el clic en el botón "Gestor de Permisos". Abre la ventana del gestor de permisos.
+        /// Maneja el clic en el botón "Gestor de Permisos". Abre la ventana del gestor de permisos.
         /// </summary>
         private void PermissionsButton_Click(object sender, RoutedEventArgs e)
         {
@@ -1240,6 +1241,65 @@ namespace NavegadorWeb
             PermissionsManagerWindow permissionsWindow = new PermissionsManagerWindow(GetDefaultEnvironment);
             permissionsWindow.Show(); // Mostrar la ventana (no modal)
         }
+
+        /// <summary>
+        /// Maneja el clic en el botón "Picture-in-Picture (PIP)". Intenta extraer un video a una ventana flotante.
+        /// </summary>
+        private async void PipButton_Click(object sender, RoutedEventArgs e)
+        {
+            WebView2 currentWebView = GetCurrentWebView();
+            if (currentWebView == null || currentWebView.CoreWebView2 == null)
+            {
+                MessageBox.Show("No hay una página activa para extraer un video.", "Error de PIP", MessageBoxButton.OK, Image.Error);
+                return;
+            }
+
+            try
+            {
+                // JavaScript para encontrar el primer elemento <video> visible y obtener su src
+                // Esto es una simplificación; un enfoque más robusto podría buscar reproductores específicos (YouTube, Vimeo)
+                // y extraer su URL de video o URL de embebido.
+                string script = @"
+                    (function() {
+                        let video = document.querySelector('video');
+                        if (video && video.src) {
+                            // Pausar el video original
+                            video.pause();
+                            return video.src;
+                        }
+                        // Intenta buscar si es un iframe de YouTube o similar que contenga el video
+                        let youtubeIframe = document.querySelector('iframe[src*=""youtube.com/embed""]');
+                        if (youtubeIframe && youtubeIframe.src) {
+                            return youtubeIframe.src;
+                        }
+                        // Fallback para videos de YouTube incrustados en un iframe con watch?v=
+                        let youtubeWatchIframe = document.querySelector('iframe[src*=""youtube.com/watch?v=""]');
+                        if (youtubeWatchIframe && youtubeWatchIframe.src) {
+                            return youtubeWatchIframe.src;
+                        }
+                        return null;
+                    })();
+                ";
+                string videoUrlJson = await currentWebView.CoreWebView2.ExecuteScriptAsync(script);
+                string videoUrl = System.Text.Json.JsonSerializer.Deserialize<string>(videoUrlJson);
+
+                if (!string.IsNullOrEmpty(videoUrl))
+                {
+                    // Abrir la ventana PIP con la URL del video
+                    PipWindow pipWindow = new PipWindow(videoUrl, currentWebView);
+                    pipWindow.Show();
+                }
+                else
+                {
+                    MessageBox.Show("No se encontró ningún video reproducible en la página actual.", "Video no Encontrado", MessageBoxButton.OK, Image.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al intentar el modo Picture-in-Picture: {ex.Message}", "Error de PIP", MessageBoxButton.OK, Image.Error);
+            }
+        }
+
 
         /// <summary>
         /// Método público para que el Gestor de Permisos pueda obtener el entorno predeterminado.
@@ -1490,7 +1550,7 @@ namespace NavegadorWeb
                         newWebView.CoreWebView2InitializationCompleted += (s, ev) => ConfigureCoreWebView2(newWebView, ev, envToUse); // Pasar e y envToUse
                         // Los eventos de navegación, fuente y título se re-adjuntan en ConfigureCoreWebView2
                         newWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted; // Asegurarse de re-adjuntar este también
-                        newWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested; // NUEVO: Asegurarse de re-adjuntar este
+                        newWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested; // Asegurarse de re-adjuntar este
 
                         // Reemplazar el contenido de la pestaña (volverá a ser una vista simple)
                         Grid tabContent = new Grid();
