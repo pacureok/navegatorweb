@@ -1,4 +1,3 @@
-
 <Window x:Class="NavegadorWeb.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -13,45 +12,69 @@
     <Window.Resources>
         <!-- Convertidor para la visibilidad del icono de audio -->
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+        <!-- Colores por defecto para el tema del navegador -->
+        <Color x:Key="BrowserBackgroundColor">#F0F0F0</Color>
+        <Color x:Key="BrowserForegroundColor">#333333</Color>
+        <SolidColorBrush x:Key="BrowserBackgroundBrush" Color="{StaticResource BrowserBackgroundColor}"/>
+        <SolidColorBrush x:Key="BrowserForegroundBrush" Color="{StaticResource BrowserForegroundColor}"/>
     </Window.Resources>
-    <Grid>
+
+    <!-- NUEVO: Atajos de Teclado para la Ventana -->
+    <Window.InputBindings>
+        <KeyBinding Key="F5" Command="{Binding ReloadCommand}"/>
+        <KeyBinding Key="F11" Command="{Binding ToggleFullscreenCommand}"/>
+        <KeyBinding Key="F12" Command="{Binding OpenDevToolsCommand}"/>
+        <KeyBinding Modifiers="Shift" Key="G" Command="{Binding ScreenshotCommand}"/>
+        <KeyBinding Modifiers="Control" Key="T" Command="{Binding NewTabCommand}"/>
+        <KeyBinding Modifiers="Control" Key="W" Command="{Binding CloseTabCommand}"/>
+        <KeyBinding Modifiers="Control" Key="L" Command="{Binding FocusUrlBarCommand}"/>
+        <KeyBinding Modifiers="Control" Key="H" Command="{Binding OpenHistoryCommand}"/>
+        <KeyBinding Modifiers="Control" Key="B" Command="{Binding OpenBookmarksCommand}"/>
+        <KeyBinding Modifiers="Control" Key="J" Command="{Binding OpenDownloadsCommand}"/>
+        <KeyBinding Modifiers="Control" Key="F" Command="{Binding ToggleFindBarCommand}"/>
+        <KeyBinding Modifiers="Control" Key="K" Command="{Binding ToggleFindBarCommand}"/> <!-- Ctrl+K también para buscar -->
+        <KeyBinding Key="Escape" Command="{Binding CloseFindBarCommand}"/>
+    </Window.InputBindings>
+
+    <Grid Background="{StaticResource BrowserBackgroundBrush}"> <!-- Aplicar color de fondo -->
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <!-- Barra de Dirección, Botones y Botón Nueva Pestaña -->
-        <Border Grid.Row="0" BorderBrush="LightGray" BorderThickness="0,0,0,1" Padding="5">
+        <Border Grid.Row="0" BorderBrush="LightGray" BorderThickness="0,0,0,1" Padding="5" Background="{StaticResource BrowserBackgroundBrush}">
             <DockPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                    <Button x:Name="BackButton" Content="◀" Width="30" Height="25" Margin="0,0,5,0" Click="BackButton_Click" ToolTip="Atrás"/>
-                    <Button x:Name="ForwardButton" Content="▶" Width="30" Height="25" Margin="0,0,5,0" Click="ForwardButton_Click" ToolTip="Adelante"/>
-                    <Button x:Name="ReloadButton" Content="⟳" Width="30" Height="25" Margin="0,0,5,0" Click="ReloadButton_Click" ToolTip="Recargar"/>
-                    <Button x:Name="HomeButton" Content="🏠" Width="30" Height="25" Margin="0,0,5,0" Click="HomeButton_Click" ToolTip="Inicio"/>
-                    <Button x:Name="HistoryButton" Content="🕒" Width="30" Height="25" Margin="0,0,5,0" Click="HistoryButton_Click" ToolTip="Historial"/>
-                    <Button x:Name="BookmarksButton" Content="⭐" Width="30" Height="25" Margin="0,0,5,0" Click="BookmarksButton_Click" ToolTip="Mis Marcadores"/>
-                    <Button x:Name="DownloadsButton" Content="⬇️" Width="30" Height="25" Margin="0,0,5,0" Click="DownloadsButton_Click" ToolTip="Descargas"/>
-                    <Button x:Name="ReaderModeButton" Content="📖" Width="30" Height="25" Margin="0,0,5,0" Click="ReaderModeButton_Click" ToolTip="Modo Lectura"/>
-                    <Button x:Name="ReadAloudButton" Content="🔊" Width="30" Height="25" Margin="0,0,5,0" Click="ReadAloudButton_Click" ToolTip="Leer en Voz Alta"/>
-                    <Button x:Name="SplitScreenButton" Content="↔️" Width="30" Height="25" Margin="0,0,5,0" Click="SplitScreenButton_Click" ToolTip="Pantalla Dividida"/>
-                    <Button x:Name="AIButton" Content="🤖" Width="30" Height="25" Margin="0,0,5,0" Click="AIButton_Click" ToolTip="Abrir Gemini (IA) en Pantalla Dividida"/>
-                    <Button x:Name="ScreenshotButton" Content="📸" Width="30" Height="25" Margin="0,0,5,0" Click="ScreenshotButton_Click" ToolTip="Captura de Pantalla"/>
-                    <Button x:Name="TabManagerButton" Content="🗂️" Width="30" Height="25" Margin="0,0,5,0" Click="TabManagerButton_Click" ToolTip="Administrador de Pestañas"/>
-                    <Button x:Name="DataExtractionButton" Content="📋" Width="30" Height="25" Margin="0,0,5,0" Click="DataExtractionButton_Click" ToolTip="Extractor de Datos Web"/>
-                    <Button x:Name="DarkModeButton" Content="🌙" Width="30" Height="25" Margin="0,0,5,0" Click="DarkModeButton_Click" ToolTip="Activar/Desactivar Modo Oscuro Global"/>
-                    <Button x:Name="PerformanceMonitorButton" Content="📊" Width="30" Height="25" Margin="0,0,5,0" Click="PerformanceMonitorButton_Click" ToolTip="Monitor de Rendimiento"/>
-                    <Button x:Name="FindButton" Content="🔍" Width="30" Height="25" Margin="0,0,5,0" Click="FindButton_Click" ToolTip="Buscar en Página"/>
-                    <Button x:Name="PermissionsButton" Content="🔒" Width="30" Height="25" Margin="0,0,5,0" Click="PermissionsButton_Click" ToolTip="Gestor de Permisos"/>
-                    <Button x:Name="PipButton" Content="📺" Width="30" Height="25" Margin="0,0,5,0" Click="PipButton_Click" ToolTip="Modo Picture-in-Picture (PIP)"/>
-                    <Button x:Name="PasswordManagerButton" Content="🔑" Width="30" Height="25" Margin="0,0,5,0" Click="PasswordManagerButton_Click" ToolTip="Gestor de Contraseñas"/>
-                    <Button x:Name="ExtensionsButton" Content="🧩" Width="30" Height="25" Margin="0,0,5,0" Click="ExtensionsButton_Click" ToolTip="Gestor de Extensiones"/> <!-- NUEVO BOTÓN PARA EXTENSIONES -->
+                    <Button x:Name="BackButton" Content="◀" Width="30" Height="25" Margin="0,0,5,0" Click="BackButton_Click" ToolTip="Atrás" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="ForwardButton" Content="▶" Width="30" Height="25" Margin="0,0,5,0" Click="ForwardButton_Click" ToolTip="Adelante" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="ReloadButton" Content="⟳" Width="30" Height="25" Margin="0,0,5,0" Click="ReloadButton_Click" ToolTip="Recargar" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="HomeButton" Content="🏠" Width="30" Height="25" Margin="0,0,5,0" Click="HomeButton_Click" ToolTip="Inicio" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="HistoryButton" Content="🕒" Width="30" Height="25" Margin="0,0,5,0" Click="HistoryButton_Click" ToolTip="Historial" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="BookmarksButton" Content="⭐" Width="30" Height="25" Margin="0,0,5,0" Click="BookmarksButton_Click" ToolTip="Mis Marcadores" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="DownloadsButton" Content="⬇️" Width="30" Height="25" Margin="0,0,5,0" Click="DownloadsButton_Click" ToolTip="Descargas" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="ReaderModeButton" Content="📖" Width="30" Height="25" Margin="0,0,5,0" Click="ReaderModeButton_Click" ToolTip="Modo Lectura" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="ReadAloudButton" Content="🔊" Width="30" Height="25" Margin="0,0,5,0" Click="ReadAloudButton_Click" ToolTip="Leer en Voz Alta" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="SplitScreenButton" Content="↔️" Width="30" Height="25" Margin="0,0,5,0" Click="SplitScreenButton_Click" ToolTip="Pantalla Dividida" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="AIButton" Content="🤖" Width="30" Height="25" Margin="0,0,5,0" Click="AIButton_Click" ToolTip="Abrir Gemini (IA) en Pantalla Dividida" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="ScreenshotButton" Content="📸" Width="30" Height="25" Margin="0,0,5,0" Click="ScreenshotButton_Click" ToolTip="Captura de Pantalla" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="TabManagerButton" Content="🗂️" Width="30" Height="25" Margin="0,0,5,0" Click="TabManagerButton_Click" ToolTip="Administrador de Pestañas" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="DataExtractionButton" Content="📋" Width="30" Height="25" Margin="0,0,5,0" Click="DataExtractionButton_Click" ToolTip="Extractor de Datos Web" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="DarkModeButton" Content="🌙" Width="30" Height="25" Margin="0,0,5,0" Click="DarkModeButton_Click" ToolTip="Activar/Desactivar Modo Oscuro Global" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="PerformanceMonitorButton" Content="📊" Width="30" Height="25" Margin="0,0,5,0" Click="PerformanceMonitorButton_Click" ToolTip="Monitor de Rendimiento" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="FindButton" Content="🔍" Width="30" Height="25" Margin="0,0,5,0" Click="FindButton_Click" ToolTip="Buscar en Página" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="PermissionsButton" Content="🔒" Width="30" Height="25" Margin="0,0,5,0" Click="PermissionsButton_Click" ToolTip="Gestor de Permisos" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="PipButton" Content="📺" Width="30" Height="25" Margin="0,0,5,0" Click="PipButton_Click" ToolTip="Modo Picture-in-Picture (PIP)" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="PasswordManagerButton" Content="🔑" Width="30" Height="25" Margin="0,0,5,0" Click="PasswordManagerButton_Click" ToolTip="Gestor de Contraseñas" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="ExtensionsButton" Content="🧩" Width="30" Height="25" Margin="0,0,5,0" Click="ExtensionsButton_Click" ToolTip="Gestor de Extensiones" Foreground="{StaticResource BrowserForegroundBrush}"/>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
-                    <Button x:Name="IncognitoButton" Content="🕶️" Width="30" Height="25" Margin="0,0,5,0" Click="IncognitoButton_Click" ToolTip="Nueva Ventana Incógnito"/>
-                    <Button x:Name="AddBookmarkButton" Content="➕⭐" Width="40" Height="25" Margin="0,0,5,0" Click="AddBookmarkButton_Click" ToolTip="Añadir página actual a Marcadores"/>
-                    <Button x:Name="NewTabButton" Content="+" Width="30" Height="25" Margin="0,0,5,0" Click="NewTabButton_Click" ToolTip="Nueva Pestaña"/>
-                    <Button x:Name="SettingsButton" Content="⚙️" Width="30" Height="25" Click="SettingsButton_Click" ToolTip="Opciones"/>
+                    <Button x:Name="IncognitoButton" Content="🕶️" Width="30" Height="25" Margin="0,0,5,0" Click="IncognitoButton_Click" ToolTip="Nueva Ventana Incógnito" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="AddBookmarkButton" Content="➕⭐" Width="40" Height="25" Margin="0,0,5,0" Click="AddBookmarkButton_Click" ToolTip="Añadir página actual a Marcadores" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="NewTabButton" Content="+" Width="30" Height="25" Margin="0,0,5,0" Click="NewTabButton_Click" ToolTip="Nueva Pestaña" Foreground="{StaticResource BrowserForegroundBrush}"/>
+                    <Button x:Name="SettingsButton" Content="⚙️" Width="30" Height="25" Click="SettingsButton_Click" ToolTip="Opciones" Foreground="{StaticResource BrowserForegroundBrush}"/>
                 </StackPanel>
 
                 <Grid>
@@ -59,7 +82,7 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBox x:Name="UrlTextBox" VerticalContentAlignment="Center" KeyDown="UrlTextBox_KeyDown" Text="https://www.google.com" Margin="0,0,5,0" Grid.Column="0">
+                    <TextBox x:Name="UrlTextBox" VerticalContentAlignment="Center" KeyDown="UrlTextBox_KeyDown" Text="https://www.google.com" Margin="0,0,5,0" Grid.Column="0" Foreground="{StaticResource BrowserForegroundBrush}">
                         <!-- Menú contextual para la barra de URL -->
                         <TextBox.ContextMenu>
                             <ContextMenu>
@@ -88,7 +111,7 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Expander Header="{Binding GroupName}" IsExpanded="True" Margin="0,5,0,0">
+                    <Expander Header="{Binding GroupName}" IsExpanded="True" Margin="0,5,0,0" Foreground="{StaticResource BrowserForegroundBrush}">
                         <Border BorderBrush="LightGray" BorderThickness="1" Margin="5">
                             <TabControl x:Name="BrowserTabControl" ItemsSource="{Binding TabsInGroup}"
                                         SelectedItem="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.SelectedTabItem}"
@@ -108,23 +131,23 @@
                                                                Visibility="{Binding IsAudioPlaying, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                ToolTip="Reproduciendo audio (clic para silenciar/reactivar)"
                                                                MouseLeftButtonUp="AudioIcon_MouseLeftButtonUp"/>
-                                                        <!-- NUEVO: Icono de Extensión Activa 🧩 -->
+                                                        <!-- Icono de Extensión Activa 🧩 -->
                                                         <Image x:Name="ExtensionIconImage" Source="{x:Static local:BrowserTabItem.GetExtensionActiveIcon}"
                                                                Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"
                                                                Visibility="{Binding IsExtensionActive, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                ToolTip="Extensión activa en esta página"/>
-                                                        <!-- NUEVO: Icono de Sitio Bloqueado 🚫 -->
+                                                        <!-- Icono de Sitio Bloqueado 🚫 -->
                                                         <Image x:Name="BlockedIconImage" Source="{x:Static local:BrowserTabItem.GetSiteBlockedIcon}"
                                                                Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"
                                                                Visibility="{Binding IsSiteBlocked, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                                ToolTip="Recursos bloqueados en esta página"/>
                                                         <!-- Título de la pestaña -->
-                                                        <TextBlock x:Name="HeaderText" Text="{Binding HeaderTextBlock.Text}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                        <TextBlock x:Name="HeaderText" Text="{Binding HeaderTextBlock.Text}" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="{StaticResource BrowserForegroundBrush}"/>
                                                         <!-- Botón de cerrar pestaña -->
                                                         <Button Content="✖" Width="20" Height="20" Margin="5,0,0,0"
                                                                 VerticalAlignment="Center" ToolTip="Cerrar Pestaña"
                                                                 Click="CloseTabButton_Click"
-                                                                Tag="{Binding Tab}"/>
+                                                                Tag="{Binding Tab}" Foreground="{StaticResource BrowserForegroundBrush}"/>
                                                     </DockPanel>
                                                 </DataTemplate>
                                             </Setter.Value>
@@ -141,7 +164,7 @@
 
         <!-- Barra de Búsqueda en Página (inicialmente oculta) -->
         <Grid x:Name="FindBar" Grid.Row="1" VerticalAlignment="Top" HorizontalAlignment="Right"
-              Background="{StaticResource {x:Static SystemColors.ControlBrush}}"
+              Background="{StaticResource BrowserBackgroundBrush}"
               BorderBrush="LightGray" BorderThickness="1" Padding="5" Margin="10"
               Visibility="Collapsed" Width="300">
             <Grid.ColumnDefinitions>
@@ -153,11 +176,11 @@
             </Grid.ColumnDefinitions>
             <TextBox x:Name="FindTextBox" Grid.Column="0" VerticalContentAlignment="Center"
                      KeyDown="FindTextBox_KeyDown" TextChanged="FindTextBox_TextChanged"
-                     Margin="0,0,5,0" ToolTip="Escribe el texto a buscar"/>
-            <TextBlock x:Name="FindResultsTextBlock" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,5,0" Text="0/0"/>
-            <Button x:Name="FindPreviousButton" Content="▲" Grid.Column="2" Width="25" Height="25" Margin="0,0,2,0" Click="FindPreviousButton_Click" ToolTip="Coincidencia Anterior"/>
-            <Button x:Name="FindNextButton" Content="▼" Grid.Column="3" Width="25" Height="25" Click="FindNextButton_Click" ToolTip="Coincidencia Siguiente"/>
-            <Button x:Name="CloseFindBarButton" Content="✖" Grid.Column="4" Width="25" Height="25" Margin="5,0,0,0" Click="CloseFindBarButton_Click" ToolTip="Cerrar Búsqueda"/>
+                     Margin="0,0,5,0" ToolTip="Escribe el texto a buscar" Foreground="{StaticResource BrowserForegroundBrush}"/>
+            <TextBlock x:Name="FindResultsTextBlock" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,5,0" Text="0/0" Foreground="{StaticResource BrowserForegroundBrush}"/>
+            <Button x:Name="FindPreviousButton" Content="▲" Grid.Column="2" Width="25" Height="25" Margin="0,0,2,0" Click="FindPreviousButton_Click" ToolTip="Coincidencia Anterior" Foreground="{StaticResource BrowserForegroundBrush}"/>
+            <Button x:Name="FindNextButton" Content="▼" Grid.Column="3" Width="25" Height="25" Click="FindNextButton_Click" ToolTip="Coincidencia Siguiente" Foreground="{StaticResource BrowserForegroundBrush}"/>
+            <Button x:Name="CloseFindBarButton" Content="✖" Grid.Column="4" Width="25" Height="25" Margin="5,0,0,0" Click="CloseFindBarButton_Click" ToolTip="Cerrar Búsqueda" Foreground="{StaticResource BrowserForegroundBrush}"/>
         </Grid>
     </Grid>
 </Window>
