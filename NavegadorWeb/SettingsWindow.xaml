@@ -4,53 +4,71 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Opciones del Navegador" Height="550" Width="500"
+        Title="Configuración del Navegador - Aurora Browser" Height="600" Width="800"
         WindowStartupLocation="CenterScreen">
     <Grid Margin="15">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Página de Inicio:" FontWeight="Bold" Margin="0,0,0,5"/>
-        <TextBox x:Name="HomePageTextBox" Grid.Row="1" Margin="0,0,0,10"/>
+        <TextBlock Grid.Row="0" Text="Configuración del Navegador" FontSize="20" FontWeight="Bold" Margin="0,0,0,15"/>
 
-        <TextBlock Grid.Row="2" Text="Bloqueador de Anuncios:" FontWeight="Bold" Margin="0,0,0,5"/>
-        <CheckBox x:Name="AdBlockerCheckBox" Grid.Row="3" Content="Habilitar Bloqueador de Anuncios" Margin="0,0,0,10"/>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- Sección General -->
+                <GroupBox Header="General" Margin="0,0,0,15">
+                    <StackPanel Margin="10">
+                        <Label Content="Página de Inicio Predeterminada:"/>
+                        <TextBox x:Name="HomePageTextBox" Margin="0,0,0,10"/>
 
-        <TextBlock Grid.Row="4" Text="Motor de Búsqueda Predeterminado (URL con ?q=):" FontWeight="Bold" Margin="0,0,0,5"/>
-        <TextBox x:Name="SearchEngineTextBox" Grid.Row="5" Margin="0,0,0,10"/>
+                        <CheckBox x:Name="RestoreSessionCheckBox" Content="Restaurar sesión anterior al inicio" Margin="0,0,0,10"/>
 
-        <TextBlock Grid.Row="6" Text="Gestión de Pestañas:" FontWeight="Bold" Margin="0,0,0,5"/>
-        <CheckBox x:Name="TabSuspensionCheckBox" Grid.Row="7" Content="Habilitar Suspensión de Pestañas Inactivas" Margin="0,0,0,10"/>
+                        <Label Content="Motor de Búsqueda Predeterminado (URL con '?q=' al final):"/>
+                        <TextBox x:Name="SearchEngineTextBox" Margin="0,0,0,10"/>
+                    </StackPanel>
+                </GroupBox>
 
-        <TextBlock Grid.Row="8" Text="Inicio del Navegador:" FontWeight="Bold" Margin="0,0,0,5"/>
-        <CheckBox x:Name="RestoreSessionCheckBox" Grid.Row="9" Content="Restaurar sesión anterior al iniciar" Margin="0,0,0,10"/>
+                <!-- Sección Privacidad y Seguridad -->
+                <GroupBox Header="Privacidad y Seguridad" Margin="0,0,0,15">
+                    <StackPanel Margin="10">
+                        <CheckBox x:Name="AdBlockerCheckBox" Content="Habilitar Bloqueador de Anuncios" Margin="0,0,0,10"/>
+                        <CheckBox x:Name="TrackerProtectionCheckBox" Content="Habilitar Protección contra Rastreadores" Margin="0,0,0,10"/>
+                        <CheckBox x:Name="PdfViewerCheckBox" Content="Abrir PDFs en visor interno" Margin="0,0,0,10"/>
+                    </StackPanel>
+                </GroupBox>
 
-        <TextBlock Grid.Row="10" Text="Privacidad y Seguridad:" FontWeight="Bold" Margin="0,0,0,5"/>
-        <CheckBox x:Name="TrackerProtectionCheckBox" Grid.Row="11" Content="Habilitar Protección contra Rastreadores" Margin="0,0,0,10"/>
-        
-        <TextBlock Grid.Row="12" Text="Visor de Documentos:" FontWeight="Bold" Margin="0,0,0,5"/>
-        <CheckBox x:Name="PdfViewerCheckBox" Grid.Row="13" Content="Habilitar Visor de PDF Integrado" Margin="0,0,0,10"/> <!-- NUEVO CHECKBOX -->
+                <!-- Sección Rendimiento -->
+                <GroupBox Header="Rendimiento" Margin="0,0,0,15">
+                    <StackPanel Margin="10">
+                        <CheckBox x:Name="TabSuspensionCheckBox" Content="Habilitar Suspensión de Pestañas Inactivas" Margin="0,0,0,10"/>
+                        <Button Content="Suspender Pestañas Inactivas Ahora" Click="SuspendTabsButton_Click" Margin="0,0,0,10"/>
+                    </StackPanel>
+                </GroupBox>
 
-        <StackPanel Grid.Row="14" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-            <Button x:Name="ClearBrowsingDataButton" Content="Borrar Datos de Navegación" Width="180" Height="30" Margin="0,0,10,0" Click="ClearBrowsingDataButton_Click"/>
-            <Button x:Name="SuspendInactiveTabsButton" Content="Suspender Pestañas Inactivas Ahora" Width="220" Height="30" Margin="0,0,10,0" Click="SuspendInactiveTabsButton_Click"/>
-            <Button x:Name="SaveButton" Content="Guardar" Width="80" Height="30" Margin="0,0,10,0" Click="SaveButton_Click"/>
-            <Button x:Name="CancelButton" Content="Cancelar" Width="80" Height="30" Click="CancelButton_Click"/>
+                <!-- NUEVO: Sección Tema y Apariencia -->
+                <GroupBox Header="Tema y Apariencia" Margin="0,0,0,15">
+                    <StackPanel Margin="10">
+                        <Label Content="Color de Fondo del Navegador (ej. #F0F0F0):"/>
+                        <TextBox x:Name="BackgroundColorTextBox" Margin="0,0,0,10"/>
+                        <Label Content="Color de Texto del Navegador (ej. #333333):"/>
+                        <TextBox x:Name="ForegroundColorTextBox" Margin="0,0,0,10"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Sección Herramientas -->
+                <GroupBox Header="Herramientas" Margin="0,0,0,15">
+                    <StackPanel Margin="10">
+                        <Button Content="Borrar Datos de Navegación (Caché, Cookies, Historial, etc.)" Click="ClearBrowsingDataButton_Click" Margin="0,0,0,10"/>
+                    </StackPanel>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="Guardar" Width="80" Height="30" Margin="0,0,10,0" Click="SaveButton_Click"/>
+            <Button Content="Cancelar" Width="80" Height="30" Click="CancelButton_Click"/>
         </StackPanel>
     </Grid>
 </Window>
