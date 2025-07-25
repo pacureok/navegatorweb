@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡Sin Conexión! Juega un poco...</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+        }
+        canvas {
+            background-color: #fff;
+            border: 2px solid #ccc;
+            display: block;
+            margin-top: 20px;
+        }
+        #message {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        #retryButton {
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        #retryButton:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div id="message">
+        <h1>¡Parece que no hay conexión a Internet!</h1>
+        <p>Mientras esperas, puedes jugar un poco.</p>
+    </div>
+    <canvas id="gameCanvas" width="600" height="200"></canvas>
+    <button id="retryButton">Intentar Conectar de Nuevo</button>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const retryButton = document.getElementById('retryButton');
+
+        let dino = {
+            x: 50,
+            y: canvas.height - 30,
+            width: 20,
+            height: 20,
+            velocityY: 0,
+            isJumping: false
+        };
+
+        let obstacles = [];
+        let score = 0;
+        let gameSpeed = 3;
+        let gameOver = false;
+
+        function drawDino() {
+            ctx.fillStyle = 'green';
+            ctx.fillRect(dino.x, dino.y, dino.width, dino.height);
+        }
+
+        function drawObstacles() {
+            ctx.fillStyle = 'red';
+            obstacles.forEach(obstacle => {
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            });
+        }
+
+        function update() {
+            if (gameOver) return;
+
+            // Update Dino
+            dino.y += dino.velocityY;
+            dino.velocityY += 0.5; // Gravity
+
+            if (dino.y > canvas.height - dino.height) {
+                dino.y = canvas.height - dino.height;
+                dino.velocityY = 0;
+                dino.isJumping = false;
+            }
+
+            // Update Obstacles
+            obstacles.forEach(obstacle => {
+                obstacle.x -= gameSpeed;
+            });
+
+            // Remove off-screen obstacles
+            obstacles = obstacles.filter(obstacle => obstacle.x + obstacle.width > 0);
+
+            // Generate new obstacles
+            if (Math.random() < 0.015 && canvas.width - obstacles[obstacles.length - 1]?.x > 200) {
+                obstacles.push({
+                    x: canvas.width,
+                    y: canvas.height - 30,
+                    width: 15 + Math.random() * 10,
+                    height: 15 + Math.random() * 10
+                });
+            }
+
+            // Collision Detection
+            obstacles.forEach(obstacle => {
+                if (dino.x < obstacle.x + obstacle.width &&
+                    dino.x + dino.width > obstacle.x &&
+                    dino.y < obstacle.y + obstacle.height &&
+                    dino.y + dino.height > obstacle.y) {
+                    gameOver = true;
+                    alert('¡Juego Terminado! Puntuación: ' + score); // Usar alert para simplicidad, en WPF se podría usar webview.postMessage
+                    // En un entorno real de WebView2, podrías enviar un mensaje de vuelta a C#
+                    // window.chrome.webview.postMessage({ type: 'gameOver', score: score });
+                }
+            });
+
+            // Update Score
+            score++;
+            gameSpeed += 0.001; // Gradually increase speed
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawDino();
+            drawObstacles();
+            ctx.fillStyle = 'black';
+            ctx.font = '16px Arial';
+            ctx.fillText('Puntuación: ' + score, 10, 25);
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function jump() {
+            if (!dino.isJumping) {
+                dino.velocityY = -10;
+                dino.isJumping = true;
+            }
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                if (gameOver) {
+                    resetGame();
+                } else {
+                    jump();
+                }
+            }
+        });
+
+        function resetGame() {
+            dino.y = canvas.height - 30;
+            dino.velocityY = 0;
+            dino.isJumping = false;
+            obstacles = [];
+            score = 0;
+            gameSpeed = 3;
+            gameOver = false;
+            gameLoop();
+        }
+
+        retryButton.addEventListener('click', () => {
+            // Envía un mensaje a la aplicación WPF para intentar recargar la página original
+            if (window.chrome && window.chrome.webview) {
+                window.chrome.webview.postMessage({ type: 'retryConnection' });
+            } else {
+                alert('No se pudo enviar el mensaje a la aplicación. Recarga la página manualmente.');
+                // Fallback para navegador si no es WebView2
+                window.location.reload();
+            }
+        });
+
+        // Iniciar el juego
+        resetGame();
+    </script>
+</body>
+</html>
