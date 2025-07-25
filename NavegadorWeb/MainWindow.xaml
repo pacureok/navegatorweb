@@ -3,34 +3,38 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         xmlns:local="clr-namespace:NavegadorWeb"
         mc:Ignorable="d"
-        Title="Aurora Browser" Height="720" Width="1280"
-        Loaded="Window_Loaded"
-        Closing="Window_Closing"
-        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
-        MinHeight="400" MinWidth="600">
-    <Window.Resources>
-        <!-- Convertidor para la visibilidad del icono de audio -->
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        Title="Aurora Browser" Height="768" Width="1366"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None" AllowsTransparency="True"
+        Loaded="Window_Loaded" Closing="Window_Closing"
+        Background="{DynamicResource WindowBackgroundBrush}"> <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
 
-        <!-- Colores por defecto para el tema del navegador -->
-        <Color x:Key="BrowserBackgroundColor">#F0F0F0</Color>
-        <Color x:Key="BrowserForegroundColor">#333333</Color>
-        <SolidColorBrush x:Key="BrowserBackgroundBrush" Color="{StaticResource BrowserBackgroundColor}"/>
-        <SolidColorBrush x:Key="BrowserForegroundBrush" Color="{StaticResource BrowserForegroundColor}"/>
+        <Color x:Key="DefaultBrowserBackgroundColor">#E9EFF5</Color>
+        <Color x:Key="DefaultBrowserForegroundColor">#333333</Color>
+        <SolidColorBrush x:Key="DefaultBrowserBackgroundBrush" Color="{StaticResource DefaultBrowserBackgroundColor}"/>
+        <SolidColorBrush x:Key="DefaultBrowserForegroundBrush" Color="{StaticResource DefaultBrowserForegroundColor}"/>
 
-        <!-- Estilos para los botones de control de ventana -->
-        <Style x:Key="WindowControlButton" TargetType="Button">
+        <Color x:Key="GeminiBackgroundColor">#9B59B6</Color> <Color x:Key="GeminiForegroundColor">#FFFFFF</Color> <SolidColorBrush x:Key="GeminiBackgroundBrush" Color="{StaticResource GeminiBackgroundColor}"/>
+        <SolidColorBrush x:Key="GeminiForegroundBrush" Color="{StaticResource GeminiForegroundColor}"/>
+
+        <Color x:Key="BrowserBackgroundColor">#E9EFF5</Color> <Color x:Key="BrowserForegroundColor">#333333</Color> <SolidColorBrush x:Key="BrowserBackgroundBrush" Color="{DynamicResource BrowserBackgroundColor}"/>
+        <SolidColorBrush x:Key="BrowserForegroundBrush" Color="{DynamicResource BrowserForegroundColor}"/>
+
+        <Style x:Key="ToolbarButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="{StaticResource BrowserForegroundColor}"/>
-            <Setter Property="Width" Value="45"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/> <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="3">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
@@ -38,38 +42,30 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#E5E5E5"/>
-                </Trigger>
+                    <Setter Property="Background" Value="#E0E0E0"/> <Setter Property="Foreground" Value="#000000"/> </Trigger>
                 <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#CCCCCC"/>
+                    <Setter Property="Background" Value="#D0D0D0"/> </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.5"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
-        <Style x:Key="CloseWindowControlButton" TargetType="Button" BasedOn="{StaticResource WindowControlButton}">
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#E81123"/>
-                    <Setter Property="Foreground" Value="White"/>
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#F1707A"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <!-- Estilo para los botones de la barra de herramientas con imagen -->
-        <Style x:Key="ToolbarImageButton" TargetType="Button">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="Width" Value="30"/>
-            <Setter Property="Height" Value="25"/>
-            <Setter Property="Margin" Value="0,0,5,0"/>
+        <Style x:Key="CustomButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource BrowserBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrowserForegroundColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8 4"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="3">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="3">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
@@ -77,272 +73,154 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#E0E0E0"/>
+                    <Setter Property="Background" Value="{DynamicResource BrowserForegroundColor}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource BrowserBackgroundBrush}"/>
                 </Trigger>
                 <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#D0D0D0"/>
+                    <Setter Property="Background" Value="{DynamicResource BrowserForegroundColor}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource BrowserBackgroundBrush}"/>
+                    <Setter Property="RenderTransform">
+                        <Setter.Value>
+                            <ScaleTransform ScaleX="0.95" ScaleY="0.95"/>
+                        </Setter.Value>
+                    </Setter>
                 </Trigger>
             </Style.Triggers>
+        </Style>
+
+        <Style x:Key="FindTextBoxStyle" TargetType="TextBox">
+            <Setter Property="BorderBrush" Value="{DynamicResource BrowserForegroundColor}"/>
+            <Setter Property="Background" Value="{DynamicResource BrowserBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TextBox}">
+                        <Border x:Name="border" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}" SnapsToDevicePixels="True" CornerRadius="3">
+                            <ScrollViewer x:Name="PART_ContentHost" Focusable="False" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#66B3FF"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#3399FF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="UrlTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource FindTextBoxStyle}">
+            <EventSetter Event="ContextMenuOpening" Handler="UrlTextBox_ContextMenuOpening"/>
         </Style>
 
     </Window.Resources>
 
-    <!-- InputBindings -->
-    <Window.InputBindings>
-        <KeyBinding Key="F5" Command="{Binding ReloadCommand}"/>
-        <KeyBinding Key="F11" Command="{Binding ToggleFullscreenCommand}"/>
-        <KeyBinding Key="F12" Command="{Binding OpenDevToolsCommand}"/>
-        <KeyBinding Modifiers="Shift" Key="G" Command="{Binding ScreenshotCommand}"/>
-        <KeyBinding Modifiers="Control" Key="T" Command="{Binding NewTabCommand}"/>
-        <KeyBinding Modifiers="Control" Key="W" Command="{Binding CloseTabCommand}"/>
-        <KeyBinding Modifiers="Control" Key="L" Command="{Binding FocusUrlBarCommand}"/>
-        <KeyBinding Modifiers="Control" Key="H" Command="{Binding OpenHistoryCommand}"/>
-        <KeyBinding Modifiers="Control" Key="B" Command="{Binding OpenBookmarksCommand}"/>
-        <KeyBinding Modifiers="Control" Key="J" Command="{Binding OpenDownloadsCommand}"/>
-        <KeyBinding Modifiers="Control" Key="F" Command="{Binding ToggleFindBarCommand}"/>
-        <KeyBinding Modifiers="Control" Key="K" Command="{Binding ToggleFindBarCommand}"/>
-        <KeyBinding Key="Escape" Command="{Binding CloseFindBarCommand}"/>
-    </Window.InputBindings>
-
-    <!-- Borde principal para simular el marco de la ventana -->
-    <Border BorderBrush="{StaticResource BrowserBackgroundBrush}" BorderThickness="1" CornerRadius="0" Background="{StaticResource BrowserBackgroundBrush}">
-        <Grid>
+    <Border BorderThickness="1" BorderBrush="{DynamicResource BrowserBackgroundBrush}" CornerRadius="8"> <Grid x:Name="mainGrid">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/> <!-- Barra de Título Personalizada -->
-                <RowDefinition Height="Auto"/> <!-- Barra de Herramientas Principal -->
-                <RowDefinition Height="*"/>    <!-- Contenido principal (pestañas y WebView2) -->
-            </Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> <RowDefinition Height="*"/>    </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-            <!-- Barra de Título Personalizada -->
-            <Grid Grid.Row="0" Background="{StaticResource BrowserBackgroundBrush}" MouseLeftButtonDown="Window_Drag" Height="30">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/> <!-- Icono -->
-                    <ColumnDefinition Width="*"/>    <!-- Título de la ventana -->
-                    <ColumnDefinition Width="Auto"/> <!-- Botón IA -->
-                    <ColumnDefinition Width="Auto"/> <!-- Botones de control de ventana -->
+            <Grid Grid.Row="0" Grid.Column="0" Height="30" Background="{DynamicResource BrowserBackgroundBrush}" MouseLeftButtonDown="Window_Drag"> <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Icono de la aplicación -->
-                <Image Source="/icono.ico" Width="16" Height="16" Margin="5,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Left" Grid.Column="0"/>
-                <TextBlock x:Name="WindowTitleText" Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
-                           VerticalAlignment="Center" Margin="5,0,0,0" Grid.Column="1"
-                           Foreground="{StaticResource BrowserForegroundColor}"
-                           MouseLeftButtonDown="Window_Drag"/>
+                <Image Source="/NavegadorWeb;component/Resources/logo.png" Width="16" Height="16" Margin="5,0,0,0" VerticalAlignment="Center"/>
 
-                <!-- Botón de IA en la barra de título (AHORA CON IMAGEN) -->
-                <Button x:Name="AIButton_TitleBar" Style="{StaticResource WindowControlButton}"
-                        Click="AIButton_Click" ToolTip="Abrir Gemini (IA) en Pantalla Dividida" Grid.Column="2" HorizontalAlignment="Right">
-                    <Image Source="/Resources/ai.png" Width="16" Height="16"/>
-                </Button>
-
-                <!-- Botones de Minimizar, Maximizar/Restaurar, Cerrar -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Grid.Column="3">
-                    <Button x:Name="MinimizeButton" Content="_" Style="{StaticResource WindowControlButton}" Click="MinimizeButton_Click" ToolTip="Minimizar"/>
-                    <Button x:Name="MaximizeRestoreButton" Content="⬜" Style="{StaticResource WindowControlButton}" Click="MaximizeRestoreButton_Click" ToolTip="Maximizar"/>
-                    <Button x:Name="CloseButton" Content="✕" Style="{StaticResource CloseWindowControlButton}" Click="CloseButton_Click" ToolTip="Cerrar"/>
-                </StackPanel>
+                <TextBlock x:Name="WindowTitleText" Grid.Column="1" Text="Aurora Browser" VerticalAlignment="Center" Margin="5,0,0,0" FontWeight="SemiBold" Foreground="{DynamicResource BrowserForegroundColor}"/> <Button x:Name="AIButton_TitleBar" Grid.Column="2" Content="🧠" Style="{StaticResource ToolbarButtonStyle}" Click="AIButton_Click" HorizontalAlignment="Right" ToolTip="Abrir Gemini en pantalla dividida"/>
+                <Button x:Name="MinimizeButton" Grid.Column="3" Content="🗕" Style="{StaticResource ToolbarButtonStyle}" Click="MinimizeButton_Click"/>
+                <Button x:Name="MaximizeRestoreButton" Grid.Column="4" Content="⬜" Style="{StaticResource ToolbarButtonStyle}" Click="MaximizeRestoreButton_Click"/>
+                <Button x:Name="CloseButton" Grid.Column="5" Content="✕" Style="{StaticResource ToolbarButtonStyle}" Click="CloseButton_Click"/>
             </Grid>
 
-            <!-- Contenedor para la barra de herramientas principal (DockPanel para flexibilidad) -->
-            <DockPanel x:Name="MainToolbarContainer" Grid.Row="1"
-                       LastChildFill="False"
-                       BorderBrush="LightGray" BorderThickness="0,0,0,1" Padding="5"
-                       Background="{StaticResource BrowserBackgroundBrush}">
+            <DockPanel Grid.Row="1" Grid.Column="0" x:Name="MainToolbarContainer" Background="{DynamicResource BrowserBackgroundBrush}" BorderBrush="{DynamicResource BrowserForegroundColor}" BorderThickness="0,0,0,1"> </DockPanel>
 
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                    <Button x:Name="BackButton" Content="◀" Width="30" Height="25" Margin="0,0,5,0" Click="BackButton_Click" ToolTip="Atrás" Foreground="{StaticResource BrowserForegroundColor}"/>
-                    <Button x:Name="ForwardButton" Content="▶" Width="30" Height="25" Margin="0,0,5,0" Click="ForwardButton_Click" ToolTip="Adelante" Foreground="{StaticResource BrowserForegroundColor}"/>
-                    <Button x:Name="ReloadButton" Content="⟳" Width="30" Height="25" Margin="0,0,5,0" Click="ReloadButton_Click" ToolTip="Recargar" Foreground="{StaticResource BrowserForegroundColor}"/>
-                    
-                    <!-- Botones con iconos PNG -->
-                    <Button x:Name="HomeButton" Style="{StaticResource ToolbarImageButton}" Click="HomeButton_Click" ToolTip="Inicio">
-                        <Image Source="/Resources/home.png" Width="16" Height="16"/>
-                    </Button>
-                    <Button x:Name="HistoryButton" Content="🕒" Style="{StaticResource ToolbarImageButton}" Click="HistoryButton_Click" ToolTip="Historial">
-                        <Image Source="/Resources/history.png" Width="16" Height="16"/>
-                    </Button>
-                    <Button x:Name="BookmarksButton" Content="⭐" Style="{StaticResource ToolbarImageButton}" Click="BookmarksButton_Click" ToolTip="Mis Marcadores">
-                        <Image Source="/Resources/bookmarks.png" Width="16" Height="16"/>
-                    </Button>
-                    <Button x:Name="DownloadsButton" Style="{StaticResource ToolbarImageButton}" Click="DownloadsButton_Click" ToolTip="Descargas">
-                        <Image Source="/Resources/download.png" Width="16" Height="16"/>
-                    </Button>
-                    <Button x:Name="ReaderModeButton" Content="📖" Style="{StaticResource ToolbarImageButton}" Click="ReaderModeButton_Click" ToolTip="Modo Lectura">
-                        <Image Source="/Resources/reader.png" Width="16" Height="16"/>
-                    </Button>
-                    <Button x:Name="ReadAloudButton" Content="🔊" Style="{StaticResource ToolbarImageButton}" Click="ReadAloudButton_Click" ToolTip="Leer en Voz Alta">
-                        <Image Source="/Resources/read_aloud.png" Width="16" Height="16"/>
-                    </Button>
-                    <Button x:Name="SplitScreenButton" Style="{StaticResource ToolbarImageButton}" Click="SplitScreenButton_Click" ToolTip="Pantalla Dividida">
-                        <Image Source="/Resources/split.png" Width="16" Height="16"/>
-                    </Button>
-                    <Button x:Name="ScreenshotButton" Content="📸" Style="{StaticResource ToolbarImageButton}" Click="ScreenshotButton_Click" ToolTip="Captura de Pantalla">
-                        <Image Source="/Resources/screenshot.png" Width="16" Height="16"/>
-                    </Button>
-                    <Button x:Name="TabManagerButton" Content="🗂️" Style="{StaticResource ToolbarImageButton}" Click="TabManagerButton_Click" ToolTip="Administrador de Pestañas">
-                        <Image Source="/Resources/tab_manager.png" Width="16" Height="16"/>
-                    </Button>
-                    <Button x:Name="DataExtractionButton" Content="📋" Style="{StaticResource ToolbarImageButton}" Click="DataExtractionButton_Click" ToolTip="Extractor de Datos Web">
-                        <Image Source="/Resources/data_extraction.png" Width="16" Height="16"/>
-                    </Button>
-                    <Button x:Name="DarkModeButton" Style="{StaticResource ToolbarImageButton}" Click="DarkModeButton_Click" ToolTip="Activar/Desactivar Modo Oscuro Global">
-                        <Image Source="/Resources/moon.png" Width="16" Height="16"/>
-                    </Button>
-                    <Button x:Name="PerformanceMonitorButton" Content="📊" Style="{StaticResource ToolbarImageButton}" Click="PerformanceMonitorButton_Click" ToolTip="Monitor de Rendimiento">
-                        <Image Source="/Resources/performance.png" Width="16" Height="16"/>
-                    </Button>
-                    <Button x:Name="FindButton" Style="{StaticResource ToolbarImageButton}" Click="FindButton_Click" ToolTip="Buscar en Página">
-                        <Image Source="/Resources/find.png" Width="16" Height="16"/>
-                    </Button>
-                    <Button x:Name="PermissionsButton" Content="🔒" Style="{StaticResource ToolbarImageButton}" Click="PermissionsButton_Click" ToolTip="Gestor de Permisos">
-                        <Image Source="/Resources/permissions.png" Width="16" Height="16"/>
-                    </Button>
-                    <Button x:Name="PipButton" Content="📺" Style="{StaticResource ToolbarImageButton}" Click="PipButton_Click" ToolTip="Modo Picture-in-Picture (PIP)">
-                        <Image Source="/Resources/pip.png" Width="16" Height="16"/>
-                    </Button>
-                    <Button x:Name="PasswordManagerButton" Content="🔑" Style="{StaticResource ToolbarImageButton}" Click="PasswordManagerButton_Click" ToolTip="Gestor de Contraseñas">
-                        <Image Source="/Resources/password.png" Width="16" Height="16"/>
-                    </Button>
-                    <Button x:Name="ExtensionsButton" Content="🧩" Style="{StaticResource ToolbarImageButton}" Click="ExtensionsButton_Click" ToolTip="Gestor de Extensiones">
-                        <Image Source="/Resources/extensions.png" Width="16" Height="16"/>
-                    </Button>
-                    <!-- NUEVO: Botón de Micrófono -->
-                    <Button x:Name="MicrophoneToggleButton" Content="🎤" Style="{StaticResource ToolbarImageButton}" Click="MicrophoneToggleButton_Click" ToolTip="Silenciar/Activar Micrófono de la Página">
-                        <Image Source="/Resources/microphone.png" Width="16" Height="16"/> <!-- Asumo que tienes microphone.png -->
-                    </Button>
+            <Border x:Name="LeftToolbarPlaceholder" Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" BorderThickness="0,0,1,0" BorderBrush="{DynamicResource BrowserForegroundColor}" Background="{DynamicResource BrowserBackgroundBrush}" Visibility="Collapsed" Width="0">
+                <StackPanel Orientation="Vertical">
+                    </StackPanel>
+            </Border>
+
+            <Border x:Name="RightToolbarPlaceholder" Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" BorderThickness="1,0,0,0" BorderBrush="{DynamicResource BrowserForegroundColor}" Background="{DynamicResource BrowserBackgroundBrush}" Visibility="Collapsed" Width="0">
+                <StackPanel Orientation="Vertical">
+                    </StackPanel>
+            </Border>
+
+            <TabControl Grid.Row="2" Grid.Column="0" x:Name="TabGroupContainer" SelectionChanged="BrowserTabControl_SelectionChanged_Grouped"
+                        BorderThickness="0" Background="{DynamicResource BrowserBackgroundBrush}"> <TabControl.Resources>
+                    <Style TargetType="TabItem">
+                        <Setter Property="HeaderTemplate">
+                            <Setter.Value>
+                                <DataTemplate>
+                                    <Border Background="{Binding RelativeSource={RelativeSource AncestorType=TabItem}, Path=IsSelected, Converter={StaticResource SelectedTabBackgroundConverter}, ConverterParameter={StaticResource BrowserBackgroundBrush}}">
+                                        <DockPanel>
+                                            <ContentPresenter Content="{Binding}" ContentTemplate="{Binding RelativeSource={RelativeSource AncestorType=TabItem}, Path=Header}"/>
+                                        </DockPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="IsHitTestVisible" Value="True"/>
+                        <Setter Property="Focusable" Value="False"/>
+                    </Style>
+
+                    <Style TargetType="Button" BasedOn="{StaticResource ToolbarButtonStyle}">
+                        <Setter Property="Width" Value="20"/>
+                        <Setter Property="Height" Value="20"/>
+                        <Setter Property="Margin" Value="5,0,0,0"/>
+                    </Style>
+                </TabControl.Resources>
+            </TabControl>
+
+
+            <Border x:Name="FindBar" Grid.Row="2" Grid.Column="0" Margin="10" Padding="5" Background="{DynamicResource BrowserBackgroundBrush}" BorderBrush="{DynamicResource BrowserForegroundColor}" BorderThickness="1" CornerRadius="5" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Top">
+                <StackPanel Orientation="Horizontal">
+                    <TextBox x:Name="FindTextBox" Width="150" TextChanged="FindTextBox_TextChanged" KeyDown="FindTextBox_KeyDown" Style="{StaticResource FindTextBoxStyle}"/>
+                    <TextBlock x:Name="FindResultsTextBlock" Text="0/0" Margin="5,0,5,0" VerticalAlignment="Center" Foreground="{DynamicResource BrowserForegroundColor}"/>
+                    <Button Content="▲" Click="FindPreviousButton_Click" Style="{StaticResource ToolbarButtonStyle}" ToolTip="Anterior"/>
+                    <Button Content="▼" Click="FindNextButton_Click" Style="{StaticResource ToolbarButtonStyle}" ToolTip="Siguiente"/>
+                    <Button Content="✖" Click="CloseFindBarButton_Click" Style="{StaticResource ToolbarButtonStyle}" ToolTip="Cerrar búsqueda"/>
                 </StackPanel>
+            </Border>
 
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
-                    <Button x:Name="IncognitoButton" Style="{StaticResource ToolbarImageButton}" Click="IncognitoButton_Click" ToolTip="Nueva Ventana Incógnito">
-                        <Image Source="/Resources/incognito.png" Width="16" Height="16"/>
-                    </Button>
-                    <Button x:Name="AddBookmarkButton" Content="➕⭐" Style="{StaticResource ToolbarImageButton}" Click="AddBookmarkButton_Click" ToolTip="Añadir página actual a Marcadores">
-                        <Image Source="/Resources/add_bookmark.png" Width="16" Height="16"/>
-                    </Button>
-                    <Button x:Name="NewTabButton" Style="{StaticResource ToolbarImageButton}" Click="NewTabButton_Click" ToolTip="Nueva Pestaña">
-                        <Image Source="/Resources/new_tab.png" Width="16" Height="16"/>
-                    </Button>
-                    <Button x:Name="SettingsButton" Style="{StaticResource ToolbarImageButton}" Click="SettingsButton_Click" ToolTip="Opciones">
-                        <Image Source="/Resources/settings.png" Width="16" Height="16"/>
-                    </Button>
-                </StackPanel>
-
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBox x:Name="UrlTextBox" VerticalContentAlignment="Center" KeyDown="UrlTextBox_KeyDown" Text="https://www.google.com" Margin="0,0,5,0" Grid.Column="0" Foreground="{StaticResource BrowserForegroundColor}">
-                        <!-- Menú contextual para la barra de URL -->
-                        <TextBox.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="Copiar" Command="Copy"/>
-                                <MenuItem Header="Pegar" Command="Paste"/>
-                                <MenuItem Header="Cortar" Command="Cut"/>
-                                <Separator/>
-                                <MenuItem Header="Ir a esta URL" Click="GoButton_Click"/>
-                                <MenuItem Header="Abrir en nueva pestaña" Click="OpenInNewTabMenuItem_Click"/>
-                                <MenuItem Header="Abrir en nueva pestaña incógnito" Click="OpenInNewIncognitoTabMenuItem_Click"/>
-                            </ContextMenu>
-                        </TextBox.ContextMenu>
-                    </TextBox>
-                    <!-- Indicador de Carga -->
-                    <ProgressBar x:Name="LoadingProgressBar" Grid.Column="1" Width="50" Height="20" Margin="0,0,5,0" IsIndeterminate="True" Visibility="Collapsed" ToolTip="Cargando..."/>
-                </Grid>
-            </DockPanel>
-
-            <!-- Contenedor principal para pestañas y barras laterales -->
-            <Grid Grid.Row="2">
+            <Grid x:Name="UrlAndProgressGrid">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="5"/>
                 </Grid.RowDefinitions>
 
-                <!-- Placeholder para la barra de herramientas lateral izquierda -->
-                <StackPanel x:Name="LeftToolbarPlaceholder" Grid.Column="0" Grid.Row="0" Width="0" Visibility="Collapsed" Background="{StaticResource BrowserBackgroundBrush}" BorderBrush="LightGray" BorderThickness="0,1,1,0" Orientation="Vertical">
-                    <!-- Los botones de la barra de herramientas se moverán aquí dinámicamente -->
+                <TextBox x:Name="UrlTextBox" Grid.Row="0" Grid.Column="0" KeyDown="UrlTextBox_KeyDown" Margin="5,5,0,5" Style="{StaticResource UrlTextBoxStyle}">
+                    <TextBox.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Abrir en nueva pestaña" Click="OpenInNewTabMenuItem_Click"/>
+                            <MenuItem Header="Abrir en nueva pestaña de incógnito" Click="OpenInNewIncognitoTabMenuItem_Click"/>
+                        </ContextMenu>
+                    </TextBox.ContextMenu>
+                </TextBox>
+
+                <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="5,0,0,0">
+                    <Button x:Name="GoButton" Content="Go" Click="GoButton_Click" Width="30" Height="25" Margin="0,0,5,0" Style="{StaticResource ToolbarButtonStyle}"/>
+                    <Button x:Name="HomeButton" Content="🏠" Click="HomeButton_Click" Width="30" Height="25" Margin="0,0,5,0" Style="{StaticResource ToolbarButtonStyle}" ToolTip="Ir a la página de inicio"/>
                 </StackPanel>
 
-                <!-- Contenedor de Pestañas -->
-                <ItemsControl x:Name="TabGroupContainer" Grid.Row="0" ItemsSource="{Binding TabGroups}" Margin="0,0,0,0">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Vertical"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Expander Header="{Binding GroupName}" IsExpanded="True" Margin="0,5,0,0" Foreground="{StaticResource BrowserForegroundColor}">
-                                <Border BorderBrush="LightGray" BorderThickness="1" Margin="5">
-                                    <TabControl x:Name="BrowserTabControl" ItemsSource="{Binding TabsInGroup}"
-                                                SelectedItem="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.SelectedTabItem}"
-                                                SelectionChanged="BrowserTabControl_SelectionChanged_Grouped">
-                                        <TabControl.Resources>
-                                            <Style TargetType="TabItem">
-                                                <Setter Property="HeaderTemplate">
-                                                    <Setter.Value>
-                                                        <DataTemplate>
-                                                            <DockPanel>
-                                                                <Image x:Name="FaviconImage" Source="{Binding FaviconSource}" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                                                <Image x:Name="AudioIconImage" Source="{x:Static local:BrowserTabItem.GetAudioPlayingIcon}"
-                                                                       Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"
-                                                                       Visibility="{Binding IsAudioPlaying, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                                                       ToolTip="Reproduciendo audio (clic para silenciar/reactivar)"
-                                                                       MouseLeftButtonUp="AudioIcon_MouseLeftButtonUp"/>
-                                                                <Image x:Name="ExtensionIconImage" Source="{x:Static local:BrowserTabItem.GetExtensionActiveIcon}"
-                                                                       Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"
-                                                                       Visibility="{Binding IsExtensionActive, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                                                       ToolTip="Extensión activa en esta página"/>
-                                                                <Image x:Name="BlockedIconImage" Source="{x:Static local:BrowserTabItem.GetSiteBlockedIcon}"
-                                                                       Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"
-                                                                       Visibility="{Binding IsSiteBlocked, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                                                       ToolTip="Recursos bloqueados en esta página"/>
-                                                                <TextBlock x:Name="HeaderText" Text="{Binding HeaderTextBlock.Text}" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="{StaticResource BrowserForegroundColor}"/>
-                                                                <Button Content="✖" Width="20" Height="20" Margin="5,0,0,0"
-                                                                        VerticalAlignment="Center" ToolTip="Cerrar Pestaña"
-                                                                        Click="CloseTabButton_Click"
-                                                                        Tag="{Binding Tab}" Foreground="{StaticResource BrowserForegroundColor}"/>
-                                                            </DockPanel>
-                                                        </DataTemplate>
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </Style>
-                                        </TabControl.Resources>
-                                    </TabControl>
-                                </Border>
-                            </Expander>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-                <!-- Placeholder para la barra de herramientas lateral derecha -->
-                <StackPanel x:Name="RightToolbarPlaceholder" Grid.Column="0" Grid.Row="0" Width="0" HorizontalAlignment="Right" Visibility="Collapsed" Background="{StaticResource BrowserBackgroundBrush}" BorderBrush="LightGray" BorderThickness="1,1,0,0" Orientation="Vertical">
-                    <!-- Los botones de la barra de herramientas se moverán aquí dinámicamente -->
-                </StackPanel>
+                <ProgressBar x:Name="LoadingProgressBar" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Height="5" Margin="0,0,0,0" Value="0" IsIndeterminate="True" Visibility="Collapsed"/>
             </Grid>
 
-            <!-- Barra de Búsqueda en Página (se mantiene en su posición actual) -->
-            <Grid x:Name="FindBar" Grid.Row="2" VerticalAlignment="Top" HorizontalAlignment="Right"
-                  Background="{StaticResource BrowserBackgroundBrush}"
-                  BorderBrush="LightGray" BorderThickness="1" Padding="5" Margin="10"
-                  Visibility="Collapsed" Width="300">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBox x:Name="FindTextBox" Grid.Column="0" VerticalContentAlignment="Center"
-                         KeyDown="FindTextBox_KeyDown" TextChanged="FindTextBox_TextChanged"
-                         Margin="0,0,5,0" ToolTip="Escribe el texto a buscar" Foreground="{StaticResource BrowserForegroundColor}"/>
-                <TextBlock x:Name="FindResultsTextBlock" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,5,0" Text="0/0" Foreground="{StaticResource BrowserForegroundColor}"/>
-                <Button x:Name="FindPreviousButton" Content="▲" Grid.Column="2" Width="25" Height="25" Margin="0,0,2,0" Click="FindPreviousButton_Click" ToolTip="Coincidencia Anterior" Foreground="{StaticResource BrowserForegroundColor}"/>
-                <Button x:Name="FindNextButton" Content="▼" Grid.Column="3" Width="25" Height="25" Click="FindNextButton_Click" ToolTip="Coincidencia Siguiente" Foreground="{StaticResource BrowserForegroundColor}"/>
-                <Button x:Name="CloseFindBarButton" Content="✖" Grid.Column="4" Width="25" Height="25" Margin="5,0,0,0" Click="CloseFindBarButton_Click" ToolTip="Cerrar Búsqueda" Foreground="{StaticResource BrowserForegroundColor}"/>
-            </Grid>
         </Grid>
     </Border>
 </Window>
