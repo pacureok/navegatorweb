@@ -58,7 +58,7 @@
             </Style.Triggers>
         </Style>
 
-        <!-- NUEVO: Estilo para los botones de la barra de herramientas con imagen -->
+        <!-- Estilo para los botones de la barra de herramientas con imagen -->
         <Style x:Key="ToolbarImageButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -159,57 +159,56 @@
                         <Image Source="/Resources/home.png" Width="16" Height="16"/>
                     </Button>
                     <Button x:Name="HistoryButton" Content="🕒" Style="{StaticResource ToolbarImageButton}" Click="HistoryButton_Click" ToolTip="Historial">
-                        <Image Source="/Resources/history.png" Width="16" Height="16"/> <!-- Asumo que tienes history.png -->
+                        <Image Source="/Resources/history.png" Width="16" Height="16"/>
                     </Button>
                     <Button x:Name="BookmarksButton" Content="⭐" Style="{StaticResource ToolbarImageButton}" Click="BookmarksButton_Click" ToolTip="Mis Marcadores">
-                        <Image Source="/Resources/bookmarks.png" Width="16" Height="16"/> <!-- Asumo que tienes bookmarks.png -->
+                        <Image Source="/Resources/bookmarks.png" Width="16" Height="16"/>
                     </Button>
                     <Button x:Name="DownloadsButton" Style="{StaticResource ToolbarImageButton}" Click="DownloadsButton_Click" ToolTip="Descargas">
                         <Image Source="/Resources/download.png" Width="16" Height="16"/>
                     </Button>
                     <Button x:Name="ReaderModeButton" Content="📖" Style="{StaticResource ToolbarImageButton}" Click="ReaderModeButton_Click" ToolTip="Modo Lectura">
-                        <Image Source="/Resources/reader.png" Width="16" Height="16"/> <!-- Asumo que tienes reader.png -->
+                        <Image Source="/Resources/reader.png" Width="16" Height="16"/>
                     </Button>
                     <Button x:Name="ReadAloudButton" Content="🔊" Style="{StaticResource ToolbarImageButton}" Click="ReadAloudButton_Click" ToolTip="Leer en Voz Alta">
-                        <Image Source="/Resources/read_aloud.png" Width="16" Height="16"/> <!-- Asumo que tienes read_aloud.png -->
+                        <Image Source="/Resources/read_aloud.png" Width="16" Height="16"/>
                     </Button>
                     <Button x:Name="SplitScreenButton" Style="{StaticResource ToolbarImageButton}" Click="SplitScreenButton_Click" ToolTip="Pantalla Dividida">
                         <Image Source="/Resources/split.png" Width="16" Height="16"/>
                     </Button>
-                    <!-- El AIButton original en la barra de herramientas se puede eliminar o mantener si quieres dos accesos -->
-                    <!-- Para mantenerlo, usarías: -->
-                    <!-- <Button x:Name="AIButton" Style="{StaticResource ToolbarImageButton}" Click="AIButton_Click" ToolTip="Abrir Gemini (IA) en Pantalla Dividida">
-                        <Image Source="/Resources/ai.png" Width="16" Height="16"/>
-                    </Button> -->
                     <Button x:Name="ScreenshotButton" Content="📸" Style="{StaticResource ToolbarImageButton}" Click="ScreenshotButton_Click" ToolTip="Captura de Pantalla">
-                        <Image Source="/Resources/screenshot.png" Width="16" Height="16"/> <!-- Asumo que tienes screenshot.png -->
+                        <Image Source="/Resources/screenshot.png" Width="16" Height="16"/>
                     </Button>
                     <Button x:Name="TabManagerButton" Content="🗂️" Style="{StaticResource ToolbarImageButton}" Click="TabManagerButton_Click" ToolTip="Administrador de Pestañas">
-                        <Image Source="/Resources/tab_manager.png" Width="16" Height="16"/> <!-- Asumo que tienes tab_manager.png -->
+                        <Image Source="/Resources/tab_manager.png" Width="16" Height="16"/>
                     </Button>
                     <Button x:Name="DataExtractionButton" Content="📋" Style="{StaticResource ToolbarImageButton}" Click="DataExtractionButton_Click" ToolTip="Extractor de Datos Web">
-                        <Image Source="/Resources/data_extraction.png" Width="16" Height="16"/> <!-- Asumo que tienes data_extraction.png -->
+                        <Image Source="/Resources/data_extraction.png" Width="16" Height="16"/>
                     </Button>
                     <Button x:Name="DarkModeButton" Style="{StaticResource ToolbarImageButton}" Click="DarkModeButton_Click" ToolTip="Activar/Desactivar Modo Oscuro Global">
                         <Image Source="/Resources/moon.png" Width="16" Height="16"/>
                     </Button>
                     <Button x:Name="PerformanceMonitorButton" Content="📊" Style="{StaticResource ToolbarImageButton}" Click="PerformanceMonitorButton_Click" ToolTip="Monitor de Rendimiento">
-                        <Image Source="/Resources/performance.png" Width="16" Height="16"/> <!-- Asumo que tienes performance.png -->
+                        <Image Source="/Resources/performance.png" Width="16" Height="16"/>
                     </Button>
                     <Button x:Name="FindButton" Style="{StaticResource ToolbarImageButton}" Click="FindButton_Click" ToolTip="Buscar en Página">
                         <Image Source="/Resources/find.png" Width="16" Height="16"/>
                     </Button>
                     <Button x:Name="PermissionsButton" Content="🔒" Style="{StaticResource ToolbarImageButton}" Click="PermissionsButton_Click" ToolTip="Gestor de Permisos">
-                        <Image Source="/Resources/permissions.png" Width="16" Height="16"/> <!-- Asumo que tienes permissions.png -->
+                        <Image Source="/Resources/permissions.png" Width="16" Height="16"/>
                     </Button>
                     <Button x:Name="PipButton" Content="📺" Style="{StaticResource ToolbarImageButton}" Click="PipButton_Click" ToolTip="Modo Picture-in-Picture (PIP)">
-                        <Image Source="/Resources/pip.png" Width="16" Height="16"/> <!-- Asumo que tienes pip.png -->
+                        <Image Source="/Resources/pip.png" Width="16" Height="16"/>
                     </Button>
                     <Button x:Name="PasswordManagerButton" Content="🔑" Style="{StaticResource ToolbarImageButton}" Click="PasswordManagerButton_Click" ToolTip="Gestor de Contraseñas">
-                        <Image Source="/Resources/password.png" Width="16" Height="16"/> <!-- Asumo que tienes password.png -->
+                        <Image Source="/Resources/password.png" Width="16" Height="16"/>
                     </Button>
                     <Button x:Name="ExtensionsButton" Content="🧩" Style="{StaticResource ToolbarImageButton}" Click="ExtensionsButton_Click" ToolTip="Gestor de Extensiones">
-                        <Image Source="/Resources/extensions.png" Width="16" Height="16"/> <!-- Asumo que tienes extensions.png -->
+                        <Image Source="/Resources/extensions.png" Width="16" Height="16"/>
+                    </Button>
+                    <!-- NUEVO: Botón de Micrófono -->
+                    <Button x:Name="MicrophoneToggleButton" Content="🎤" Style="{StaticResource ToolbarImageButton}" Click="MicrophoneToggleButton_Click" ToolTip="Silenciar/Activar Micrófono de la Página">
+                        <Image Source="/Resources/microphone.png" Width="16" Height="16"/> <!-- Asumo que tienes microphone.png -->
                     </Button>
                 </StackPanel>
 
@@ -218,7 +217,7 @@
                         <Image Source="/Resources/incognito.png" Width="16" Height="16"/>
                     </Button>
                     <Button x:Name="AddBookmarkButton" Content="➕⭐" Style="{StaticResource ToolbarImageButton}" Click="AddBookmarkButton_Click" ToolTip="Añadir página actual a Marcadores">
-                        <Image Source="/Resources/add_bookmark.png" Width="16" Height="16"/> <!-- Asumo que tienes add_bookmark.png -->
+                        <Image Source="/Resources/add_bookmark.png" Width="16" Height="16"/>
                     </Button>
                     <Button x:Name="NewTabButton" Style="{StaticResource ToolbarImageButton}" Click="NewTabButton_Click" ToolTip="Nueva Pestaña">
                         <Image Source="/Resources/new_tab.png" Width="16" Height="16"/>
