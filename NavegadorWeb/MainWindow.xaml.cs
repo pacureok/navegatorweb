@@ -15,15 +15,14 @@ using System.Windows.Media;
 using System.Diagnostics;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
-using System.ComponentModel; // Para INotifyPropertyChanged
-using System.Windows.Interop; // Para el redimensionamiento de ventana
-using System.Runtime.InteropServices; // Para el redimensionamiento de ventana
+using System.ComponentModel;
+using System.Windows.Interop;
+using System.Runtime.InteropServices;
+using System.Net.NetworkInformation; // NUEVO: Para verificar la conectividad
+using System.Timers; // NUEVO: Para el temporizador de verificación de conectividad
 
 namespace NavegadorWeb
 {
-    /// <summary>
-    /// Lógica de interacción para MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
         private string _defaultHomePage = "https://www.google.com";
@@ -59,7 +58,7 @@ namespace NavegadorWeb
                     Application.Current.Resources["BrowserBackgroundColor"] = value;
                     Application.Current.Resources["BrowserBackgroundBrush"] = new SolidColorBrush(value);
                     if (MainToolbarContainer != null)
-                        ((Border)this.Content).BorderBrush = new SolidColorBrush(value); // Borde de la ventana
+                        ((Border)this.Content).BorderBrush = new SolidColorBrush(value);
                 }
             }
         }
@@ -101,13 +100,19 @@ namespace NavegadorWeb
         private string _readerModeScript = string.Empty;
         private string _darkModeScript = string.Empty;
         private string _pageColorExtractionScript = string.Empty;
-        private string _microphoneControlScript = string.Empty; // NUEVO: Script para control de micrófono
+        private string _microphoneControlScript = string.Empty;
 
         private SpeechSynthesizer _speechSynthesizer;
         private bool _isReadingAloud = false;
 
         private bool _isFindBarVisible = false;
         private CoreWebView2FindInPage _findInPage;
+
+        // NUEVO: Variables para el juego offline y notificación de conectividad
+        private string _lastFailedUrl = null;
+        private System.Timers.Timer _connectivityTimer;
+        private bool _isOfflineGameActive = false;
+
 
         public ICommand ReloadCommand { get; private set; }
         public ICommand ToggleFullscreenCommand { get; private set; }
@@ -147,7 +152,7 @@ namespace NavegadorWeb
             LoadReaderModeScript();
             LoadDarkModeScript();
             LoadPageColorExtractionScript();
-            LoadMicrophoneControlScript(); // NUEVO: Cargar script de control de micrófono
+            LoadMicrophoneControlScript();
 
             _speechSynthesizer = new SpeechSynthesizer();
             _speechSynthesizer.SetOutputToDefaultAudioDevice();
@@ -159,6 +164,12 @@ namespace NavegadorWeb
             this.StateChanged += MainWindow_StateChanged;
             ApplyForegroundToWindowControls();
             ApplyToolbarPosition(_currentToolbarPosition);
+
+            // NUEVO: Inicializar el temporizador de conectividad
+            _connectivityTimer = new System.Timers.Timer(5000); // Verificar cada 5 segundos
+            _connectivityTimer.Elapsed += ConnectivityTimer_Elapsed;
+            _connectivityTimer.AutoReset = true;
+            _connectivityTimer.Enabled = false; // Deshabilitado por defecto
         }
 
         private void ApplyForegroundToWindowControls()
@@ -304,9 +315,6 @@ namespace NavegadorWeb
             }
         }
 
-        /// <summary>
-        /// NUEVO: Carga el script para controlar el micrófono de la página.
-        /// </summary>
         private void LoadMicrophoneControlScript()
         {
             try
@@ -748,7 +756,27 @@ namespace NavegadorWeb
             {
                 if (!e.IsSuccess)
                 {
-                    if (e.WebErrorStatus != CoreWebView2WebErrorStatus.OperationAborted)
+                    // NUEVO: Lógica para el juego offline y notificación de conectividad
+                    if (e.WebErrorStatus == CoreWebView2WebErrorStatus.Disconnected ||
+                        e.WebErrorStatus == CoreWebView2WebErrorStatus.InternetDisconnected ||
+                        e.WebErrorStatus == CoreWebView2WebErrorStatus.ConnectionAborted ||
+                        e.WebErrorStatus == CoreWebView2WebErrorStatus.ConnectionReset ||
+                        e.WebErrorStatus == CoreWebView2WebErrorStatus.HostNameNotResolved)
+                    {
+                        _lastFailedUrl = currentWebView.CoreWebView2.Source; // Guardar la URL fallida
+                        _isOfflineGameActive = true;
+                        string offlineGamePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "OfflineGame.html");
+                        if (File.Exists(offlineGamePath))
+                        {
+                            currentWebView.CoreWebView2.Navigate($"file:///{offlineGamePath.Replace("\\", "/")}");
+                            _connectivityTimer.Enabled = true; // Habilitar el temporizador para verificar conectividad
+                        }
+                        else
+                        {
+                            MessageBox.Show($"La navegación a {currentWebView.CoreWebView2.Source} falló debido a la falta de conexión a Internet y el juego offline no se encontró.", "Error de Navegación", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    }
+                    else if (e.WebErrorStatus != CoreWebView2WebErrorStatus.OperationAborted)
                     {
                         string errorPagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CustomErrorPage.html");
                         if (File.Exists(errorPagePath))
@@ -763,6 +791,11 @@ namespace NavegadorWeb
                 }
                 else
                 {
+                    // Si la navegación fue exitosa, deshabilitar el temporizador y limpiar la URL fallida
+                    _connectivityTimer.Enabled = false;
+                    _lastFailedUrl = null;
+                    _isOfflineGameActive = false;
+
                     if (!browserTab.IsIncognito && browserTab.LeftWebView == currentWebView)
                     {
                         HistoryManager.AddHistoryEntry(currentWebView.CoreWebView2.Source, currentWebView.CoreWebView2.DocumentTitle);
@@ -829,7 +862,15 @@ namespace NavegadorWeb
         private void WebView_NavigationStarting(object sender, CoreWebView2NavigationStartingEventArgs e)
         {
             LoadingProgressBar.Visibility = Visibility.Visible;
-            MainToolbarContainer.Background = new SolidColorBrush(BrowserBackgroundColor);
+            MainToolbarContainer.Background = new SolidColorBrush(BrowserBackgroundColor); // Restablecer color de la barra
+
+            // Si estamos en el juego offline y el usuario intenta navegar a otra URL, salir del juego
+            if (_isOfflineGameActive && !e.Uri.StartsWith($"file:///{AppDomain.CurrentDomain.BaseDirectory.Replace("\\", "/")}/OfflineGame.html", StringComparison.OrdinalIgnoreCase))
+            {
+                _isOfflineGameActive = false;
+                _connectivityTimer.Enabled = false;
+                _lastFailedUrl = null;
+            }
 
             if (_isPdfViewerEnabled && e.Uri.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
             {
@@ -1314,7 +1355,7 @@ namespace NavegadorWeb
             }
             else
             {
-                MessageBox.Show("Advertencia: El script de modo oscuro no está cargado. Asegúrate de que 'DarkMode.js' exista.", "Error de Modo Oscuro", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Advertencia: El script de modo oscuro no está cargado. Asegúrate de que 'DarkMode.js' exista.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -1421,7 +1462,7 @@ namespace NavegadorWeb
             WebView2 currentWebView = GetCurrentWebView();
             if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
-                MessageBox.Show("No hay una página activa para extraer un video.", "Error de PIP", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show("No hay una página activa para extraer un video.", "Error de PIP", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1455,12 +1496,12 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    MessageBox.Show("No se encontró ningún video reproducible en la página actual.", "Video no Encontrado", MessageBoxButton.OK, Image.Information);
+                    MessageBox.Show("No se encontró ningún video reproducible en la página actual.", "Video no Encontrado", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al intentar el modo Picture-in-Picture: {ex.Message}", "Error de PIP", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show($"Error al intentar el modo Picture-in-Picture: {ex.Message}", "Error de PIP", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1476,9 +1517,6 @@ namespace NavegadorWeb
             extensionsWindow.ShowDialog();
         }
 
-        /// <summary>
-        /// NUEVO: Maneja el clic en el botón de silenciar/activar micrófono.
-        /// </summary>
         private async void MicrophoneToggleButton_Click(object sender, RoutedEventArgs e)
         {
             WebView2 currentWebView = GetCurrentWebView();
@@ -1579,9 +1617,6 @@ namespace NavegadorWeb
             WebView2 currentWebView = sender as WebView2;
             if (currentWebView == null || currentWebView.CoreWebView2 == null) return;
 
-            var browserTab = GetBrowserTabItemFromWebView(currentWebView);
-            if (browserTab != null && browserTab.IsIncognito) return;
-
             string message = e.WebMessageAsJson;
             try
             {
@@ -1606,6 +1641,23 @@ namespace NavegadorWeb
                             PasswordManager.AddOrUpdatePassword(url, username, password);
                             MessageBox.Show("Contraseña guardada con éxito.", "Contraseña Guardada", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
+                    }
+                    // NUEVO: Manejar mensaje del juego offline
+                    else if (root.TryGetProperty("type", out typeElement) && typeElement.GetString() == "retryConnection")
+                    {
+                        // Si el juego offline envía un mensaje para reintentar la conexión
+                        Dispatcher.Invoke(() =>
+                        {
+                            if (!string.IsNullOrEmpty(_lastFailedUrl))
+                            {
+                                UrlTextBox.Text = _lastFailedUrl;
+                                NavigateToUrlInCurrentTab();
+                            }
+                            else
+                            {
+                                AddNewTab(_defaultHomePage); // Si no hay URL fallida, ir a la página de inicio
+                            }
+                        });
                     }
                 }
             }
@@ -2241,6 +2293,13 @@ namespace NavegadorWeb
                 _speechSynthesizer = null;
             }
 
+            if (_connectivityTimer != null) // NUEVO: Detener y liberar el temporizador
+            {
+                _connectivityTimer.Stop();
+                _connectivityTimer.Dispose();
+                _connectivityTimer = null;
+            }
+
             foreach (var tab in _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup))
             {
                 tab.LeftWebView?.Dispose();
@@ -2434,7 +2493,6 @@ namespace NavegadorWeb
         {
             Grid mainGrid = (Grid)((Border)this.Content).Child;
 
-            // Limpiar Grid.Row/Column y DockPanel.Dock de MainToolbarContainer y TabGroupContainer
             Grid.SetRow(MainToolbarContainer, 0);
             Grid.SetColumn(MainToolbarContainer, 0);
 
@@ -2444,36 +2502,28 @@ namespace NavegadorWeb
             mainGrid.ColumnDefinitions.Clear();
             mainGrid.RowDefinitions.Clear();
 
-            // Recrear las definiciones de filas para la barra de título, barra de herramientas y contenido
-            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Barra de título personalizada
+            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            // Asegurar que MainToolbarContainer esté en la fila 1 por defecto (debajo de la barra de título)
             Grid.SetRow(MainToolbarContainer, 1);
             Grid.SetColumn(MainToolbarContainer, 0);
 
-            // Asegurar que TabGroupContainer esté en la fila 2 por defecto
             Grid.SetRow(TabGroupContainer, 2);
             Grid.SetColumn(TabGroupContainer, 0);
 
-            // Reiniciar visibilidad y ancho/alto de los placeholders laterales
             LeftToolbarPlaceholder.Visibility = Visibility.Collapsed;
             LeftToolbarPlaceholder.Width = 0;
             RightToolbarPlaceholder.Visibility = Visibility.Collapsed;
             RightToolbarPlaceholder.Width = 0;
 
-            // Mover los botones a un StackPanel temporal para facilitar la reasignación
-            // Primero, limpiar los paneles de MainToolbarContainer
             DockPanel currentDockPanel = MainToolbarContainer.Children.OfType<DockPanel>().FirstOrDefault();
             if (currentDockPanel != null)
             {
                 currentDockPanel.Children.Clear();
             }
-            // Y de los placeholders laterales
             LeftToolbarPlaceholder.Children.Clear();
             RightToolbarPlaceholder.Children.Clear();
 
 
-            // Re-obtener todos los botones y el Grid de URL
             List<Button> allButtons = new List<Button>();
             allButtons.Add(BackButton); allButtons.Add(ForwardButton); allButtons.Add(ReloadButton);
             allButtons.Add(HomeButton); allButtons.Add(HistoryButton); allButtons.Add(BookmarksButton);
@@ -2482,7 +2532,7 @@ namespace NavegadorWeb
             allButtons.Add(DataExtractionButton); allButtons.Add(DarkModeButton); allButtons.Add(PerformanceMonitorButton);
             allButtons.Add(FindButton); allButtons.Add(PermissionsButton); allButtons.Add(PipButton);
             allButtons.Add(PasswordManagerButton); allButtons.Add(ExtensionsButton);
-            allButtons.Add(MicrophoneToggleButton); // NUEVO: Botón de micrófono
+            allButtons.Add(MicrophoneToggleButton);
 
             allButtons.Add(IncognitoButton); allButtons.Add(AddBookmarkButton); allButtons.Add(NewTabButton); allButtons.Add(SettingsButton);
 
@@ -2492,8 +2542,8 @@ namespace NavegadorWeb
             switch (position)
             {
                 case ToolbarPosition.Top:
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Barra de herramientas
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Contenido
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
                     MainToolbarContainer.Visibility = Visibility.Visible;
                     Grid.SetRow(MainToolbarContainer, 1);
@@ -2504,7 +2554,6 @@ namespace NavegadorWeb
                     MainToolbarContainer.LastChildFill = true;
                     MainToolbarContainer.BorderThickness = new Thickness(0, 0, 0, 1);
 
-                    // Reconstruir el DockPanel dentro de MainToolbarContainer
                     DockPanel topToolbarDockPanel = new DockPanel();
                     StackPanel topToolbarLeftButtonsPanel = new StackPanel { Orientation = Orientation.Horizontal };
                     StackPanel topToolbarRightButtonsPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
@@ -2542,10 +2591,10 @@ namespace NavegadorWeb
                     break;
 
                 case ToolbarPosition.Left:
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Contenido
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Barra izquierda
-                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Contenido
+                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
                     MainToolbarContainer.Visibility = Visibility.Collapsed;
                     LeftToolbarPlaceholder.Visibility = Visibility.Visible;
@@ -2554,7 +2603,7 @@ namespace NavegadorWeb
 
                     Grid.SetRow(LeftToolbarPlaceholder, 1);
                     Grid.SetColumn(LeftToolbarPlaceholder, 0);
-                    Grid.SetRowSpan(LeftToolbarPlaceholder, 1); // Solo ocupa una fila (la del contenido)
+                    Grid.SetRowSpan(LeftToolbarPlaceholder, 1);
 
                     StackPanel leftToolbarContent = new StackPanel { Orientation = Orientation.Vertical };
                     if (urlAndProgressGrid != null)
@@ -2575,7 +2624,7 @@ namespace NavegadorWeb
 
                     Grid.SetRow(TabGroupContainer, 1);
                     Grid.SetColumn(TabGroupContainer, 1);
-                    Grid.SetRowSpan(TabGroupContainer, 1); // Solo ocupa una fila (la del contenido)
+                    Grid.SetRowSpan(TabGroupContainer, 1);
 
                     FindBar.Margin = new Thickness(10, 10, 10, 10);
                     Grid.SetRow(FindBar, 1);
@@ -2583,10 +2632,10 @@ namespace NavegadorWeb
                     break;
 
                 case ToolbarPosition.Right:
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Contenido
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Contenido
-                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Barra derecha
+                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
                     MainToolbarContainer.Visibility = Visibility.Collapsed;
                     RightToolbarPlaceholder.Visibility = Visibility.Visible;
@@ -2624,8 +2673,8 @@ namespace NavegadorWeb
                     break;
 
                 case ToolbarPosition.Bottom:
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Contenido
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Barra de herramientas (abajo)
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
                     MainToolbarContainer.Visibility = Visibility.Visible;
                     Grid.SetRow(MainToolbarContainer, 2);
@@ -2636,7 +2685,6 @@ namespace NavegadorWeb
                     MainToolbarContainer.LastChildFill = true;
                     MainToolbarContainer.BorderThickness = new Thickness(0, 1, 0, 0);
 
-                    // Reconstruir el DockPanel dentro de MainToolbarContainer
                     DockPanel bottomToolbarDockPanel = new DockPanel();
                     StackPanel bottomToolbarLeftButtonsPanel = new StackPanel { Orientation = Orientation.Horizontal };
                     StackPanel bottomToolbarRightButtonsPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
@@ -2674,9 +2722,38 @@ namespace NavegadorWeb
                     break;
             }
 
-            // Asegurarse de que el FindBar siempre esté en el mismo Grid.Row/Column del contenido principal
             Grid.SetRow(FindBar, Grid.GetRow(TabGroupContainer));
             Grid.SetColumn(FindBar, Grid.GetColumn(TabGroupContainer));
+        }
+
+        // NUEVO: Manejador del temporizador para verificar la conectividad
+        private void ConnectivityTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            // Verificar la conectividad en el hilo de la UI
+            Dispatcher.Invoke(() =>
+            {
+                if (NetworkInterface.GetIsNetworkAvailable())
+                {
+                    _connectivityTimer.Enabled = false; // Detener el temporizador
+                    if (!string.IsNullOrEmpty(_lastFailedUrl))
+                    {
+                        MessageBoxResult result = MessageBox.Show(
+                            $"¡Internet conectado! ¿Deseas recargar la página:\n{_lastFailedUrl}?",
+                            "Conexión Restablecida",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Information
+                        );
+
+                        if (result == MessageBoxResult.Yes)
+                        {
+                            UrlTextBox.Text = _lastFailedUrl;
+                            NavigateToUrlInCurrentTab();
+                        }
+                        _lastFailedUrl = null; // Limpiar la URL después de la notificación
+                        _isOfflineGameActive = false; // Salir del modo juego offline
+                    }
+                }
+            });
         }
     }
 
