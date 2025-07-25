@@ -1,21 +1,192 @@
-<ItemGroup>
-    <Compile Include="CustomExtension.cs" />
-    <Compile Include="ExtensionManager.cs" />
-    <Compile Include="ExtensionsWindow.xaml.cs">
-      <DependentUpon>ExtensionsWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="TabGroup.cs" />
-    <Compile Include="TabGroupManager.cs" />
+
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</Implicitings>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>icono.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="icono.ico" />
   </ItemGroup>
 
   <ItemGroup>
-    <Page Include="ExtensionsWindow.xaml">
+    <None Remove="Resources\add_bookmark.png" />
+    <None Remove="Resources\ai.png" />
+    <None Remove="Resources\audio_playing_icon.png" />
+    <None Remove="Resources\blocked_icon.png" />
+    <None Remove="Resources\bookmarks.png" />
+    <None Remove="Resources\data_extraction.png" />
+    <None Remove="Resources\download.png" />
+    <None Remove="Resources\extensions.png" />
+    <None Remove="Resources\extension_icon.png" />
+    <None Remove="Resources\find.png" />
+    <None Remove="Resources\globe_icon.png" />
+    <None Remove="Resources\history.png" />
+    <None Remove="Resources\home.png" />
+    <None Remove="Resources\incognito.png" />
+    <None Remove="Resources\moon.png" />
+    <None Remove="Resources\new_tab.png" />
+    <None Remove="Resources\password.png" />
+    <None Remove="Resources\performance.png" />
+    <None Remove="Resources\permissions.png" />
+    <None Remove="Resources\pip.png" />
+    <None Remove="Resources\read_aloud.png" />
+    <None Remove="Resources\reader.png" />
+    <None Remove="Resources\screenshot.png" />
+    <None Remove="Resources\settings.png" />
+    <None Remove="Resources\split.png" />
+    <None Remove="Resources\tab_manager.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2600.48" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
+    <PackageReference Include="System.Speech" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="MainWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
       <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="SettingsWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="HistoryWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="BookmarksWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="DownloadsWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="CrashRecoveryWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="TabManagerWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="DataExtractionWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="PerformanceMonitorWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="PermissionsManagerWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="PipWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="PasswordManagerWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="ExtensionsWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="PdfViewerWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
     </Page>
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="App.xaml.cs">
+      <DependentUpon>App.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="MainWindow.xaml.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="SettingsWindow.xaml.cs">
+      <DependentUpon>SettingsWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="HistoryWindow.xaml.cs">
+      <DependentUpon>HistoryWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="BookmarksWindow.xaml.cs">
+      <DependentUpon>BookmarksWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="DownloadsWindow.xaml.cs">
+      <DependentUpon>DownloadsWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="CrashRecoveryWindow.xaml.cs">
+      <DependentUpon>CrashRecoveryWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="TabManagerWindow.xaml.cs">
+      <DependentUpon>TabManagerWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="DataExtractionWindow.xaml.cs">
+      <DependentUpon>DataExtractionWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="PerformanceMonitorWindow.xaml.cs">
+      <DependentUpon>PerformanceMonitorWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="PermissionsManagerWindow.xaml.cs">
+      <DependentUpon>PermissionsManagerWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="PipWindow.xaml.cs">
+      <DependentUpon>PipWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="PasswordManagerWindow.xaml.cs">
+      <DependentUpon>PasswordManagerWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="ExtensionsWindow.xaml.cs">
+      <DependentUpon>ExtensionsWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="PdfViewerWindow.xaml.cs">
+      <DependentUpon>PdfViewerWindow.xaml</DependentUpon>
+    </Compile>
+
+    <!-- Clases de lógica de negocio y utilidades -->
+    <Compile Include="AdBlocker.cs" />
+    <Compile Include="BookmarkManager.cs" />
+    <Compile Include="BrowserTabItem.cs" />
+    <Compile Include="DownloadEntry.cs" />
+    <Compile Include="DownloadManager.cs" />
+    <Compile Include="HistoryEntry.cs" />
+    <Compile Include="HistoryManager.cs" />
+    <Compile Include="PasswordEntry.cs" />
+    <Compile Include="PasswordManager.cs" />
+    <Compile Include="TrackerBlocker.cs" />
+    <Compile Include="TabGroup.cs" />
+    <Compile Include="TabGroupManager.cs" />
+    <Compile Include="CustomExtension.cs" />
+    <Compile Include="ExtensionManager.cs" />
+    <Compile Include="RelayCommand.cs" /> <!-- Asegúrate de que esta clase esté en este o su propio archivo -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Archivos JavaScript y HTML que se copian al directorio de salida -->
     <Content Include="CustomErrorPage.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -28,11 +199,45 @@
     <Content Include="ReaderMode.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="PageColorExtractor.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="blocked_domains.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="tracker_domains.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Iconos PNG que se incluyen como recursos de la aplicación -->
+    <Resource Include="Resources\add_bookmark.png" />
+    <Resource Include="Resources\ai.png" />
     <Resource Include="Resources\audio_playing_icon.png" />
     <Resource Include="Resources\blocked_icon.png" />
+    <Resource Include="Resources\bookmarks.png" />
+    <Resource Include="Resources\data_extraction.png" />
+    <Resource Include="Resources\download.png" />
+    <Resource Include="Resources\extensions.png" />
     <Resource Include="Resources\extension_icon.png" />
+    <Resource Include="Resources\find.png" />
     <Resource Include="Resources\globe_icon.png" />
+    <Resource Include="Resources\history.png" />
+    <Resource Include="Resources\home.png" />
+    <Resource Include="Resources\incognito.png" />
+    <Resource Include="Resources\moon.png" />
+    <Resource Include="Resources\new_tab.png" />
+    <Resource Include="Resources\password.png" />
+    <Resource Include="Resources\performance.png" />
+    <Resource Include="Resources\permissions.png" />
+    <Resource Include="Resources\pip.png" />
+    <Resource Include="Resources\read_aloud.png" />
+    <Resource Include="Resources\reader.png" />
+    <Resource Include="Resources\screenshot.png" />
+    <Resource Include="Resources\settings.png" />
+    <Resource Include="Resources\split.png" />
+    <Resource Include="Resources\tab_manager.png" />
   </ItemGroup>
+
+</Project>
