@@ -3,8 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:NavegadorWeb"
         mc:Ignorable="d"
-        Title="Configuración del Navegador - Aurora Browser" Height="600" Width="800"
+        Title="Configuración del Navegador - Aurora Browser" Height="650" Width="800"
         WindowStartupLocation="CenterScreen">
     <Grid Margin="15">
         <Grid.RowDefinitions>
@@ -17,7 +18,6 @@
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel>
-                <!-- Sección General -->
                 <GroupBox Header="General" Margin="0,0,0,15">
                     <StackPanel Margin="10">
                         <Label Content="Página de Inicio Predeterminada:"/>
@@ -30,7 +30,6 @@
                     </StackPanel>
                 </GroupBox>
 
-                <!-- Sección Privacidad y Seguridad -->
                 <GroupBox Header="Privacidad y Seguridad" Margin="0,0,0,15">
                     <StackPanel Margin="10">
                         <CheckBox x:Name="AdBlockerCheckBox" Content="Habilitar Bloqueador de Anuncios" Margin="0,0,0,10"/>
@@ -39,7 +38,6 @@
                     </StackPanel>
                 </GroupBox>
 
-                <!-- Sección Rendimiento -->
                 <GroupBox Header="Rendimiento" Margin="0,0,0,15">
                     <StackPanel Margin="10">
                         <CheckBox x:Name="TabSuspensionCheckBox" Content="Habilitar Suspensión de Pestañas Inactivas" Margin="0,0,0,10"/>
@@ -47,20 +45,26 @@
                     </StackPanel>
                 </GroupBox>
 
-                <!-- NUEVO: Sección Tema y Apariencia -->
                 <GroupBox Header="Tema y Apariencia" Margin="0,0,0,15">
                     <StackPanel Margin="10">
                         <Label Content="Color de Fondo del Navegador (ej. #F0F0F0):"/>
                         <TextBox x:Name="BackgroundColorTextBox" Margin="0,0,0,10"/>
                         <Label Content="Color de Texto del Navegador (ej. #333333):"/>
                         <TextBox x:Name="ForegroundColorTextBox" Margin="0,0,0,10"/>
+                        
+                        <Label Content="Posición de la Barra de Herramientas:"/>
+                        <ComboBox x:Name="ToolbarPositionComboBox" Margin="0,0,0,10" SelectedValuePath="Tag">
+                            <ComboBoxItem Content="Superior" Tag="{x:Static local:ToolbarPosition.Top}"/>
+                            <ComboBoxItem Content="Izquierda" Tag="{x:Static local:ToolbarPosition.Left}"/>
+                            <ComboBoxItem Content="Derecha" Tag="{x:Static local:ToolbarPosition.Right}"/>
+                            <ComboBoxItem Content="Inferior" Tag="{x:Static local:ToolbarPosition.Bottom}"/>
+                        </ComboBox>
                     </StackPanel>
                 </GroupBox>
 
-                <!-- Sección Herramientas -->
                 <GroupBox Header="Herramientas" Margin="0,0,0,15">
                     <StackPanel Margin="10">
-                        <Button Content="Borrar Datos de Navegación (Caché, Cookies, Historial, etc.)" Click="ClearBrowsingDataButton_Click" Margin="0,0,0,10"/>
+                        <Button Content="Borrar Datos de Navegación (Caché, Cookies, Historial, etc.)" Click="ClearBrowseDataButton_Click" Margin="0,0,0,10"/>
                     </StackPanel>
                 </GroupBox>
             </StackPanel>
