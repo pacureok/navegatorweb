@@ -16,6 +16,8 @@ using System.Diagnostics;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.ComponentModel; // Para INotifyPropertyChanged
+using System.Windows.Interop; // Para el redimensionamiento de ventana
+using System.Runtime.InteropServices; // Para el redimensionamiento de ventana
 
 namespace NavegadorWeb
 {
@@ -24,6 +26,7 @@ namespace NavegadorWeb
     /// </summary>
     public partial class MainWindow : Window, INotifyPropertyChanged // Implementar INotifyPropertyChanged
     {
+        // ... (Tu código existente para campos y propiedades) ...
         private string _defaultHomePage = "https://www.google.com";
         private const string HomePageSettingKey = "DefaultHomePage";
         private const string AdBlockerSettingKey = "AdBlockerEnabled";
@@ -34,13 +37,15 @@ namespace NavegadorWeb
         private const string TrackerProtectionSettingKey = "TrackerProtectionEnabled";
         private const string PdfViewerSettingKey = "PdfViewerEnabled";
         private const string UncleanShutdownFlagKey = "UncleanShutdown";
-        private const string BrowserBackgroundColorKey = "BrowserBackgroundColor"; // NUEVO
-        private const string BrowserForegroundColorKey = "BrowserForegroundColor"; // NUEVO
+        private const string BrowserBackgroundColorKey = "BrowserBackgroundColor";
+        private const string BrowserForegroundColorKey = "BrowserForegroundColor";
+        private const string ToolbarOrientationKey = "ToolbarOrientation"; // NUEVO: Clave para la orientación de la barra
 
         private string _defaultSearchEngineUrl = "https://www.google.com/search?q=";
         private bool _isTabSuspensionEnabled = false;
         private bool _restoreSessionOnStartup = true;
         private bool _isPdfViewerEnabled = true;
+        private ToolbarPosition _currentToolbarPosition = ToolbarPosition.Top; // NUEVO: Posición inicial de la barra de herramientas
 
         // Propiedades para el tema del navegador
         private Color _browserBackgroundColor;
@@ -53,9 +58,11 @@ namespace NavegadorWeb
                 {
                     _browserBackgroundColor = value;
                     OnPropertyChanged(nameof(BrowserBackgroundColor));
-                    // Actualizar el recurso dinámico
                     Application.Current.Resources["BrowserBackgroundColor"] = value;
                     Application.Current.Resources["BrowserBackgroundBrush"] = new SolidColorBrush(value);
+                    // Asegurar que la barra de título también refleje el cambio
+                    if (MainToolbarContainer != null) // Usamos el mismo color para la barra de título personalizada
+                        ((Border)this.Content).BorderBrush = new SolidColorBrush(value);
                 }
             }
         }
@@ -70,9 +77,10 @@ namespace NavegadorWeb
                 {
                     _browserForegroundColor = value;
                     OnPropertyChanged(nameof(BrowserForegroundColor));
-                    // Actualizar el recurso dinámico
                     Application.Current.Resources["BrowserForegroundColor"] = value;
                     Application.Current.Resources["BrowserForegroundBrush"] = new SolidColorBrush(value);
+                    // Actualizar el color de los botones de control de la ventana
+                    ApplyForegroundToWindowControls(); // NUEVO: Función para actualizar los colores de los botones de control
                 }
             }
         }
@@ -97,6 +105,7 @@ namespace NavegadorWeb
 
         private string _readerModeScript = string.Empty;
         private string _darkModeScript = string.Empty;
+        private string _pageColorExtractionScript = string.Empty; // NUEVO: Script para extracción de color de página
 
         private SpeechSynthesizer _speechSynthesizer;
         private bool _isReadingAloud = false;
@@ -104,7 +113,7 @@ namespace NavegadorWeb
         private bool _isFindBarVisible = false;
         private CoreWebView2FindInPage _findInPage;
 
-        // NUEVO: Comandos para los atajos de teclado
+        // Comandos para los atajos de teclado
         public ICommand ReloadCommand { get; private set; }
         public ICommand ToggleFullscreenCommand { get; private set; }
         public ICommand OpenDevToolsCommand { get; private set; }
@@ -118,6 +127,17 @@ namespace NavegadorWeb
         public ICommand ToggleFindBarCommand { get; private set; }
         public ICommand CloseFindBarCommand { get; private set; }
 
+        // NUEVO: Para el redimensionamiento de ventana
+        private const int WM_NCHITTEST = 0x0084;
+        private const int HTLEFT = 10;
+        private const int HTRIGHT = 11;
+        private const int HTTOP = 12;
+        private const int HTTOPLEFT = 13;
+        private const int HTTOPRIGHT = 14;
+        private const int HTBOTTOM = 15;
+        private const int HTBOTTOMLEFT = 16;
+        private const int HTBOTTOMRIGHT = 17;
+        private const int HTCAPTION = 2;
 
         public MainWindow()
         {
@@ -128,21 +148,41 @@ namespace NavegadorWeb
 
             TabGroupContainer.ItemsSource = _tabGroupManager.TabGroups;
 
-            LoadSettings(); // Cargar configuraciones al iniciar la aplicación (incluyendo colores)
+            LoadSettings(); // Cargar configuraciones al iniciar la aplicación (incluyendo colores y orientación)
             InitializeEnvironments();
             LoadReaderModeScript();
             LoadDarkModeScript();
+            LoadPageColorExtractionScript(); // NUEVO: Cargar script de extracción de color
 
             _speechSynthesizer = new SpeechSynthesizer();
             _speechSynthesizer.SetOutputToDefaultAudioDevice();
             _speechSynthesizer.SpeakCompleted += SpeechSynthesizer_SpeakCompleted;
 
-            InitializeCommands(); // NUEVO: Inicializar los comandos
+            InitializeCommands();
+
+            // NUEVO: Configuración de la ventana para permitir el redimensionamiento personalizado
+            this.SourceInitialized += MainWindow_SourceInitialized;
+            this.StateChanged += MainWindow_StateChanged; // Para cambiar el icono de maximizar/restaurar
+            ApplyForegroundToWindowControls(); // Aplicar colores iniciales a los botones de control de ventana
+            ApplyToolbarPosition(_currentToolbarPosition); // Aplicar la orientación de la barra de herramientas al inicio
         }
 
-        /// <summary>
-        /// Inicializa los comandos para los atajos de teclado.
-        /// </summary>
+        // NUEVO: Método para aplicar el color de primer plano a los botones de control de la ventana
+        private void ApplyForegroundToWindowControls()
+        {
+            if (MaximizeRestoreButton != null)
+            {
+                MaximizeRestoreButton.Foreground = BrowserForegroundColor != null ? new SolidColorBrush(BrowserForegroundColor) : Brushes.Black;
+                MinimizeButton.Foreground = BrowserForegroundColor != null ? new SolidColorBrush(BrowserForegroundColor) : Brushes.Black;
+                CloseButton.Foreground = BrowserForegroundColor != null ? new SolidColorBrush(BrowserForegroundColor) : Brushes.Black;
+                AIButton_TitleBar.Foreground = BrowserForegroundColor != null ? new SolidColorBrush(BrowserForegroundColor) : Brushes.Black;
+            }
+            if (WindowTitleText != null)
+            {
+                WindowTitleText.Foreground = BrowserForegroundColor != null ? new SolidColorBrush(BrowserForegroundColor) : Brushes.Black;
+            }
+        }
+
         private void InitializeCommands()
         {
             ReloadCommand = new RelayCommand(ReloadButton_Click);
@@ -150,7 +190,7 @@ namespace NavegadorWeb
             OpenDevToolsCommand = new RelayCommand(OpenDevTools);
             ScreenshotCommand = new RelayCommand(ScreenshotButton_Click);
             NewTabCommand = new RelayCommand(NewTabButton_Click);
-            CloseTabCommand = new RelayCommand(CloseCurrentTab); // Método nuevo para cerrar la pestaña activa
+            CloseTabCommand = new RelayCommand(CloseCurrentTab);
             FocusUrlBarCommand = new RelayCommand(FocusUrlTextBox);
             OpenHistoryCommand = new RelayCommand(HistoryButton_Click);
             OpenBookmarksCommand = new RelayCommand(BookmarksButton_Click);
@@ -159,28 +199,22 @@ namespace NavegadorWeb
             CloseFindBarCommand = new RelayCommand(CloseFindBarButton_Click);
         }
 
-        /// <summary>
-        /// NUEVO: Alterna el modo de pantalla completa de la ventana.
-        /// </summary>
         private void ToggleFullscreen(object parameter)
         {
             if (this.WindowState == WindowState.Maximized && this.WindowStyle == WindowStyle.None)
             {
-                // Salir de pantalla completa
-                this.WindowStyle = WindowStyle.SingleBorderWindow;
+                this.WindowStyle = WindowStyle.None; // Mantener None para el custom chrome
                 this.WindowState = WindowState.Normal;
             }
             else
             {
-                // Entrar en pantalla completa
-                this.WindowStyle = WindowStyle.None;
+                this.WindowStyle = WindowStyle.None; // Mantener None para el custom chrome
                 this.WindowState = WindowState.Maximized;
             }
+            // Actualizar el ícono del botón de maximizar
+            UpdateMaximizeRestoreButtonContent();
         }
 
-        /// <summary>
-        /// NUEVO: Abre las herramientas de desarrollo para la pestaña activa.
-        /// </summary>
         private void OpenDevTools(object parameter)
         {
             WebView2 currentWebView = GetCurrentWebView();
@@ -190,9 +224,6 @@ namespace NavegadorWeb
             }
         }
 
-        /// <summary>
-        /// NUEVO: Cierra la pestaña actualmente seleccionada.
-        /// </summary>
         private void CloseCurrentTab(object parameter)
         {
             if (SelectedTabItem != null)
@@ -201,13 +232,10 @@ namespace NavegadorWeb
             }
         }
 
-        /// <summary>
-        /// NUEVO: Pone el foco en la barra de URL.
-        /// </summary>
         private void FocusUrlTextBox(object parameter)
         {
             UrlTextBox.Focus();
-            UrlTextBox.SelectAll(); // Seleccionar todo el texto para facilitar la edición
+            UrlTextBox.SelectAll();
         }
 
 
@@ -261,6 +289,29 @@ namespace NavegadorWeb
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al cargar el script de modo oscuro: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// NUEVO: Carga el script para extraer el color dominante de la página.
+        /// </summary>
+        private void LoadPageColorExtractionScript()
+        {
+            try
+            {
+                string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PageColorExtractor.js");
+                if (File.Exists(scriptPath))
+                {
+                    _pageColorExtractionScript = File.ReadAllText(scriptPath);
+                }
+                else
+                {
+                    MessageBox.Show("Advertencia: El archivo 'PageColorExtractor.js' no se encontró. La aclimatación de color de página no funcionará.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al cargar el script de extracción de color de página: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -509,6 +560,7 @@ namespace NavegadorWeb
             {
                 currentWebView.CoreWebView2.Environment.SetCustomFileExtensions(new[] { ".pdf", ".docx", ".xlsx" });
 
+                // Desuscribirse para evitar duplicados si se llama varias veces (ej. al cambiar de entorno o al recargar)
                 currentWebView.CoreWebView2.WebResourceRequested -= CoreWebView2_WebResourceRequested;
                 currentWebView.CoreWebView2.DownloadStarting -= CoreWebView2_DownloadStarting;
                 currentWebView.CoreWebView2.DocumentTitleChanged -= WebView_DocumentTitleChanged;
@@ -525,6 +577,7 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.WebResourceResponseReceived -= CoreWebView2_WebResourceResponseReceived;
 
 
+                // Suscribirse de nuevo
                 currentWebView.CoreWebView2.WebResourceRequested += CoreWebView2_WebResourceRequested;
 
                 currentWebView.CoreWebView2.Settings.AreDevToolsEnabled = true;
@@ -706,6 +759,40 @@ namespace NavegadorWeb
                     }
 
                     await InjectEnabledExtensions(currentWebView, browserTab);
+
+                    // NUEVO: Intentar extraer el color de la página
+                    if (!string.IsNullOrEmpty(_pageColorExtractionScript))
+                    {
+                        try
+                        {
+                            string resultJson = await currentWebView.CoreWebView2.ExecuteScriptAsync(_pageColorExtractionScript);
+                            if (resultJson != null && resultJson != "null")
+                            {
+                                var colorData = JsonSerializer.Deserialize<Dictionary<string, string>>(resultJson);
+                                if (colorData != null && colorData.ContainsKey("dominantColor"))
+                                {
+                                    string dominantColorHex = colorData["dominantColor"];
+                                    try
+                                    {
+                                        Color pageColor = (Color)ColorConverter.ConvertFromString(dominantColorHex);
+                                        // Aquí puedes usar 'pageColor' para tu barra superior
+                                        // Por simplicidad, la aplicaremos al DockPanel de la barra de herramientas
+                                        MainToolbarContainer.Background = new SolidColorBrush(pageColor);
+                                        // Opcionalmente, podrías cambiar el color del texto si el contraste es bajo
+                                        // (Más avanzado: detectar contraste y cambiar foreground)
+                                    }
+                                    catch (FormatException)
+                                    {
+                                        Debug.WriteLine($"Color hexadecimal inválido de la página: {dominantColorHex}");
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Error al ejecutar el script de extracción de color: {ex.Message}");
+                        }
+                    }
                 }
             }
             LoadingProgressBar.Visibility = Visibility.Collapsed;
@@ -737,6 +824,8 @@ namespace NavegadorWeb
         private void WebView_NavigationStarting(object sender, CoreWebView2NavigationStartingEventArgs e)
         {
             LoadingProgressBar.Visibility = Visibility.Visible;
+            // Restaurar el color de fondo de la barra de herramientas al color del tema al inicio de la navegación
+            MainToolbarContainer.Background = new SolidColorBrush(BrowserBackgroundColor);
 
             if (_isPdfViewerEnabled && e.Uri.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
             {
@@ -771,7 +860,8 @@ namespace NavegadorWeb
 
                 if (SelectedTabItem == browserTab && browserTab.LeftWebView == currentWebView)
                 {
-                    this.Title = currentWebView.CoreWebView2.DocumentTitle + " - Aurora Browser";
+                    // Actualizar el texto en la barra de título personalizada
+                    WindowTitleText.Text = currentWebView.CoreWebView2.DocumentTitle + " - Aurora Browser";
                 }
             }
         }
@@ -1345,7 +1435,7 @@ namespace NavegadorWeb
                         if (youtubeIframe && youtubeIframe.src) {
                             return youtubeIframe.src;
                         }
-                        let youtubeWatchIframe = document.querySelector('iframe[src*=""youtube.com/watch?v=""]');
+                        let youtubeWatchIframe = document.querySelector('iframe[src*=""youtube.com/watch""]');
                         if (youtubeWatchIframe && youtubeWatchIframe.src) {
                             return youtubeWatchIframe.src;
                         }
@@ -1749,11 +1839,14 @@ namespace NavegadorWeb
             {
                 UrlTextBox.Text = currentWebView.CoreWebView2.Source;
                 this.Title = currentWebView.CoreWebView2.DocumentTitle + " - Aurora Browser";
+                // Actualizar el texto en la barra de título personalizada
+                WindowTitleText.Text = this.Title;
             }
             else
             {
                 UrlTextBox.Text = string.Empty;
                 this.Title = "Aurora Browser";
+                WindowTitleText.Text = this.Title;
             }
         }
 
@@ -1797,16 +1890,16 @@ namespace NavegadorWeb
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
-            // Pasar los colores actuales al SettingsWindow
+            // Pasar los colores actuales y la orientación de la barra al SettingsWindow
             SettingsWindow settingsWindow = new SettingsWindow(
                 _defaultHomePage, AdBlocker.IsEnabled, _defaultSearchEngineUrl,
                 _isTabSuspensionEnabled, _restoreSessionOnStartup, TrackerBlocker.IsEnabled,
-                _isPdfViewerEnabled, BrowserBackgroundColor, BrowserForegroundColor); // NUEVO: Pasar colores
+                _isPdfViewerEnabled, BrowserBackgroundColor, BrowserForegroundColor, _currentToolbarPosition); // NUEVO: Pasar orientación
 
-            settingsWindow.OnClearBrowsingData += SettingsWindow_OnClearBrowsingData;
+            settingsWindow.OnClearBrowseData += SettingsWindow_OnClearBrowseData;
             settingsWindow.OnSuspendInactiveTabs += SettingsWindow_OnSuspendInactiveTabs;
-            settingsWindow.OnColorsChanged += SettingsWindow_OnColorsChanged; // NUEVO: Suscribirse al evento de cambio de color
-
+            settingsWindow.OnColorsChanged += SettingsWindow_OnColorsChanged;
+            settingsWindow.OnToolbarPositionChanged += SettingsWindow_OnToolbarPositionChanged; // NUEVO: Suscribirse al evento de cambio de posición
 
             if (settingsWindow.ShowDialog() == true)
             {
@@ -1817,18 +1910,19 @@ namespace NavegadorWeb
                 _restoreSessionOnStartup = settingsWindow.RestoreSessionOnStartup;
                 TrackerBlocker.IsEnabled = settingsWindow.IsTrackerProtectionEnabled;
                 _isPdfViewerEnabled = settingsWindow.IsPdfViewerEnabled;
-                // Los colores se actualizan directamente a través del evento OnColorsChanged
+                // Los colores y la orientación se actualizan directamente a través de los eventos OnColorsChanged y OnToolbarPositionChanged
                 SaveSettings();
                 MessageBox.Show("Configuración guardada. Los cambios se aplicarán al abrir nuevas pestañas o al hacer clic en 'Inicio'.", "Configuración Guardada", MessageBoxButton.OK, MessageBoxImage.Information);
             }
 
-            settingsWindow.OnClearBrowsingData -= SettingsWindow_OnClearBrowsingData;
+            settingsWindow.OnClearBrowseData -= SettingsWindow_OnClearBrowseData;
             settingsWindow.OnSuspendInactiveTabs -= SettingsWindow_OnSuspendInactiveTabs;
-            settingsWindow.OnColorsChanged -= SettingsWindow_OnColorsChanged; // NUEVO: Desuscribirse
+            settingsWindow.OnColorsChanged -= SettingsWindow_OnColorsChanged;
+            settingsWindow.OnToolbarPositionChanged -= SettingsWindow_OnToolbarPositionChanged; // NUEVO: Desuscribirse
         }
 
         /// <summary>
-        /// NUEVO: Manejador para cuando los colores del tema cambian en la ventana de configuración.
+        /// Manejador para cuando los colores del tema cambian en la ventana de configuración.
         /// </summary>
         private void SettingsWindow_OnColorsChanged(Color backgroundColor, Color foregroundColor)
         {
@@ -1837,8 +1931,18 @@ namespace NavegadorWeb
             SaveSettings(); // Guardar los nuevos colores inmediatamente
         }
 
+        /// <summary>
+        /// NUEVO: Manejador para cuando la posición de la barra de herramientas cambia en la ventana de configuración.
+        /// </summary>
+        private void SettingsWindow_OnToolbarPositionChanged(ToolbarPosition newPosition)
+        {
+            _currentToolbarPosition = newPosition;
+            ApplyToolbarPosition(newPosition);
+            SaveSettings();
+        }
 
-        private async void SettingsWindow_OnClearBrowsingData()
+
+        private async void SettingsWindow_OnClearBrowseData()
         {
             WebView2 anyWebView = GetCurrentWebView();
 
@@ -1856,7 +1960,7 @@ namespace NavegadorWeb
                     CoreWebView2BrowserDataKinds.PasswordAutofill |
                     CoreWebView2BrowserDataKinds.OtherData;
 
-                await _defaultEnvironment.ClearBrowsingDataAsync(dataKinds);
+                await _defaultEnvironment.ClearBrowseDataAsync(dataKinds);
                 MessageBox.Show("Datos de navegación (caché, cookies, etc.) borrados con éxito.", "Limpieza Completa", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
@@ -1971,7 +2075,7 @@ namespace NavegadorWeb
                 _isPdfViewerEnabled = true;
             }
 
-            // NUEVO: Cargar colores del tema
+            // Cargar colores del tema
             if (ConfigurationManager.AppSettings[BrowserBackgroundColorKey] != null &&
                 ColorConverter.ConvertFromString(ConfigurationManager.AppSettings[BrowserBackgroundColorKey]) is Color bgColor)
             {
@@ -1990,6 +2094,17 @@ namespace NavegadorWeb
             else
             {
                 BrowserForegroundColor = (Color)Application.Current.Resources["BrowserForegroundColor"]; // Usar el valor por defecto de XAML
+            }
+
+            // NUEVO: Cargar orientación de la barra de herramientas
+            string savedToolbarPosition = ConfigurationManager.AppSettings[ToolbarOrientationKey];
+            if (Enum.TryParse(savedToolbarPosition, out ToolbarPosition position))
+            {
+                _currentToolbarPosition = position;
+            }
+            else
+            {
+                _currentToolbarPosition = ToolbarPosition.Top; // Por defecto
             }
         }
 
@@ -2032,7 +2147,7 @@ namespace NavegadorWeb
             else
                 config.AppSettings.Settings[PdfViewerSettingKey].Value = _isPdfViewerEnabled.ToString();
 
-            // NUEVO: Guardar colores del tema
+            // Guardar colores del tema
             if (config.AppSettings.Settings[BrowserBackgroundColorKey] == null)
                 config.AppSettings.Settings.Add(BrowserBackgroundColorKey, BrowserBackgroundColor.ToString());
             else
@@ -2042,6 +2157,12 @@ namespace NavegadorWeb
                 config.AppSettings.Settings.Add(BrowserForegroundColorKey, BrowserForegroundColor.ToString());
             else
                 config.AppSettings.Settings[BrowserForegroundColorKey].Value = BrowserForegroundColor.ToString();
+
+            // NUEVO: Guardar orientación de la barra de herramientas
+            if (config.AppSettings.Settings[ToolbarOrientationKey] == null)
+                config.AppSettings.Settings.Add(ToolbarOrientationKey, _currentToolbarPosition.ToString());
+            else
+                config.AppSettings.Settings[ToolbarOrientationKey].Value = _currentToolbarPosition.ToString();
 
 
             if (_restoreSessionOnStartup)
@@ -2118,6 +2239,548 @@ namespace NavegadorWeb
                 _defaultEnvironment = null;
             }
         }
+
+        // ---------- NUEVO: Lógica para Custom Window Chrome y Redimensionamiento ----------
+        private void Window_Drag(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                if (this.WindowState == WindowState.Maximized)
+                {
+                    // Restaurar al tamaño normal al arrastrar si está maximizada
+                    this.WindowState = WindowState.Normal;
+                    UpdateMaximizeRestoreButtonContent();
+                }
+                this.DragMove();
+            }
+        }
+
+        private void MinimizeButton_Click(object sender, RoutedEventArgs e)
+        {
+            this.WindowState = WindowState.Minimized;
+        }
+
+        private void MaximizeRestoreButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (this.WindowState == WindowState.Maximized)
+            {
+                this.WindowState = WindowState.Normal;
+            }
+            else
+            {
+                this.WindowState = WindowState.Maximized;
+            }
+            UpdateMaximizeRestoreButtonContent();
+        }
+
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            this.Close();
+        }
+
+        private void MainWindow_StateChanged(object sender, EventArgs e)
+        {
+            UpdateMaximizeRestoreButtonContent();
+        }
+
+        private void UpdateMaximizeRestoreButtonContent()
+        {
+            if (this.WindowState == WindowState.Maximized)
+            {
+                MaximizeRestoreButton.Content = "❐"; // Ícono de restaurar
+                MaximizeRestoreButton.ToolTip = "Restaurar";
+            }
+            else
+            {
+                MaximizeRestoreButton.Content = "⬜"; // Ícono de maximizar
+                MaximizeRestoreButton.ToolTip = "Maximizar";
+            }
+        }
+
+        private HwndSource _hwndSource;
+        protected override void OnInitialized(EventArgs e)
+        {
+            base.OnInitialized(e);
+            this.SourceInitialized += (s, args) =>
+            {
+                _hwndSource = PresentationSource.FromVisual(this) as HwndSource;
+                if (_hwndSource != null)
+                {
+                    _hwndSource.AddHook(HwndSourceHook);
+                }
+            };
+        }
+
+        private IntPtr HwndSourceHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            switch (msg)
+            {
+                case WM_NCHITTEST:
+                    handled = true;
+                    return (IntPtr)HitTest(lParam.ToInt32());
+            }
+            return IntPtr.Zero;
+        }
+
+        private int HitTest(int lParam)
+        {
+            Point p = PointFromScreen(new Point((lParam << 16) >> 16, lParam & 0xffff));
+            double borderWidth = 5; // Ancho del borde para redimensionar
+            double captionHeight = 30; // Altura de la barra de título personalizada
+
+            if (p.Y < borderWidth)
+            {
+                if (p.X < borderWidth) return HTTOPLEFT;
+                if (p.X > this.ActualWidth - borderWidth) return HTTOPRIGHT;
+                return HTTOP;
+            }
+            if (p.Y > this.ActualHeight - borderWidth)
+            {
+                if (p.X < borderWidth) return HTBOTTOMLEFT;
+                if (p.X > this.ActualWidth - borderWidth) return HTBOTTOMRIGHT;
+                return HTBOTTOM;
+            }
+            if (p.X < borderWidth) return HTLEFT;
+            if (p.X > this.ActualWidth - borderWidth) return HTRIGHT;
+
+            if (p.Y < captionHeight) return HTCAPTION; // Área de arrastre de la ventana
+
+            return HTCAPTION; // Si no está en un borde, se puede arrastrar desde cualquier parte de la "barra de título"
+        }
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SendMessage(IntPtr hWnd, int wMsg, int wParam, int lParam);
+
+        private void MainWindow_SourceInitialized(object sender, EventArgs e)
+        {
+            IntPtr handle = (new WindowInteropHelper(this)).Handle;
+            HwndSource.FromHwnd(handle)?.AddHook(WindowProc);
+        }
+
+        private static IntPtr WindowProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            switch (msg)
+            {
+                case 0x0024: // WM_GETMINMAXINFO
+                    WmGetMinMaxInfo(hwnd, lParam);
+                    handled = true;
+                    break;
+            }
+            return (IntPtr)0;
+        }
+
+        private static void WmGetMinMaxInfo(IntPtr hwnd, IntPtr lParam)
+        {
+            MINMAXINFO mmi = (MINMAXINFO)Marshal.PtrToStructure(lParam, typeof(MINMAXINFO));
+
+            // Ajusta los valores para las dimensiones mínimas de la ventana
+            mmi.ptMinTrackSize.x = (int)SystemParameters.MinimumWindowWidth;
+            mmi.ptMinTrackSize.y = (int)SystemParameters.MinimumWindowHeight;
+
+            // En un entorno de múltiples pantallas, se calcula el área de trabajo de la pantalla principal
+            // para que la ventana maximizada no se extienda por encima de la barra de tareas.
+            var workArea = SystemParameters.WorkArea;
+            mmi.ptMaxPosition.x = (int)workArea.Left;
+            mmi.ptMaxPosition.y = (int)workArea.Top;
+            mmi.ptMaxSize.x = (int)workArea.Width;
+            mmi.ptMaxSize.y = (int)workArea.Height;
+
+            Marshal.StructureToPtr(mmi, lParam, true);
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int x;
+            public int y;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MINMAXINFO
+        {
+            public POINT ptReserved;
+            public POINT ptMaxSize;
+            public POINT ptMaxPosition;
+            public POINT ptMinTrackSize;
+            public POINT ptMaxTrackSize;
+        }
+        // ---------- FIN NUEVO: Lógica para Custom Window Chrome ----------
+
+
+        // NUEVO: Método para aplicar la orientación de la barra de herramientas
+        private void ApplyToolbarPosition(ToolbarPosition position)
+        {
+            Grid mainGrid = (Grid)((Border)this.Content).Child; // Accede al Grid principal dentro del Border
+
+            // Limpiar Grid.Row/Column y DockPanel.Dock de MainToolbarContainer y TabGroupContainer
+            // Esto es crucial para reasignar correctamente
+            Grid.SetRow(MainToolbarContainer, 0); // Reset a 0 para quitar posibles asignaciones laterales
+            Grid.SetColumn(MainToolbarContainer, 0);
+
+            Grid.SetRow(TabGroupContainer, 0); // Reset a 0 para quitar posibles asignaciones
+            Grid.SetColumn(TabGroupContainer, 0);
+
+            // Eliminar ColumnDefinitions/RowDefinitions temporales si existieran
+            // Reestablecer las definiciones de filas y columnas del Grid principal de la ventana
+            mainGrid.ColumnDefinitions.Clear();
+            mainGrid.RowDefinitions.Clear();
+
+            // Recrear las definiciones de filas para la barra de título, barra de herramientas y contenido
+            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Barra de título personalizada
+            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Barra de herramientas
+            mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Contenido (pestañas)
+
+            // Asegurar que MainToolbarContainer esté en la fila 1 por defecto (debajo de la barra de título)
+            Grid.SetRow(MainToolbarContainer, 1);
+            Grid.SetColumn(MainToolbarContainer, 0); // Asegurarse de que ocupe toda la columna si es top/bottom
+
+            // Asegurar que TabGroupContainer esté en la fila 2 por defecto
+            Grid.SetRow(TabGroupContainer, 2);
+            Grid.SetColumn(TabGroupContainer, 0);
+
+            // Reiniciar visibilidad y ancho/alto de los placeholders laterales
+            LeftToolbarPlaceholder.Visibility = Visibility.Collapsed;
+            LeftToolbarPlaceholder.Width = 0;
+            RightToolbarPlaceholder.Visibility = Visibility.Collapsed;
+            RightToolbarPlaceholder.Width = 0;
+
+            // Mover los botones a un StackPanel temporal para facilitar la reasignación
+            List<UIElement> toolbarButtons = MainToolbarContainer.Children.OfType<StackPanel>().Where(sp => DockPanel.GetDock(sp) == Dock.Left).FirstOrDefault()?.Children.OfType<Button>().ToList() ?? new List<Button>();
+            List<UIElement> rightToolbarButtons = MainToolbarContainer.Children.OfType<StackPanel>().Where(sp => DockPanel.GetDock(sp) == Dock.Right).FirstOrDefault()?.Children.OfType<Button>().ToList() ?? new List<Button>();
+            UIElement urlAndProgressGrid = MainToolbarContainer.Children.OfType<Grid>().FirstOrDefault();
+
+
+            // Limpiar los StackPanels antes de rellenarlos
+            ((StackPanel)MainToolbarContainer.Children.OfType<StackPanel>().Where(sp => DockPanel.GetDock(sp) == Dock.Left).FirstOrDefault())?.Children.Clear();
+            ((StackPanel)MainToolbarContainer.Children.OfType<StackPanel>().Where(sp => DockPanel.GetDock(sp) == Dock.Right).FirstOrDefault())?.Children.Clear();
+
+
+            switch (position)
+            {
+                case ToolbarPosition.Top:
+                    MainToolbarContainer.Visibility = Visibility.Visible;
+                    Grid.SetRow(MainToolbarContainer, 1);
+                    Grid.SetColumn(MainToolbarContainer, 0); // Asegura que esté en la columna 0 si hay columnas adicionales
+                    MainToolbarContainer.Orientation = Orientation.Horizontal;
+                    MainToolbarContainer.Height = Double.NaN; // Altura automática
+                    MainToolbarContainer.Width = Double.NaN; // Ancho automático (para ocupar todo el espacio)
+                    MainToolbarContainer.LastChildFill = true; // El Grid de URL y progreso ocupa el espacio restante
+                    MainToolbarContainer.BorderThickness = new Thickness(0, 0, 0, 1); // Borde inferior
+
+                    // Establecer ColumnDefinitions para MainToolbarContainer
+                    // Esto es necesario para que el Grid del URL ocupe el espacio restante
+                    MainToolbarContainer.Children.Clear();
+                    DockPanel toolbarDockPanel = new DockPanel();
+                    StackPanel leftButtonsPanel = new StackPanel { Orientation = Orientation.Horizontal };
+                    StackPanel rightButtonsPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+
+                    foreach (var btn in toolbarButtons) leftButtonsPanel.Children.Add(btn);
+                    foreach (var btn in rightToolbarButtons) rightButtonsPanel.Children.Add(btn);
+
+                    DockPanel.SetDock(leftButtonsPanel, Dock.Left);
+                    DockPanel.SetDock(rightButtonsPanel, Dock.Right);
+                    if (urlAndProgressGrid != null) DockPanel.SetDock(urlAndProgressGrid, Dock.Left); // Se rellena automáticamente
+
+                    toolbarDockPanel.Children.Add(leftButtonsPanel);
+                    toolbarDockPanel.Children.Add(rightButtonsPanel);
+                    if (urlAndProgressGrid != null) toolbarDockPanel.Children.Add(urlAndProgressGrid);
+                    MainToolbarContainer.Children.Add(toolbarDockPanel);
+
+                    // Pestañas ocupan la fila 2
+                    Grid.SetRow(TabGroupContainer, 2);
+                    Grid.SetColumn(TabGroupContainer, 0);
+
+                    // Ajustar el margen del FindBar si la barra de herramientas cambia de ancho/alto
+                    FindBar.Margin = new Thickness(10); // Margen predeterminado
+                    Grid.SetRow(FindBar, 2); // Asegurar que el FindBar esté en la fila de contenido principal
+                    Grid.SetColumn(FindBar, 0);
+
+                    break;
+
+                case ToolbarPosition.Left:
+                    MainToolbarContainer.Visibility = Visibility.Collapsed; // Ocultar la barra de herramientas superior
+                    LeftToolbarPlaceholder.Visibility = Visibility.Visible;
+                    LeftToolbarPlaceholder.Width = 150; // Ancho fijo para la barra lateral
+                    LeftToolbarPlaceholder.Height = Double.NaN; // Altura automática
+
+                    // Reorganizar Grid principal para acomodar la barra lateral
+                    mainGrid.ColumnDefinitions.Clear();
+                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Barra izquierda
+                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Contenido
+
+                    // Mover la barra de título a la primera columna, ocupando ambas columnas
+                    Grid.SetColumn(mainGrid.Children.OfType<Grid>().First(), 0); // Barra de título personalizada
+                    Grid.SetColumnSpan(mainGrid.Children.OfType<Grid>().First(), 2);
+
+                    // Asignar el placeholder de la izquierda a su lugar
+                    Grid.SetRow(LeftToolbarPlaceholder, 1); // Debajo de la barra de título
+                    Grid.SetColumn(LeftToolbarPlaceholder, 0);
+                    Grid.SetRowSpan(LeftToolbarPlaceholder, 2); // Ocupar todo el espacio vertical restante
+
+                    // Mover los botones al LeftToolbarPlaceholder
+                    StackPanel leftToolbarContent = new StackPanel { Orientation = Orientation.Vertical };
+                    foreach (var btn in toolbarButtons.Concat(rightToolbarButtons).OfType<Button>()) // Mover todos los botones aquí
+                    {
+                        btn.Width = Double.NaN; // Permitir que el botón se ajuste al ancho del StackPanel
+                        btn.Height = 30; // Altura estándar para botones verticales
+                        btn.Margin = new Thickness(5); // Espacio entre botones
+                        leftToolbarContent.Children.Add(btn);
+                    }
+                    if (urlAndProgressGrid != null)
+                    {
+                        urlAndProgressGrid.Width = Double.NaN; // Ajustar a ancho
+                        urlAndProgressGrid.Height = 80; // Altura para el textbox de URL
+                        urlAndProgressGrid.Margin = new Thickness(5);
+                        leftToolbarContent.Children.Insert(0, urlAndProgressGrid); // Poner la URL arriba
+                    }
+                    LeftToolbarPlaceholder.Children.Add(leftToolbarContent);
+
+
+                    // Las pestañas ahora ocupan la columna 1
+                    Grid.SetRow(TabGroupContainer, 1); // Fila 1 (debajo de la barra de título)
+                    Grid.SetColumn(TabGroupContainer, 1);
+                    Grid.SetRowSpan(TabGroupContainer, 2); // Ocupar todo el espacio vertical restante
+
+                    FindBar.Margin = new Thickness(10, 10, 10, 10); // Ajustar el margen para la nueva posición
+                    Grid.SetRow(FindBar, 2);
+                    Grid.SetColumn(FindBar, 1);
+                    break;
+
+                case ToolbarPosition.Right:
+                    MainToolbarContainer.Visibility = Visibility.Collapsed;
+                    RightToolbarPlaceholder.Visibility = Visibility.Visible;
+                    RightToolbarPlaceholder.Width = 150;
+                    RightToolbarPlaceholder.Height = Double.NaN;
+
+                    mainGrid.ColumnDefinitions.Clear();
+                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Contenido
+                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Barra derecha
+
+                    Grid.SetColumn(mainGrid.Children.OfType<Grid>().First(), 0); // Barra de título personalizada
+                    Grid.SetColumnSpan(mainGrid.Children.OfType<Grid>().First(), 2);
+
+                    Grid.SetRow(RightToolbarPlaceholder, 1);
+                    Grid.SetColumn(RightToolbarPlaceholder, 1);
+                    Grid.SetRowSpan(RightToolbarPlaceholder, 2);
+
+                    StackPanel rightToolbarContent = new StackPanel { Orientation = Orientation.Vertical };
+                    foreach (var btn in toolbarButtons.Concat(rightToolbarButtons).OfType<Button>())
+                    {
+                        btn.Width = Double.NaN;
+                        btn.Height = 30;
+                        btn.Margin = new Thickness(5);
+                        rightToolbarContent.Children.Add(btn);
+                    }
+                    if (urlAndProgressGrid != null)
+                    {
+                        urlAndProgressGrid.Width = Double.NaN;
+                        urlAndProgressGrid.Height = 80;
+                        urlAndProgressGrid.Margin = new Thickness(5);
+                        rightToolbarContent.Children.Insert(0, urlAndProgressGrid);
+                    }
+                    RightToolbarPlaceholder.Children.Add(rightToolbarContent);
+
+                    Grid.SetRow(TabGroupContainer, 1);
+                    Grid.SetColumn(TabGroupContainer, 0);
+                    Grid.SetRowSpan(TabGroupContainer, 2);
+
+                    FindBar.Margin = new Thickness(10, 10, 10, 10);
+                    Grid.SetRow(FindBar, 2);
+                    Grid.SetColumn(FindBar, 0);
+                    break;
+
+                case ToolbarPosition.Bottom:
+                    MainToolbarContainer.Visibility = Visibility.Visible;
+                    Grid.SetRow(MainToolbarContainer, 2); // Mover a la fila 2 (debajo de las pestañas)
+                    Grid.SetColumn(MainToolbarContainer, 0);
+                    MainToolbarContainer.Orientation = Orientation.Horizontal;
+                    MainToolbarContainer.Height = Double.NaN;
+                    MainToolbarContainer.Width = Double.NaN;
+                    MainToolbarContainer.LastChildFill = true;
+                    MainToolbarContainer.BorderThickness = new Thickness(0, 1, 0, 0); // Borde superior
+
+                    // Eliminar las filas 1 y 2 del Grid principal y volver a añadir las necesarias
+                    mainGrid.RowDefinitions.Clear();
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Barra de título personalizada
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Contenido (pestañas)
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Barra de herramientas (abajo)
+
+                    // Reestablecer la asignación de filas
+                    Grid.SetRow(mainGrid.Children.OfType<Grid>().First(), 0); // Barra de título personalizada
+                    Grid.SetRow(TabGroupContainer, 1); // Pestañas ahora en la fila 1
+                    Grid.SetRow(MainToolbarContainer, 2); // Barra de herramientas abajo en la fila 2
+
+                    // Volver a llenar el DockPanel
+                    MainToolbarContainer.Children.Clear();
+                    toolbarDockPanel = new DockPanel();
+                    leftButtonsPanel = new StackPanel { Orientation = Orientation.Horizontal };
+                    rightButtonsPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+
+                    foreach (var btn in toolbarButtons) leftButtonsPanel.Children.Add(btn);
+                    foreach (var btn in rightToolbarButtons) rightButtonsPanel.Children.Add(btn);
+
+                    DockPanel.SetDock(leftButtonsPanel, Dock.Left);
+                    DockPanel.SetDock(rightButtonsPanel, Dock.Right);
+                    if (urlAndProgressGrid != null) DockPanel.SetDock(urlAndProgressGrid, Dock.Left);
+
+                    toolbarDockPanel.Children.Add(leftButtonsPanel);
+                    toolbarDockPanel.Children.Add(rightButtonsPanel);
+                    if (urlAndProgressGrid != null) toolbarDockPanel.Children.Add(urlAndProgressGrid);
+                    MainToolbarContainer.Children.Add(toolbarDockPanel);
+
+                    FindBar.Margin = new Thickness(10); // Ajustar el margen del FindBar
+                    Grid.SetRow(FindBar, 1); // Asegurar que el FindBar esté en la fila de contenido principal
+                    Grid.SetColumn(FindBar, 0);
+                    break;
+            }
+            // Asegúrate de que el FindBar siempre esté en el mismo Grid.Row/Column del contenido principal
+            // Esto es un poco hacky pero funciona con las reconfiguraciones de Grid
+            Grid.SetRow(FindBar, Grid.GetRow(TabGroupContainer));
+            Grid.SetColumn(FindBar, Grid.GetColumn(TabGroupContainer));
+        }
+
+        private void ClearToolbarButtons()
+        {
+            // Mover los botones de vuelta a un lugar temporal antes de reasignarlos
+            List<UIElement> currentButtons = new List<UIElement>();
+
+            // Obtener botones de MainToolbarContainer si es visible
+            if (MainToolbarContainer.Visibility == Visibility.Visible)
+            {
+                var leftPanel = MainToolbarContainer.Children.OfType<DockPanel>().FirstOrDefault()?.Children.OfType<StackPanel>().Where(sp => DockPanel.GetDock(sp) == Dock.Left).FirstOrDefault();
+                if (leftPanel != null) currentButtons.AddRange(leftPanel.Children.OfType<Button>().ToList());
+
+                var rightPanel = MainToolbarContainer.Children.OfType<DockPanel>().FirstOrDefault()?.Children.OfType<StackPanel>().Where(sp => DockPanel.GetDock(sp) == Dock.Right).FirstOrDefault();
+                if (rightPanel != null) currentButtons.AddRange(rightPanel.Children.OfType<Button>().ToList());
+            }
+            // Obtener botones de LeftToolbarPlaceholder si es visible
+            else if (LeftToolbarPlaceholder.Visibility == Visibility.Visible)
+            {
+                var contentPanel = LeftToolbarPlaceholder.Children.OfType<StackPanel>().FirstOrDefault();
+                if (contentPanel != null)
+                {
+                    currentButtons.AddRange(contentPanel.Children.OfType<Button>().ToList());
+                    var urlGrid = contentPanel.Children.OfType<Grid>().FirstOrDefault();
+                    if (urlGrid != null) currentButtons.Insert(0, urlGrid); // Mover el grid de URL también
+                }
+            }
+            // Obtener botones de RightToolbarPlaceholder si es visible
+            else if (RightToolbarPlaceholder.Visibility == Visibility.Visible)
+            {
+                var contentPanel = RightToolbarPlaceholder.Children.OfType<StackPanel>().FirstOrDefault();
+                if (contentPanel != null)
+                {
+                    currentButtons.AddRange(contentPanel.Children.OfType<Button>().ToList());
+                    var urlGrid = contentPanel.Children.OfType<Grid>().FirstOrDefault();
+                    if (urlGrid != null) currentButtons.Insert(0, urlGrid);
+                }
+            }
+
+            // Limpiar todos los contenedores
+            MainToolbarContainer.Children.Clear();
+            LeftToolbarPlaceholder.Children.Clear();
+            RightToolbarPlaceholder.Children.Clear();
+
+            // Re-agregar los botones a los StackPanels del DockPanel principal
+            // Esto es un parche para que siempre existan los paneles y se puedan añadir elementos.
+            // Una forma más robusta sería mantener una referencia a los StackPanels y moverlos.
+            // Por simplicidad, los recreamos si es necesario o los llenamos si ya existen.
+            DockPanel toolbarDockPanel = new DockPanel();
+            StackPanel leftButtonsPanel = new StackPanel { Orientation = Orientation.Horizontal };
+            StackPanel rightButtonsPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            Grid urlAndProgressGrid = this.FindName("UrlTextBox") is TextBox urlTxtBox ? (Grid)urlTxtBox.Parent : null; // Encuentra el Grid del URL
+
+            foreach (var element in currentButtons)
+            {
+                if (element is Button btn)
+                {
+                    // Restablecer estilos y márgenes por defecto para el layout horizontal
+                    btn.Width = 30;
+                    btn.Height = 25;
+                    btn.Margin = new Thickness(0,0,5,0);
+                    // Decidir si va a la izquierda o a la derecha (puedes usar el nombre del botón o una propiedad)
+                    // Por simplicidad, todos los botones excepto los de "Utilidad" (Incognito, AddBookmark, NewTab, Settings) van a la izquierda
+                    if (btn.Name == "IncognitoButton" || btn.Name == "AddBookmarkButton" || btn.Name == "NewTabButton" || btn.Name == "SettingsButton")
+                    {
+                        rightButtonsPanel.Children.Add(btn);
+                    }
+                    else
+                    {
+                        leftButtonsPanel.Children.Add(btn);
+                    }
+                }
+                else if (element is Grid grid && grid.Name == "UrlTextBox") // Asumiendo que el Grid de URL tiene un nombre o se puede identificar
+                {
+                     // No lo añadimos aquí, se añadirá por separado en el MainToolbarContainer
+                }
+            }
+
+            // Asegurarse de que los StackPanels y el Grid de URL siempre existan en el DockPanel
+            DockPanel.SetDock(leftButtonsPanel, Dock.Left);
+            DockPanel.SetDock(rightButtonsPanel, Dock.Right);
+            if (urlAndProgressGrid != null)
+            {
+                DockPanel.SetDock(urlAndProgressGrid, Dock.Left); // Este es el que llenará el espacio
+                toolbarDockPanel.Children.Add(leftButtonsPanel);
+                toolbarDockPanel.Children.Add(rightButtonsPanel);
+                toolbarDockPanel.Children.Add(urlAndProgressGrid); // El último hijo en DockPanel.Left ocupará el espacio restante
+            }
+            else
+            {
+                toolbarDockPanel.Children.Add(leftButtonsPanel);
+                toolbarDockPanel.Children.Add(rightButtonsPanel);
+            }
+
+            // Añadir el DockPanel al MainToolbarContainer (si es que la barra de herramientas principal está siendo usada)
+            // Esto solo se hace si el destino es Top/Bottom
+            if (MainToolbarContainer.Visibility == Visibility.Visible)
+            {
+                MainToolbarContainer.Children.Add(toolbarDockPanel);
+            }
+            // Si el destino es Left/Right, los botones se manejarán en los placeholders
+            else
+            {
+                if (LeftToolbarPlaceholder.Visibility == Visibility.Visible)
+                {
+                    var newContent = new StackPanel { Orientation = Orientation.Vertical };
+                    if (urlAndProgressGrid != null)
+                    {
+                        urlAndProgressGrid.Width = Double.NaN;
+                        urlAndProgressGrid.Height = 80;
+                        urlAndProgressGrid.Margin = new Thickness(5);
+                        newContent.Children.Add(urlAndProgressGrid);
+                    }
+                    foreach (var btn in leftButtonsPanel.Children.OfType<Button>().Concat(rightButtonsPanel.Children.OfType<Button>()))
+                    {
+                        btn.Width = Double.NaN;
+                        btn.Height = 30;
+                        btn.Margin = new Thickness(5);
+                        newContent.Children.Add(btn);
+                    }
+                    LeftToolbarPlaceholder.Children.Add(newContent);
+                }
+                else if (RightToolbarPlaceholder.Visibility == Visibility.Visible)
+                {
+                    var newContent = new StackPanel { Orientation = Orientation.Vertical };
+                    if (urlAndProgressGrid != null)
+                    {
+                        urlAndProgressGrid.Width = Double.NaN;
+                        urlAndProgressGrid.Height = 80;
+                        urlAndProgressGrid.Margin = new Thickness(5);
+                        newContent.Children.Add(urlAndProgressGrid);
+                    }
+                    foreach (var btn in leftButtonsPanel.Children.OfType<Button>().Concat(rightButtonsPanel.Children.OfType<Button>()))
+                    {
+                        btn.Width = Double.NaN;
+                        btn.Height = 30;
+                        btn.Margin = new Thickness(5);
+                        newContent.Children.Add(btn);
+                    }
+                    RightToolbarPlaceholder.Children.Add(newContent);
+                }
+            }
+        }
+
     }
 
     /// <summary>
@@ -2149,5 +2812,16 @@ namespace NavegadorWeb
         {
             _execute(parameter);
         }
+    }
+
+    /// <summary>
+    /// NUEVO: Enumeración para la posición de la barra de herramientas.
+    /// </summary>
+    public enum ToolbarPosition
+    {
+        Top,
+        Left,
+        Right,
+        Bottom
     }
 }
