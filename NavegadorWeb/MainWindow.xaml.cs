@@ -18,8 +18,8 @@ using System.Threading.Tasks;
 using System.ComponentModel;
 using System.Windows.Interop;
 using System.Runtime.InteropServices;
-using System.Net.NetworkInformation; // NUEVO: Para verificar la conectividad
-using System.Timers; // NUEVO: Para el temporizador de verificación de conectividad
+using System.Net.NetworkInformation;
+using System.Timers;
 
 namespace NavegadorWeb
 {
@@ -57,8 +57,21 @@ namespace NavegadorWeb
                     OnPropertyChanged(nameof(BrowserBackgroundColor));
                     Application.Current.Resources["BrowserBackgroundColor"] = value;
                     Application.Current.Resources["BrowserBackgroundBrush"] = new SolidColorBrush(value);
-                    if (MainToolbarContainer != null)
+                    if (MainToolbarContainer != null) // Actualizar borde principal
                         ((Border)this.Content).BorderBrush = new SolidColorBrush(value);
+                    if (LeftToolbarPlaceholder != null) LeftToolbarPlaceholder.Background = new SolidColorBrush(value);
+                    if (RightToolbarPlaceholder != null) RightToolbarPlaceholder.Background = new SolidColorBrush(value);
+                    if (FindBar != null) FindBar.Background = new SolidColorBrush(value);
+                    if (TabGroupContainer != null) TabGroupContainer.Background = new SolidColorBrush(value);
+
+                    // Actualizar el fondo del Grid de la barra de título
+                    if (mainGrid != null && mainGrid.RowDefinitions.Count > 0)
+                    {
+                        if (mainGrid.Children[0] is Grid titleBarGrid) // Asumiendo que el título es el primer hijo
+                        {
+                            titleBarGrid.Background = new SolidColorBrush(value);
+                        }
+                    }
                 }
             }
         }
@@ -76,6 +89,10 @@ namespace NavegadorWeb
                     Application.Current.Resources["BrowserForegroundColor"] = value;
                     Application.Current.Resources["BrowserForegroundBrush"] = new SolidColorBrush(value);
                     ApplyForegroundToWindowControls();
+                    if (LeftToolbarPlaceholder != null) LeftToolbarPlaceholder.BorderBrush = new SolidColorBrush(value);
+                    if (RightToolbarPlaceholder != null) RightToolbarPlaceholder.BorderBrush = new SolidColorBrush(value);
+                    if (FindBar != null) FindBar.BorderBrush = new SolidColorBrush(value);
+                    if (MainToolbarContainer != null) MainToolbarContainer.BorderBrush = new SolidColorBrush(value);
                 }
             }
         }
@@ -108,10 +125,12 @@ namespace NavegadorWeb
         private bool _isFindBarVisible = false;
         private CoreWebView2FindInPage _findInPage;
 
-        // NUEVO: Variables para el juego offline y notificación de conectividad
         private string _lastFailedUrl = null;
         private System.Timers.Timer _connectivityTimer;
         private bool _isOfflineGameActive = false;
+
+        // NUEVO: Bandera para saber si el modo Gemini está activo
+        private bool _isGeminiModeActive = false;
 
 
         public ICommand ReloadCommand { get; private set; }
@@ -165,11 +184,10 @@ namespace NavegadorWeb
             ApplyForegroundToWindowControls();
             ApplyToolbarPosition(_currentToolbarPosition);
 
-            // NUEVO: Inicializar el temporizador de conectividad
             _connectivityTimer = new System.Timers.Timer(5000); // Verificar cada 5 segundos
             _connectivityTimer.Elapsed += ConnectivityTimer_Elapsed;
             _connectivityTimer.AutoReset = true;
-            _connectivityTimer.Enabled = false; // Deshabilitado por defecto
+            _connectivityTimer.Enabled = false;
         }
 
         private void ApplyForegroundToWindowControls()
@@ -185,7 +203,36 @@ namespace NavegadorWeb
             {
                 WindowTitleText.Foreground = BrowserForegroundColor != null ? new SolidColorBrush(BrowserForegroundColor) : Brushes.Black;
             }
+            // Actualizar el color de los botones de la barra de herramientas
+            UpdateToolbarButtonForeground();
         }
+
+        private void UpdateToolbarButtonForeground()
+        {
+            // Itera sobre todos los botones que usan ToolbarButtonStyle
+            // Esto es más robusto si los botones están en diferentes paneles
+            foreach (var child in MainToolbarContainer.Children.OfType<DockPanel>().FirstOrDefault()?.Children.OfType<StackPanel>().SelectMany(sp => sp.Children.OfType<Button>()) ?? Enumerable.Empty<Button>())
+            {
+                child.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            }
+            foreach (var child in LeftToolbarPlaceholder.Children.OfType<StackPanel>().FirstOrDefault()?.Children.OfType<Button>() ?? Enumerable.Empty<Button>())
+            {
+                child.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            }
+            foreach (var child in RightToolbarPlaceholder.Children.OfType<StackPanel>().FirstOrDefault()?.Children.OfType<Button>() ?? Enumerable.Empty<Button>())
+            {
+                child.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            }
+            // También para los botones específicos de FindBar
+            if (FindBar != null)
+            {
+                foreach (var child in ((StackPanel)FindBar.Child).Children.OfType<Button>())
+                {
+                    child.Foreground = new SolidColorBrush(BrowserForegroundColor);
+                }
+            }
+        }
+
 
         private void InitializeCommands()
         {
@@ -383,6 +430,7 @@ namespace NavegadorWeb
                         if (savedUrls != null && savedUrls.Any())
                         {
                             CrashRecoveryWindow recoveryWindow = new CrashRecoveryWindow();
+                            recoveryWindow.Owner = this; // Establecer Owner para que el diálogo se centre
                             recoveryWindow.ShowDialog();
 
                             if (recoveryWindow.ShouldRestoreSession)
@@ -478,6 +526,11 @@ namespace NavegadorWeb
             browserTab.AudioIconImage = new Image { Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
             browserTab.ExtensionIconImage = new Image { Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
             browserTab.BlockedIconImage = new Image { Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
+            // NUEVO: Instanciar y añadir el icono de Gemini
+            browserTab.GeminiFeatureIcon = new Image { Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
+            browserTab.GeminiFeatureIcon.Source = browserTab.GeminiIconSource; // Asignar la fuente del icono fijo
+            browserTab.GeminiFeatureIcon.Visibility = Visibility.Collapsed; // Por defecto oculto
+            
             browserTab.HeaderTextBlock = new TextBlock { Text = "Cargando...", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 5, 0) };
 
             browserTab.FaviconImage.SetBinding(Image.SourceProperty, new System.Windows.Data.Binding("FaviconSource") { Source = browserTab });
@@ -487,6 +540,8 @@ namespace NavegadorWeb
             browserTab.ExtensionIconImage.SetBinding(Image.VisibilityProperty, new System.Windows.Data.Binding("IsExtensionActive") { Source = browserTab, Converter = (System.Windows.Data.IValueConverter)this.FindResource("BooleanToVisibilityConverter") });
             browserTab.BlockedIconImage.SetBinding(Image.SourceProperty, new System.Windows.Data.Binding("SiteBlockedIcon") { Source = browserTab });
             browserTab.BlockedIconImage.SetBinding(Image.VisibilityProperty, new System.Windows.Data.Binding("IsSiteBlocked") { Source = browserTab, Converter = (System.Windows.Data.IValueConverter)this.FindResource("BooleanToVisibilityConverter") });
+            // NUEVO: Opcional, si quieres que el icono de Gemini también se actualice automáticamente con IsSelectedForGemini
+            browserTab.GeminiFeatureIcon.SetBinding(Image.VisibilityProperty, new System.Windows.Data.Binding("IsSelectedForGemini") { Source = browserTab, Converter = (System.Windows.Data.IValueConverter)this.FindResource("BooleanToVisibilityConverter") });
 
 
             if (isIncognito)
@@ -507,6 +562,8 @@ namespace NavegadorWeb
 
             DockPanel.SetDock(browserTab.FaviconImage, Dock.Left);
             DockPanel.SetDock(browserTab.AudioIconImage, Dock.Left);
+            // NUEVO: Posicionar el icono de Gemini en el header
+            DockPanel.SetDock(browserTab.GeminiFeatureIcon, Dock.Left);
             DockPanel.SetDock(browserTab.ExtensionIconImage, Dock.Left);
             DockPanel.SetDock(browserTab.BlockedIconImage, Dock.Left);
             DockPanel.SetDock(browserTab.HeaderTextBlock, Dock.Left);
@@ -514,6 +571,7 @@ namespace NavegadorWeb
 
             tabHeaderPanel.Children.Add(browserTab.FaviconImage);
             tabHeaderPanel.Children.Add(browserTab.AudioIconImage);
+            tabHeaderPanel.Children.Add(browserTab.GeminiFeatureIcon); // Añadir el icono de Gemini
             tabHeaderPanel.Children.Add(browserTab.ExtensionIconImage);
             tabHeaderPanel.Children.Add(browserTab.BlockedIconImage);
             tabHeaderPanel.Children.Add(browserTab.HeaderTextBlock);
@@ -656,6 +714,7 @@ namespace NavegadorWeb
             {
                 e.Handled = true;
                 PdfViewerWindow pdfViewer = new PdfViewerWindow(e.DownloadOperation.Uri, _defaultEnvironment);
+                pdfViewer.Owner = this;
                 pdfViewer.Show();
                 return;
             }
@@ -678,6 +737,7 @@ namespace NavegadorWeb
                 Filter = "Todos los archivos (*.*)|*.*",
                 Title = "Guardar descarga como..."
             };
+            saveFileDialog.Owner = this; // Establecer Owner para centrar
 
             if (saveFileDialog.ShowDialog() == true)
             {
@@ -718,6 +778,7 @@ namespace NavegadorWeb
         private void CoreWebView2_PermissionRequested(object sender, CoreWebView2PermissionRequestedEventArgs e)
         {
             MessageBoxResult result = MessageBox.Show(
+                this, // Establecer propietario
                 $"El sitio web '{e.Uri}' solicita permiso para usar: {e.PermissionKind}.\n¿Deseas permitirlo?",
                 "Solicitud de Permiso",
                 MessageBoxButton.YesNo,
@@ -756,24 +817,23 @@ namespace NavegadorWeb
             {
                 if (!e.IsSuccess)
                 {
-                    // NUEVO: Lógica para el juego offline y notificación de conectividad
                     if (e.WebErrorStatus == CoreWebView2WebErrorStatus.Disconnected ||
                         e.WebErrorStatus == CoreWebView2WebErrorStatus.InternetDisconnected ||
                         e.WebErrorStatus == CoreWebView2WebErrorStatus.ConnectionAborted ||
                         e.WebErrorStatus == CoreWebView2WebErrorStatus.ConnectionReset ||
                         e.WebErrorStatus == CoreWebView2WebErrorStatus.HostNameNotResolved)
                     {
-                        _lastFailedUrl = currentWebView.CoreWebView2.Source; // Guardar la URL fallida
+                        _lastFailedUrl = currentWebView.CoreWebView2.Source;
                         _isOfflineGameActive = true;
                         string offlineGamePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "OfflineGame.html");
                         if (File.Exists(offlineGamePath))
                         {
                             currentWebView.CoreWebView2.Navigate($"file:///{offlineGamePath.Replace("\\", "/")}");
-                            _connectivityTimer.Enabled = true; // Habilitar el temporizador para verificar conectividad
+                            _connectivityTimer.Enabled = true;
                         }
                         else
                         {
-                            MessageBox.Show($"La navegación a {currentWebView.CoreWebView2.Source} falló debido a la falta de conexión a Internet y el juego offline no se encontró.", "Error de Navegación", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show(this, $"La navegación a {currentWebView.CoreWebView2.Source} falló debido a la falta de conexión a Internet y el juego offline no se encontró.", "Error de Navegación", MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                     }
                     else if (e.WebErrorStatus != CoreWebView2WebErrorStatus.OperationAborted)
@@ -785,13 +845,12 @@ namespace NavegadorWeb
                         }
                         else
                         {
-                            MessageBox.Show($"La navegación a {currentWebView.CoreWebView2.Source} falló con el código de error {e.WebErrorStatus}", "Error de Navegación", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show(this, $"La navegación a {currentWebView.CoreWebView2.Source} falló con el código de error {e.WebErrorStatus}", "Error de Navegación", MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                     }
                 }
                 else
                 {
-                    // Si la navegación fue exitosa, deshabilitar el temporizador y limpiar la URL fallida
                     _connectivityTimer.Enabled = false;
                     _lastFailedUrl = null;
                     _isOfflineGameActive = false;
@@ -864,7 +923,6 @@ namespace NavegadorWeb
             LoadingProgressBar.Visibility = Visibility.Visible;
             MainToolbarContainer.Background = new SolidColorBrush(BrowserBackgroundColor); // Restablecer color de la barra
 
-            // Si estamos en el juego offline y el usuario intenta navegar a otra URL, salir del juego
             if (_isOfflineGameActive && !e.Uri.StartsWith($"file:///{AppDomain.CurrentDomain.BaseDirectory.Replace("\\", "/")}/OfflineGame.html", StringComparison.OrdinalIgnoreCase))
             {
                 _isOfflineGameActive = false;
@@ -876,6 +934,7 @@ namespace NavegadorWeb
             {
                 e.Cancel = true;
                 PdfViewerWindow pdfViewer = new PdfViewerWindow(e.Uri, _defaultEnvironment);
+                pdfViewer.Owner = this;
                 pdfViewer.Show();
                 return;
             }
@@ -981,7 +1040,7 @@ namespace NavegadorWeb
                              $"Tipo de fallo: {e.ProcessFailedKind}\n" +
                              $"Estado del error: {e.Reason}";
 
-            MessageBoxResult result = MessageBox.Show(message + "\n\n¿Deseas recargar la página?",
+            MessageBoxResult result = MessageBox.Show(this, message + "\n\n¿Deseas recargar la página?",
                                                       "Página No Responde",
                                                       MessageBoxButton.YesNo,
                                                       MessageBoxImage.Warning);
@@ -1019,7 +1078,7 @@ namespace NavegadorWeb
             WebView2 currentWebView = GetCurrentWebView();
             if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
-                MessageBox.Show("No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, "No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1043,7 +1102,7 @@ namespace NavegadorWeb
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al navegar: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, $"Error al navegar: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1091,6 +1150,7 @@ namespace NavegadorWeb
         private void HistoryButton_Click(object sender, RoutedEventArgs e)
         {
             HistoryWindow historyWindow = new HistoryWindow();
+            historyWindow.Owner = this;
             if (historyWindow.ShowDialog() == true)
             {
                 if (!string.IsNullOrEmpty(historyWindow.SelectedUrl))
@@ -1104,6 +1164,7 @@ namespace NavegadorWeb
         private void BookmarksButton_Click(object sender, RoutedEventArgs e)
         {
             BookmarksWindow bookmarksWindow = new BookmarksWindow();
+            bookmarksWindow.Owner = this;
             if (bookmarksWindow.ShowDialog() == true)
             {
                 if (!string.IsNullOrEmpty(bookmarksWindow.SelectedUrl))
@@ -1122,7 +1183,7 @@ namespace NavegadorWeb
                 var browserTab = SelectedTabItem;
                 if (browserTab != null && browserTab.IsIncognito)
                 {
-                    MessageBox.Show("No se pueden añadir marcadores en modo incógnito.", "Error al Añadir Marcador", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(this, "No se pueden añadir marcadores en modo incógnito.", "Error al Añadir Marcador", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -1135,18 +1196,19 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    MessageBox.Show("No se pudo añadir la página a marcadores. Asegúrate de que la página esté cargada y tenga un título.", "Error al Añadir Marcador", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(this, "No se pudo añadir la página a marcadores. Asegúrate de que la página esté cargada y tenga un título.", "Error al Añadir Marcador", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             else
             {
-                MessageBox.Show("No hay una página activa para añadir a marcadores.", "Error al Añadir Marcador", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, "No hay una página activa para añadir a marcadores.", "Error al Añadir Marcador", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void DownloadsButton_Click(object sender, RoutedEventArgs e)
         {
             DownloadsWindow downloadsWindow = new DownloadsWindow();
+            downloadsWindow.Owner = this;
             downloadsWindow.Show();
         }
 
@@ -1155,7 +1217,7 @@ namespace NavegadorWeb
             WebView2 currentWebView = GetCurrentWebView();
             if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
-                MessageBox.Show("No hay una página activa para aplicar el modo lectura.", "Error de Modo Lectura", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, "No hay una página activa para aplicar el modo lectura.", "Error de Modo Lectura", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1167,12 +1229,12 @@ namespace NavegadorWeb
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error al aplicar el modo lectura: {ex.Message}", "Error de Modo Lectura", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(this, $"Error al aplicar el modo lectura: {ex.Message}", "Error de Modo Lectura", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             else
             {
-                MessageBox.Show("Advertencia: El archivo 'ReaderMode.js' no se encontró. El modo lectura no funcionará.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(this, "Advertencia: El archivo 'ReaderMode.js' no se encontró. El modo lectura no funcionará.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -1189,7 +1251,7 @@ namespace NavegadorWeb
             WebView2 currentWebView = GetCurrentWebView();
             if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
-                MessageBox.Show("No hay una página activa para leer en voz alta.", "Leer en Voz Alta", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, "No hay una página activa para leer en voz alta.", "Leer en Voz Alta", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1223,12 +1285,12 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    MessageBox.Show("No se encontró texto legible en la página actual.", "Leer en Voz Alta", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(this, "No se encontró texto legible en la página actual.", "Leer en Voz Alta", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al leer en voz alta: {ex.Message}", "Error de Lectura", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, $"Error al leer en voz alta: {ex.Message}", "Error de Lectura", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1237,7 +1299,7 @@ namespace NavegadorWeb
             var currentTab = SelectedTabItem;
             if (currentTab == null || currentTab.LeftWebView == null || currentTab.LeftWebView.CoreWebView2 == null)
             {
-                MessageBox.Show("No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, "No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1258,7 +1320,7 @@ namespace NavegadorWeb
             var currentTab = SelectedTabItem;
             if (currentTab == null || currentTab.LeftWebView == null || currentTab.LeftWebView.CoreWebView2 == null)
             {
-                MessageBox.Show("No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, "No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1285,7 +1347,7 @@ namespace NavegadorWeb
             WebView2 currentWebView = GetCurrentWebView();
             if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
-                MessageBox.Show("No hay una página activa para capturar.", "Error de Captura", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, "No hay una página activa para capturar.", "Error de Captura", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1298,6 +1360,7 @@ namespace NavegadorWeb
                     Filter = "Archivos PNG (*.png)|*.png|Todos los archivos (*.*)|*.*",
                     Title = "Guardar Captura de Pantalla"
                 };
+                saveFileDialog.Owner = this; // Establecer propietario
 
                 if (saveFileDialog.ShowDialog() == true)
                 {
@@ -1312,24 +1375,26 @@ namespace NavegadorWeb
                             stream.WriteTo(fileStream);
                         }
                     }
-                    MessageBox.Show($"Captura de pantalla guardada en:\n{filePath}", "Captura Exitosa", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(this, $"Captura de pantalla guardada en:\n{filePath}", "Captura Exitosa", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al realizar la captura de pantalla: {ex.Message}", "Error de Captura", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, $"Error al realizar la captura de pantalla: {ex.Message}", "Error de Captura", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void TabManagerButton_Click(object sender, RoutedEventArgs e)
         {
             TabManagerWindow tabManagerWindow = new TabManagerWindow(() => _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).ToList(), CloseBrowserTab, GetCurrentBrowserTabItemInternal);
+            tabManagerWindow.Owner = this;
             tabManagerWindow.Show();
         }
 
         private void DataExtractionButton_Click(object sender, RoutedEventArgs e)
         {
             DataExtractionWindow dataExtractionWindow = new DataExtractionWindow(GetCurrentWebView);
+            dataExtractionWindow.Owner = this;
             dataExtractionWindow.Show();
         }
 
@@ -1338,7 +1403,7 @@ namespace NavegadorWeb
             WebView2 currentWebView = GetCurrentWebView();
             if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
-                MessageBox.Show("No hay una página activa para aplicar el modo oscuro.", "Error de Modo Oscuro", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, "No hay una página activa para aplicar el modo oscuro.", "Error de Modo Oscuro", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1350,18 +1415,19 @@ namespace NavegadorWeb
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error al aplicar el modo oscuro: {ex.Message}", "Error de Modo Oscuro", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(this, $"Error al aplicar el modo oscuro: {ex.Message}", "Error de Modo Oscuro", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             else
             {
-                MessageBox.Show("Advertencia: El script de modo oscuro no está cargado. Asegúrate de que 'DarkMode.js' exista.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(this, "Advertencia: El script de modo oscuro no está cargado. Asegúrate de que 'DarkMode.js' exista.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
         private void PerformanceMonitorButton_Click(object sender, RoutedEventArgs e)
         {
             PerformanceMonitorWindow monitorWindow = new PerformanceMonitorWindow(() => _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).ToList());
+            monitorWindow.Owner = this;
             monitorWindow.Show();
         }
 
@@ -1454,6 +1520,7 @@ namespace NavegadorWeb
         private void PermissionsButton_Click(object sender, RoutedEventArgs e)
         {
             PermissionsManagerWindow permissionsWindow = new PermissionsManagerWindow(GetDefaultEnvironment);
+            permissionsWindow.Owner = this;
             permissionsWindow.Show();
         }
 
@@ -1462,7 +1529,7 @@ namespace NavegadorWeb
             WebView2 currentWebView = GetCurrentWebView();
             if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
-                MessageBox.Show("No hay una página activa para extraer un video.", "Error de PIP", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, "No hay una página activa para extraer un video.", "Error de PIP", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1475,11 +1542,11 @@ namespace NavegadorWeb
                             video.pause();
                             return video.src;
                         }
-                        let youtubeIframe = document.querySelector('iframe[src*=""youtube.com/embed""]');
+                        let youtubeIframe = document.querySelector('iframe[src*=""youtube.com/embed""]'); // Changed to include embed
                         if (youtubeIframe && youtubeIframe.src) {
                             return youtubeIframe.src;
                         }
-                        let youtubeWatchIframe = document.querySelector('iframe[src*=""youtube.com/watch""]');
+                        let youtubeWatchIframe = document.querySelector('iframe[src*=""youtube.com/watch""]'); // Changed to include watch
                         if (youtubeWatchIframe && youtubeWatchIframe.src) {
                             return youtubeWatchIframe.src;
                         }
@@ -1492,28 +1559,31 @@ namespace NavegadorWeb
                 if (!string.IsNullOrEmpty(videoUrl))
                 {
                     PipWindow pipWindow = new PipWindow(videoUrl, currentWebView);
+                    pipWindow.Owner = this;
                     pipWindow.Show();
                 }
                 else
                 {
-                    MessageBox.Show("No se encontró ningún video reproducible en la página actual.", "Video no Encontrado", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(this, "No se encontró ningún video reproducible en la página actual.", "Video no Encontrado", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al intentar el modo Picture-in-Picture: {ex.Message}", "Error de PIP", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, $"Error al intentar el modo Picture-in-Picture: {ex.Message}", "Error de PIP", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void PasswordManagerButton_Click(object sender, RoutedEventArgs e)
         {
             PasswordManagerWindow passwordWindow = new PasswordManagerWindow();
+            passwordWindow.Owner = this;
             passwordWindow.ShowDialog();
         }
 
         private void ExtensionsButton_Click(object sender, RoutedEventArgs e)
         {
             ExtensionsWindow extensionsWindow = new ExtensionsWindow(_extensionManager);
+            extensionsWindow.Owner = this;
             extensionsWindow.ShowDialog();
         }
 
@@ -1522,13 +1592,13 @@ namespace NavegadorWeb
             WebView2 currentWebView = GetCurrentWebView();
             if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
-                MessageBox.Show("No hay una página activa para controlar el micrófono.", "Control de Micrófono", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, "No hay una página activa para controlar el micrófono.", "Control de Micrófono", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
             if (string.IsNullOrEmpty(_microphoneControlScript))
             {
-                MessageBox.Show("Advertencia: El script de control de micrófono no está cargado. Asegúrate de que 'MicrophoneControl.js' exista.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(this, "Advertencia: El script de control de micrófono no está cargado. Asegúrate de que 'MicrophoneControl.js' exista.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -1540,18 +1610,74 @@ namespace NavegadorWeb
                 if (result != null && result.ContainsKey("success") && bool.Parse(result["success"]))
                 {
                     string state = result.ContainsKey("state") ? result["state"] : "unknown";
-                    MessageBox.Show($"Micrófono de la página: {state}.", "Control de Micrófono", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(this, $"Micrófono de la página: {state}.", "Control de Micrófono", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
                     string errorMsg = result != null && result.ContainsKey("error") ? result["error"] : "Error desconocido al controlar el micrófono.";
-                    MessageBox.Show($"No se pudo controlar el micrófono de la página: {errorMsg}", "Control de Micrófono", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(this, $"No se pudo controlar el micrófono de la página: {errorMsg}", "Control de Micrófono", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al ejecutar el script de control de micrófono: {ex.Message}", "Error de Micrófono", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, $"Error al ejecutar el script de control de micrófono: {ex.Message}", "Error de Micrófono", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        // NUEVO: Botón para la función "Preguntar a Gemini"
+        private void AskGeminiButton_Click(object sender, RoutedEventArgs e)
+        {
+            SetGeminiMode(true); // Activa el modo Gemini (cambio de color)
+            
+            // Pasa todas las pestañas a la ventana de Gemini.
+            // La ventana de Gemini se encargará de gestionar IsSelectedForGemini
+            AskGeminiWindow geminiWindow = new AskGeminiWindow(_tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).ToObservableCollection());
+            geminiWindow.Owner = this; // Asegura que se centre sobre la ventana principal
+
+            if (geminiWindow.ShowDialog() == true)
+            {
+                // Si el usuario hizo clic en "Enviar a Gemini" (simulado)
+                // geminiWindow.CapturedData y geminiWindow.UserQuestion contienen la información
+                // Aquí iría la lógica para interactuar con la API real de Gemini.
+                // Por ahora, el MessageBox en AskGeminiWindow.xaml.cs ya maneja la simulación.
+            }
+            
+            SetGeminiMode(false); // Desactiva el modo Gemini al cerrar la ventana
+        }
+
+        // NUEVO: Método para cambiar el tema del navegador al modo Gemini
+        private void SetGeminiMode(bool isActive)
+        {
+            _isGeminiModeActive = isActive;
+            if (isActive)
+            {
+                // Guarda los colores actuales para restaurarlos
+                Application.Current.Resources["OriginalBrowserBackgroundColor"] = BrowserBackgroundColor;
+                Application.Current.Resources["OriginalBrowserForegroundColor"] = BrowserForegroundColor;
+
+                BrowserBackgroundColor = (Color)Application.Current.Resources["GeminiBackgroundColor"];
+                BrowserForegroundColor = (Color)Application.Current.Resources["GeminiForegroundColor"];
+            }
+            else
+            {
+                // Restaura los colores originales si existen
+                if (Application.Current.Resources.Contains("OriginalBrowserBackgroundColor") &&
+                    Application.Current.Resources.Contains("OriginalBrowserForegroundColor"))
+                {
+                    BrowserBackgroundColor = (Color)Application.Current.Resources["OriginalBrowserBackgroundColor"];
+                    BrowserForegroundColor = (Color)Application.Current.Resources["OriginalBrowserForegroundColor"];
+                    Application.Current.Resources.Remove("OriginalBrowserBackgroundColor");
+                    Application.Current.Resources.Remove("OriginalBrowserForegroundColor");
+                }
+                else
+                {
+                    // Si no hay colores originales guardados (ej. primera vez), restaurar a los cargados de settings
+                    LoadSettings(); // Esto volverá a cargar los colores desde settings o los valores por defecto
+                    ApplyForegroundToWindowControls();
+                }
+            }
+            ApplyToolbarPosition(_currentToolbarPosition); // Reaplicar la posición para actualizar los colores
+            UpdateToolbarButtonForeground(); // Asegurar que los botones cambien de color
         }
 
 
@@ -1629,7 +1755,7 @@ namespace NavegadorWeb
                         string username = root.GetProperty("username").GetString();
                         string password = root.GetProperty("password").GetString();
 
-                        MessageBoxResult result = MessageBox.Show(
+                        MessageBoxResult result = MessageBox.Show(this,
                             $"¿Deseas guardar la contraseña para el usuario '{username}' en '{new Uri(url).Host}'?",
                             "Guardar Contraseña",
                             MessageBoxButton.YesNo,
@@ -1639,13 +1765,11 @@ namespace NavegadorWeb
                         if (result == MessageBoxResult.Yes)
                         {
                             PasswordManager.AddOrUpdatePassword(url, username, password);
-                            MessageBox.Show("Contraseña guardada con éxito.", "Contraseña Guardada", MessageBoxButton.OK, MessageBoxImage.Information);
+                            MessageBox.Show(this, "Contraseña guardada con éxito.", "Contraseña Guardada", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
                     }
-                    // NUEVO: Manejar mensaje del juego offline
                     else if (root.TryGetProperty("type", out typeElement) && typeElement.GetString() == "retryConnection")
                     {
-                        // Si el juego offline envía un mensaje para reintentar la conexión
                         Dispatcher.Invoke(() =>
                         {
                             if (!string.IsNullOrEmpty(_lastFailedUrl))
@@ -1655,7 +1779,7 @@ namespace NavegadorWeb
                             }
                             else
                             {
-                                AddNewTab(_defaultHomePage); // Si no hay URL fallida, ir a la página de inicio
+                                AddNewTab(_defaultHomePage);
                             }
                         });
                     }
@@ -1967,7 +2091,7 @@ namespace NavegadorWeb
 
             if (_isTabSuspensionEnabled && activeTabs > MaxTabsBeforeSuggestion)
             {
-                MessageBoxResult result = MessageBox.Show(
+                MessageBoxResult result = MessageBox.Show(this,
                     $"Tienes {activeTabs} pestañas activas. Para mejorar el rendimiento, ¿te gustaría suspender las pestañas inactivas ahora?",
                     "Sugerencia de Suspensión de Pestañas",
                     MessageBoxButton.YesNo,
@@ -1989,7 +2113,8 @@ namespace NavegadorWeb
                 _isTabSuspensionEnabled, _restoreSessionOnStartup, TrackerBlocker.IsEnabled,
                 _isPdfViewerEnabled, BrowserBackgroundColor, BrowserForegroundColor, _currentToolbarPosition);
 
-            settingsWindow.OnClearBrowsingData += SettingsWindow_OnClearBrowsingData;
+            settingsWindow.Owner = this; // Establecer propietario
+            settingsWindow.OnClearBrowseData += SettingsWindow_OnClearBrowseData;
             settingsWindow.OnSuspendInactiveTabs += SettingsWindow_OnSuspendInactiveTabs;
             settingsWindow.OnColorsChanged += SettingsWindow_OnColorsChanged;
             settingsWindow.OnToolbarPositionChanged += SettingsWindow_OnToolbarPositionChanged;
@@ -2004,10 +2129,10 @@ namespace NavegadorWeb
                 TrackerBlocker.IsEnabled = settingsWindow.IsTrackerProtectionEnabled;
                 _isPdfViewerEnabled = settingsWindow.IsPdfViewerEnabled;
                 SaveSettings();
-                MessageBox.Show("Configuración guardada. Los cambios se aplicarán al abrir nuevas pestañas o al hacer clic en 'Inicio'.", "Configuración Guardada", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(this, "Configuración guardada. Los cambios se aplicarán al abrir nuevas pestañas o al hacer clic en 'Inicio'.", "Configuración Guardada", MessageBoxButton.OK, MessageBoxImage.Information);
             }
 
-            settingsWindow.OnClearBrowsingData -= SettingsWindow_OnClearBrowsingData;
+            settingsWindow.OnClearBrowseData -= SettingsWindow_OnClearBrowseData;
             settingsWindow.OnSuspendInactiveTabs -= SettingsWindow_OnSuspendInactiveTabs;
             settingsWindow.OnColorsChanged -= SettingsWindow_OnColorsChanged;
             settingsWindow.OnToolbarPositionChanged -= SettingsWindow_OnToolbarPositionChanged;
@@ -2028,7 +2153,7 @@ namespace NavegadorWeb
         }
 
 
-        private async void SettingsWindow_OnClearBrowsingData()
+        private async void SettingsWindow_OnClearBrowseData()
         {
             WebView2 anyWebView = GetCurrentWebView();
 
@@ -2046,12 +2171,12 @@ namespace NavegadorWeb
                     CoreWebView2BrowserDataKinds.PasswordAutofill |
                     CoreWebView2BrowserDataKinds.OtherData;
 
-                await _defaultEnvironment.ClearBrowsingDataAsync(dataKinds);
-                MessageBox.Show("Datos de navegación (caché, cookies, etc.) borrados con éxito.", "Limpieza Completa", MessageBoxButton.OK, MessageBoxImage.Information);
+                await _defaultEnvironment.ClearBrowseDataAsync(dataKinds);
+                MessageBox.Show(this, "Datos de navegación (caché, cookies, etc.) borrados con éxito.", "Limpieza Completa", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
-                MessageBox.Show("No se pudo acceder al motor del navegador para borrar los datos del perfil normal.", "Error de Limpieza", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, "No se pudo acceder al motor del navegador para borrar los datos del perfil normal.", "Error de Limpieza", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -2059,7 +2184,7 @@ namespace NavegadorWeb
         {
             if (!_isTabSuspensionEnabled)
             {
-                MessageBox.Show("La suspensión de pestañas no está habilitada en la configuración. Habilítela para usar esta función.", "Suspensión Deshabilitada", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(this, "La suspensión de pestañas no está habilitada en la configuración. Habilítela para usar esta función.", "Suspensión Deshabilitada", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -2168,7 +2293,7 @@ namespace NavegadorWeb
             }
             else
             {
-                BrowserBackgroundColor = (Color)Application.Current.Resources["BrowserBackgroundColor"];
+                BrowserBackgroundColor = (Color)Application.Current.Resources["DefaultBrowserBackgroundColor"];
             }
 
             if (ConfigurationManager.AppSettings[BrowserForegroundColorKey] != null &&
@@ -2178,7 +2303,7 @@ namespace NavegadorWeb
             }
             else
             {
-                BrowserForegroundColor = (Color)Application.Current.Resources["BrowserForegroundColor"];
+                BrowserForegroundColor = (Color)Application.Current.Resources["DefaultBrowserForegroundColor"];
             }
 
             string savedToolbarPosition = ConfigurationManager.AppSettings[ToolbarOrientationKey];
@@ -2293,7 +2418,7 @@ namespace NavegadorWeb
                 _speechSynthesizer = null;
             }
 
-            if (_connectivityTimer != null) // NUEVO: Detener y liberar el temporizador
+            if (_connectivityTimer != null)
             {
                 _connectivityTimer.Stop();
                 _connectivityTimer.Dispose();
@@ -2502,26 +2627,20 @@ namespace NavegadorWeb
             mainGrid.ColumnDefinitions.Clear();
             mainGrid.RowDefinitions.Clear();
 
-            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Fila para el título de la ventana
 
-            Grid.SetRow(MainToolbarContainer, 1);
-            Grid.SetColumn(MainToolbarContainer, 0);
-
-            Grid.SetRow(TabGroupContainer, 2);
-            Grid.SetColumn(TabGroupContainer, 0);
+            // Reinicia los contenedores de las barras de herramientas
+            MainToolbarContainer.Children.Clear();
+            LeftToolbarPlaceholder.Children.Clear();
+            RightToolbarPlaceholder.Children.Clear();
 
             LeftToolbarPlaceholder.Visibility = Visibility.Collapsed;
             LeftToolbarPlaceholder.Width = 0;
             RightToolbarPlaceholder.Visibility = Visibility.Collapsed;
             RightToolbarPlaceholder.Width = 0;
 
-            DockPanel currentDockPanel = MainToolbarContainer.Children.OfType<DockPanel>().FirstOrDefault();
-            if (currentDockPanel != null)
-            {
-                currentDockPanel.Children.Clear();
-            }
-            LeftToolbarPlaceholder.Children.Clear();
-            RightToolbarPlaceholder.Children.Clear();
+            // Restablecer el BorderThickness de MainToolbarContainer
+            MainToolbarContainer.BorderThickness = new Thickness(0);
 
 
             List<Button> allButtons = new List<Button>();
@@ -2533,6 +2652,7 @@ namespace NavegadorWeb
             allButtons.Add(FindButton); allButtons.Add(PermissionsButton); allButtons.Add(PipButton);
             allButtons.Add(PasswordManagerButton); allButtons.Add(ExtensionsButton);
             allButtons.Add(MicrophoneToggleButton);
+            allButtons.Add(AskGeminiButton); // NUEVO: Añadir el botón de Gemini aquí
 
             allButtons.Add(IncognitoButton); allButtons.Add(AddBookmarkButton); allButtons.Add(NewTabButton); allButtons.Add(SettingsButton);
 
@@ -2542,8 +2662,8 @@ namespace NavegadorWeb
             switch (position)
             {
                 case ToolbarPosition.Top:
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Fila para la barra de herramientas
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Fila para el contenido
 
                     MainToolbarContainer.Visibility = Visibility.Visible;
                     Grid.SetRow(MainToolbarContainer, 1);
@@ -2563,7 +2683,7 @@ namespace NavegadorWeb
                         btn.Width = 30;
                         btn.Height = 25;
                         btn.Margin = new Thickness(0, 0, 5, 0);
-                        if (btn == IncognitoButton || btn == AddBookmarkButton || btn == NewTabButton || btn == SettingsButton)
+                        if (btn == IncognitoButton || btn == AddBookmarkButton || btn == NewTabButton || btn == SettingsButton || btn == AskGeminiButton) // Incluir AskGeminiButton en la derecha
                         {
                             topToolbarRightButtonsPanel.Children.Add(btn);
                         }
@@ -2591,15 +2711,16 @@ namespace NavegadorWeb
                     break;
 
                 case ToolbarPosition.Left:
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Fila para el contenido
 
-                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Columna para la barra de herramientas
+                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Columna para el contenido
 
                     MainToolbarContainer.Visibility = Visibility.Collapsed;
                     LeftToolbarPlaceholder.Visibility = Visibility.Visible;
                     LeftToolbarPlaceholder.Width = 150;
                     LeftToolbarPlaceholder.Height = Double.NaN;
+                    LeftToolbarPlaceholder.BorderThickness = new Thickness(0,0,1,0); // Borde a la derecha
 
                     Grid.SetRow(LeftToolbarPlaceholder, 1);
                     Grid.SetColumn(LeftToolbarPlaceholder, 0);
@@ -2632,15 +2753,16 @@ namespace NavegadorWeb
                     break;
 
                 case ToolbarPosition.Right:
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Fila para el contenido
 
-                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Columna para el contenido
+                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Columna para la barra de herramientas
 
                     MainToolbarContainer.Visibility = Visibility.Collapsed;
                     RightToolbarPlaceholder.Visibility = Visibility.Visible;
                     RightToolbarPlaceholder.Width = 150;
                     RightToolbarPlaceholder.Height = Double.NaN;
+                    RightToolbarPlaceholder.BorderThickness = new Thickness(1,0,0,0); // Borde a la izquierda
 
                     Grid.SetRow(RightToolbarPlaceholder, 1);
                     Grid.SetColumn(RightToolbarPlaceholder, 1);
@@ -2673,8 +2795,8 @@ namespace NavegadorWeb
                     break;
 
                 case ToolbarPosition.Bottom:
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Fila para el contenido
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Fila para la barra de herramientas
 
                     MainToolbarContainer.Visibility = Visibility.Visible;
                     Grid.SetRow(MainToolbarContainer, 2);
@@ -2683,7 +2805,7 @@ namespace NavegadorWeb
                     MainToolbarContainer.Height = Double.NaN;
                     MainToolbarContainer.Width = Double.NaN;
                     MainToolbarContainer.LastChildFill = true;
-                    MainToolbarContainer.BorderThickness = new Thickness(0, 1, 0, 0);
+                    MainToolbarContainer.BorderThickness = new Thickness(0, 1, 0, 0); // Borde arriba
 
                     DockPanel bottomToolbarDockPanel = new DockPanel();
                     StackPanel bottomToolbarLeftButtonsPanel = new StackPanel { Orientation = Orientation.Horizontal };
@@ -2694,7 +2816,7 @@ namespace NavegadorWeb
                         btn.Width = 30;
                         btn.Height = 25;
                         btn.Margin = new Thickness(0, 0, 5, 0);
-                        if (btn == IncognitoButton || btn == AddBookmarkButton || btn == NewTabButton || btn == SettingsButton)
+                        if (btn == IncognitoButton || btn == AddBookmarkButton || btn == NewTabButton || btn == SettingsButton || btn == AskGeminiButton) // Incluir AskGeminiButton en la derecha
                         {
                             bottomToolbarRightButtonsPanel.Children.Add(btn);
                         }
@@ -2722,22 +2844,25 @@ namespace NavegadorWeb
                     break;
             }
 
+            // Asegura que FindBar esté en la misma celda que el TabGroupContainer
             Grid.SetRow(FindBar, Grid.GetRow(TabGroupContainer));
             Grid.SetColumn(FindBar, Grid.GetColumn(TabGroupContainer));
+
+            UpdateToolbarButtonForeground(); // Asegura que los colores de los botones se apliquen
         }
+
 
         // NUEVO: Manejador del temporizador para verificar la conectividad
         private void ConnectivityTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            // Verificar la conectividad en el hilo de la UI
             Dispatcher.Invoke(() =>
             {
                 if (NetworkInterface.GetIsNetworkAvailable())
                 {
-                    _connectivityTimer.Enabled = false; // Detener el temporizador
+                    _connectivityTimer.Enabled = false;
                     if (!string.IsNullOrEmpty(_lastFailedUrl))
                     {
-                        MessageBoxResult result = MessageBox.Show(
+                        MessageBoxResult result = MessageBox.Show(this,
                             $"¡Internet conectado! ¿Deseas recargar la página:\n{_lastFailedUrl}?",
                             "Conexión Restablecida",
                             MessageBoxButton.YesNo,
@@ -2749,8 +2874,8 @@ namespace NavegadorWeb
                             UrlTextBox.Text = _lastFailedUrl;
                             NavigateToUrlInCurrentTab();
                         }
-                        _lastFailedUrl = null; // Limpiar la URL después de la notificación
-                        _isOfflineGameActive = false; // Salir del modo juego offline
+                        _lastFailedUrl = null;
+                        _isOfflineGameActive = false;
                     }
                 }
             });
