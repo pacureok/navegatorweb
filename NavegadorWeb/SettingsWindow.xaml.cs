@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media; // Para Color
 
 namespace NavegadorWeb
@@ -18,21 +19,26 @@ namespace NavegadorWeb
         public bool IsTrackerProtectionEnabled { get; set; }
         public bool IsPdfViewerEnabled { get; set; }
 
-        // NUEVO: Propiedades para los colores del tema
+        // Propiedades para los colores del tema
         public Color BrowserBackgroundColor { get; set; }
         public Color BrowserForegroundColor { get; set; }
 
+        // NUEVO: Propiedad para la posición de la barra de herramientas
+        public ToolbarPosition SelectedToolbarPosition { get; set; }
+
 
         // Eventos para notificar a MainWindow sobre acciones
-        public event Action OnClearBrowsingData;
+        public event Action OnClearBrowseData;
         public event Action OnSuspendInactiveTabs;
-        public event Action<Color, Color> OnColorsChanged; // NUEVO: Evento para notificar cambios de color
+        public event Action<Color, Color> OnColorsChanged;
+        public event Action<ToolbarPosition> OnToolbarPositionChanged; // NUEVO: Evento para notificar cambio de posición
 
 
         public SettingsWindow(string homePage, bool isAdBlockerEnabled, string searchEngineUrl,
                               bool isTabSuspensionEnabled, bool restoreSessionOnStartup,
                               bool isTrackerProtectionEnabled, bool isPdfViewerEnabled,
-                              Color backgroundColor, Color foregroundColor) // NUEVO: Parámetros de color
+                              Color backgroundColor, Color foregroundColor,
+                              ToolbarPosition toolbarPosition) // NUEVO: Parámetro de orientación
         {
             InitializeComponent();
 
@@ -45,9 +51,12 @@ namespace NavegadorWeb
             TrackerProtectionCheckBox.IsChecked = isTrackerProtectionEnabled;
             PdfViewerCheckBox.IsChecked = isPdfViewerEnabled;
 
-            // NUEVO: Inicializar los campos de color
+            // Inicializar los campos de color
             BackgroundColorTextBox.Text = backgroundColor.ToString();
             ForegroundColorTextBox.Text = foregroundColor.ToString();
+
+            // NUEVO: Seleccionar el ítem correcto en el ComboBox
+            ToolbarPositionComboBox.SelectedValue = toolbarPosition;
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -61,7 +70,7 @@ namespace NavegadorWeb
             IsTrackerProtectionEnabled = TrackerProtectionCheckBox.IsChecked ?? false;
             IsPdfViewerEnabled = PdfViewerCheckBox.IsChecked ?? false;
 
-            // NUEVO: Intentar parsear y asignar los colores
+            // Intentar parsear y asignar los colores
             try
             {
                 Color newBgColor = (Color)ColorConverter.ConvertFromString(BackgroundColorTextBox.Text);
@@ -73,8 +82,14 @@ namespace NavegadorWeb
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al guardar los colores. Asegúrate de usar un formato válido (ej. #RRGGBB): {ex.Message}", "Error de Color", MessageBoxButton.OK, MessageBoxImage.Error);
-                // No cerrar la ventana si hay un error de formato de color
                 return;
+            }
+
+            // NUEVO: Asignar y notificar el cambio de orientación
+            if (ToolbarPositionComboBox.SelectedValue is ToolbarPosition newToolbarPosition)
+            {
+                SelectedToolbarPosition = newToolbarPosition;
+                OnToolbarPositionChanged?.Invoke(SelectedToolbarPosition);
             }
 
 
@@ -88,7 +103,7 @@ namespace NavegadorWeb
             this.Close();
         }
 
-        private void ClearBrowsingDataButton_Click(object sender, RoutedEventArgs e)
+        private void ClearBrowseDataButton_Click(object sender, RoutedEventArgs e)
         {
             MessageBoxResult result = MessageBox.Show(
                 "Esto borrará la caché, cookies, historial, contraseñas guardadas y otros datos de navegación.\n\n¿Estás seguro de que deseas continuar?",
@@ -99,7 +114,7 @@ namespace NavegadorWeb
 
             if (result == MessageBoxResult.Yes)
             {
-                OnClearBrowsingData?.Invoke(); // Invocar el evento para que MainWindow lo maneje
+                OnClearBrowseData?.Invoke(); // Invocar el evento para que MainWindow lo maneje
             }
         }
 
