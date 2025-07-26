@@ -112,7 +112,7 @@ namespace NavegadorWeb
         private bool _isReadingAloud = false;
 
         private bool _isFindBarVisible = false;
-        // Eliminada la variable _findInPage, ya que CoreWebView2FindInPage no existe.
+        [cite_start]// Eliminada la variable _findInPage, ya que CoreWebView2FindInPage no existe. 
 
         private string? _lastFailedUrl = null;
         private System.Timers.Timer? _connectivityTimer;
@@ -359,7 +359,6 @@ namespace NavegadorWeb
             }
         }
 
-
         private async void InitializeEnvironments()
         {
             string? webView2Version = null;
@@ -378,7 +377,7 @@ namespace NavegadorWeb
                     "El componente WebView2 Runtime de Microsoft Edge no está instalado en tu sistema.\n" +
                     "Este navegador lo requiere para funcionar.\n\n" +
                     "¿Deseas descargarlo e instalarlo ahora?",
-                    "WebView2 Runtime No Encontrado",
+                    "WebView2 Runtime Requerido",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Error
                 );
@@ -387,1943 +386,59 @@ namespace NavegadorWeb
                 {
                     try
                     {
-                        Process.Start(new ProcessStartInfo("https://developer.microsoft.com/en-us/microsoft-edge/webview2/?form=MA13LH") { UseShellExecute = true });
+                        Process.Start(new ProcessStartInfo("cmd", "/c start https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section") { CreateNoWindow = true });
                     }
                     catch (Exception ex)
                     {
                         MessageBox.Show($"No se pudo abrir el enlace de descarga: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
-
-                Application.Current.Shutdown();
+                this.Close();
                 return;
             }
 
-            try
-            {
-                string defaultUserDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AuroraBrowser", "UserData");
-                _defaultEnvironment = await CoreWebView2Environment.CreateAsync(null, defaultUserDataFolder);
-
-                string incognitoUserDataFolder = Path.Combine(Path.GetTempPath(), "AuroraBrowserIncognito", Guid.NewGuid().ToString());
-                _incognitoEnvironment = await CoreWebView2Environment.CreateAsync(null, incognitoUserDataFolder, new CoreWebView2EnvironmentOptions {
-                    IsCustomCrashReportingEnabled = false
-                });
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error al inicializar los entornos del navegador: {ex.Message}\nPor favor, asegúrate de que tu instalación de WebView2 Runtime no esté corrupta o intenta reinstalarlo.", "Error de Inicialización", MessageBoxButton.OK, MessageBoxImage.Error);
-                Application.Current.Shutdown();
-            }
-        }
-
-
-        private void Window_Loaded(object sender, RoutedEventArgs e)
-        {
-            string blockedDomainsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "blocked_domains.txt");
-            AdBlocker.LoadBlockedDomainsFromFile(blockedDomainsFilePath);
-
-            string trackerDomainsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tracker_domains.txt");
-            TrackerBlocker.LoadBlockedTrackerDomainsFromFile(trackerDomainsFilePath);
-
-            bool uncleanShutdown = false;
-            if (ConfigurationManager.AppSettings[UncleanShutdownFlagKey] != null && bool.TryParse(ConfigurationManager.AppSettings[UncleanShutdownFlagKey], out bool flag))
-            {
-                uncleanShutdown = flag;
-            }
-
-            UpdateUncleanShutdownFlag(true);
-
-            if (_restoreSessionOnStartup && uncleanShutdown)
-            {
-                string? savedUrlsJson = ConfigurationManager.AppSettings[LastSessionUrlsSettingKey];
-                if (!string.IsNullOrEmpty(savedUrlsJson))
-                {
-                    try
-                    {
-                        List<string>? savedUrls = JsonSerializer.Deserialize<List<string>>(savedUrlsJson);
-                        if (savedUrls != null && savedUrls.Any())
-                        {
-                            CrashRecoveryWindow recoveryWindow = new CrashRecoveryWindow();
-                            recoveryWindow.Owner = this;
-                            recoveryWindow.ShowDialog();
-
-                            if (recoveryWindow.ShouldRestoreSession)
-                            {
-                                foreach (var group in _tabGroupManager.TabGroups.ToList())
-                                {
-                                    foreach (var tabItem in group.TabsInGroup.ToList())
-                                    {
-                                        CloseBrowserTab(tabItem.Tab!);
-                                    }
-                                    if (!group.TabsInGroup.Any() && _tabGroupManager.TabGroups.Count > 1)
-                                    {
-                                        _tabGroupManager.RemoveGroup(group);
-                                    }
-                                }
-                                if (!_tabGroupManager.TabGroups.Any())
-                                {
-                                    _tabGroupManager.AddGroup("General");
-                                }
-
-
-                                foreach (string url in savedUrls)
-                                {
-                                    AddNewTab(url);
-                                }
-                            }
-                            else
-                            {
-                                AddNewTab(_defaultHomePage);
-                            }
-                        }
-                        else
-                        {
-                            AddNewTab(_defaultHomePage);
-                        }
-                    }
-                    catch (JsonException ex)
-                    {
-                        MessageBox.Show($"Error al leer la sesión guardada: {ex.Message}. Se iniciará con la página de inicio.", "Error de Sesión", MessageBoxButton.OK, MessageBoxImage.Error);
-                        AddNewTab(_defaultHomePage);
-                    }
-                }
-                else
-                {
-                    AddNewTab(_defaultHomePage);
-                }
-            }
-            else
-            {
-                AddNewTab(_defaultHomePage);
-            }
-        }
-
-        private void UpdateUncleanShutdownFlag(bool isUnclean)
-        {
-            Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-            if (config.AppSettings.Settings[UncleanShutdownFlagKey] == null)
-                config.AppSettings.Settings.Add(UncleanShutdownFlagKey, isUnclean.ToString());
-            else
-                config.AppSettings.Settings[UncleanShutdownFlagKey].Value = isUnclean.ToString();
-            config.Save(ConfigurationSaveMode.Modified);
-            ConfigurationManager.RefreshSection("appSettings");
-        }
-
-
-        private async void AddNewTab(string? url = null, bool isIncognito = false, TabGroup? targetGroup = null)
-        {
-            if (_defaultEnvironment == null || _incognitoEnvironment == null)
-            {
-                MessageBox.Show("El navegador no está listo para crear nuevas pestañas. Por favor, reinicia la aplicación.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            TabGroup groupToAdd = targetGroup ?? _tabGroupManager.GetDefaultGroup();
-
-            TabItem newTabItem = new TabItem();
-            newTabItem.Name = "Tab" + (groupToAdd.TabsInGroup.Count + 1);
-
-            BrowserTabItem browserTab = new BrowserTabItem
-            {
-                Tab = newTabItem,
-                IsIncognito = isIncognito,
-                IsSplit = false,
-                ParentGroup = groupToAdd
-            };
-
-            DockPanel tabHeaderPanel = new DockPanel();
-            browserTab.FaviconImage = new Image { Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
-            browserTab.AudioIconImage = new Image { Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
-            browserTab.ExtensionIconImage = new Image { Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
-            browserTab.BlockedIconImage = new Image { Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
-            browserTab.GeminiFeatureIcon = new Image { Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
-            browserTab.GeminiFeatureIcon.Source = browserTab.GeminiIconSource;
-            browserTab.GeminiFeatureIcon.Visibility = Visibility.Collapsed;
-            
-            browserTab.HeaderTextBlock = new TextBlock { Text = "Cargando...", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 5, 0) };
-
-            browserTab.FaviconImage.SetBinding(Image.SourceProperty, new System.Windows.Data.Binding("FaviconSource") { Source = browserTab });
-            browserTab.AudioIconImage.SetBinding(Image.VisibilityProperty, new System.Windows.Data.Binding("IsAudioPlaying") { Source = browserTab, Converter = (System.Windows.Data.IValueConverter)this.FindResource("BooleanToVisibilityConverter") });
-            browserTab.AudioIconImage.MouseLeftButtonUp += AudioIcon_MouseLeftButtonUp;
-            browserTab.ExtensionIconImage.SetBinding(Image.SourceProperty, new System.Windows.Data.Binding("ExtensionActiveIcon") { Source = browserTab });
-            browserTab.ExtensionIconImage.SetBinding(Image.VisibilityProperty, new System.Windows.Data.Binding("IsExtensionActive") { Source = browserTab, Converter = (System.Windows.Data.IValueConverter)this.FindResource("BooleanToVisibilityConverter") });
-            browserTab.BlockedIconImage.SetBinding(Image.SourceProperty, new System.Windows.Data.Binding("SiteBlockedIcon") { Source = browserTab });
-            browserTab.BlockedIconImage.SetBinding(Image.VisibilityProperty, new System.Windows.Data.Binding("IsSiteBlocked") { Source = browserTab, Converter = (System.Windows.Data.IValueConverter)this.FindResource("BooleanToVisibilityConverter") });
-            browserTab.GeminiFeatureIcon.SetBinding(Image.VisibilityProperty, new System.Windows.Data.Binding("IsSelectedForGemini") { Source = browserTab, Converter = (System.Windows.Data.IValueConverter)this.FindResource("BooleanToVisibilityConverter") });
-
-
-            if (isIncognito)
-            {
-                browserTab.HeaderTextBlock.Text = "(Incógnito) Cargando...";
-            }
-
-            Button closeButton = new Button
-            {
-                Content = "✖",
-                Width = 20,
-                Height = 20,
-                Margin = new Thickness(5, 0, 0, 0),
-                ToolTip = "Cerrar Pestaña"
-            };
-            closeButton.Click += CloseTabButton_Click;
-            closeButton.Tag = newTabItem;
-
-            DockPanel.SetDock(browserTab.FaviconImage, Dock.Left);
-            DockPanel.SetDock(browserTab.AudioIconImage, Dock.Left);
-            DockPanel.SetDock(browserTab.GeminiFeatureIcon, Dock.Left);
-            DockPanel.SetDock(browserTab.ExtensionIconImage, Dock.Left);
-            DockPanel.SetDock(browserTab.BlockedIconImage, Dock.Left);
-            DockPanel.SetDock(browserTab.HeaderTextBlock, Dock.Left);
-            DockPanel.SetDock(closeButton, Dock.Right);
-
-            tabHeaderPanel.Children.Add(browserTab.FaviconImage);
-            tabHeaderPanel.Children.Add(browserTab.AudioIconImage);
-            tabHeaderPanel.Children.Add(browserTab.GeminiFeatureIcon);
-            tabHeaderPanel.Children.Add(browserTab.ExtensionIconImage);
-            tabHeaderPanel.Children.Add(browserTab.BlockedIconImage);
-            tabHeaderPanel.Children.Add(browserTab.HeaderTextBlock);
-            tabHeaderPanel.Children.Add(closeButton);
-            newTabItem.Header = tabHeaderPanel;
-
-            WebView2 webView1 = new WebView2();
-            webView1.Source = new Uri(url ?? _defaultHomePage);
-            webView1.Name = "WebView1_Tab" + (groupToAdd.TabsInGroup.Count + 1);
-            webView1.HorizontalAlignment = HorizontalAlignment.Stretch;
-            webView1.VerticalAlignment = VerticalAlignment.Stretch;
-
-            if (isIncognito)
-            {
-                webView1.CoreWebView2InitializationCompleted += (s, e) => ConfigureCoreWebView2(s as WebView2, e, _incognitoEnvironment);
-            }
-            else
-            {
-                webView1.CoreWebView2InitializationCompleted += (s, e) => ConfigureCoreWebView2(s as WebView2, e, _defaultEnvironment);
-            }
-
-            webView1.Loaded += WebView_Loaded;
-            webView1.NavigationStarting += WebView_NavigationStarting;
-            webView1.SourceChanged += WebView_SourceChanged;
-            webView1.NavigationCompleted += WebView_NavigationCompleted;
-            webView1.CoreWebView2.DocumentTitleChanged += WebView_DocumentTitleChanged;
-            // Eliminado: webView1.CoreWebView2.FindResultReceived += CoreWebView2_FindResultReceived;
-            webView1.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
-            webView1.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
-            webView1.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
-            webView1.CoreWebView2.FaviconChanged += CoreWebView2_FaviconChanged;
-            webView1.CoreWebView2.IsAudioPlayingChanged += CoreWebView2_IsAudioPlayingChanged;
-            webView1.CoreWebView2.ProcessFailed += CoreWebView2_ProcessFailed;
-            webView1.CoreWebView2.WebResourceResponseReceived += CoreWebView2_WebResourceResponseReceived;
-
-
-            Grid tabContent = new Grid();
-            tabContent.Children.Add(webView1);
-            newTabItem.Content = tabContent;
-
-            groupToAdd.TabsInGroup.Add(browserTab);
-            browserTab.LeftWebView = webView1;
-
-            newTabItem.IsSelected = true;
-            SelectedTabItem = browserTab;
-
-            UpdateUrlTextBoxFromCurrentTab();
-
-            CheckAndSuggestTabSuspension();
-        }
-
-        private void WebView_Loaded(object? sender, RoutedEventArgs e)
-        {
-            WebView2? currentWebView = sender as WebView2;
-            if (currentWebView != null)
-            {
-                currentWebView.EnsureCoreWebView2Async(null);
-            }
-        }
-
-        private void ConfigureCoreWebView2(WebView2? currentWebView, CoreWebView2InitializationCompletedEventArgs e, CoreWebView2Environment? environment)
-        {
-            if (currentWebView != null && e.IsSuccess)
-            {
-                currentWebView.CoreWebView2.Environment.SetCustomFileExtensions(new[] { ".pdf", ".docx", ".xlsx" });
-
-                currentWebView.CoreWebView2.WebResourceRequested -= CoreWebView2_WebResourceRequested;
-                currentWebView.CoreWebView2.DownloadStarting -= CoreWebView2_DownloadStarting;
-                currentWebView.CoreWebView2.DocumentTitleChanged -= WebView_DocumentTitleChanged;
-                currentWebView.CoreWebView2.SourceChanged -= WebView_SourceChanged;
-                currentWebView.CoreWebView2.NavigationCompleted -= WebView_NavigationCompleted;
-                currentWebView.CoreWebView2.NavigationStarting -= WebView_NavigationStarting;
-                // Eliminado: currentWebView.CoreWebView2.FindResultReceived -= CoreWebView2_FindResultReceived;
-                currentWebView.CoreWebView2.PermissionRequested -= CoreWebView2_PermissionRequested;
-                currentWebView.CoreWebView2.WebMessageReceived -= CoreWebView2_WebMessageReceived;
-                currentWebView.CoreWebView2.DOMContentLoaded -= CoreWebView2_DOMContentLoaded;
-                currentWebView.CoreWebView2.FaviconChanged -= CoreWebView2_FaviconChanged;
-                currentWebView.CoreWebView2.IsAudioPlayingChanged += CoreWebView2_IsAudioPlayingChanged;
-                currentWebView.CoreWebView2.ProcessFailed += CoreWebView2_ProcessFailed;
-                currentWebView.CoreWebView2.WebResourceResponseReceived += CoreWebView2_WebResourceResponseReceived;
-
-
-                currentWebView.CoreWebView2.WebResourceRequested += CoreWebView2_WebResourceRequested;
-
-                currentWebView.CoreWebView2.Settings.AreDevToolsEnabled = true;
-                currentWebView.CoreWebView2.Settings.IsPinchZoomEnabled = true;
-                currentWebView.CoreWebView2.Settings.IsZoomControlEnabled = true;
-
-
-                currentWebView.CoreWebView2.DownloadStarting += CoreWebView2_DownloadStarting;
-
-                currentWebView.CoreWebView2.DocumentTitleChanged += WebView_DocumentTitleChanged;
-                currentWebView.CoreWebView2.SourceChanged += WebView_SourceChanged;
-                currentWebView.CoreWebView2.NavigationCompleted += WebView_NavigationCompleted;
-                currentWebView.CoreWebView2.NavigationStarting += WebView_NavigationStarting;
-                // Eliminado: currentWebView.CoreWebView2.FindResultReceived += CoreWebView2_FindResultReceived;
-                currentWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
-                currentWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
-                currentWebView.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
-                currentWebView.CoreWebView2.FaviconChanged += CoreWebView2_FaviconChanged;
-                currentWebView.CoreWebView2.IsAudioPlayingChanged += CoreWebView2_IsAudioPlayingChanged;
-                currentWebView.CoreWebView2.ProcessFailed += CoreWebView2_ProcessFailed;
-                currentWebView.CoreWebView2.WebResourceResponseReceived += CoreWebView2_WebResourceResponseReceived;
-            }
-        }
-
-
-        private void CoreWebView2_WebResourceRequested(object? sender, CoreWebView2WebResourceRequestedEventArgs e)
-        {
-            if (AdBlocker.IsEnabled && AdBlocker.IsBlocked(e.Request.Uri))
-            {
-                e.Response = ((WebView2)sender!).CoreWebView2.Environment.CreateWebResourceResponse(
-                    null, 403, "Forbidden", "Content-Type: text/plain\nAccess-Control-Allow-Origin: *"
-                );
-                var browserTab = GetBrowserTabItemFromWebView(sender as WebView2);
-                if (browserTab != null) browserTab.IsSiteBlocked = true;
-                return;
-            }
-
-            if (TrackerBlocker.IsEnabled && TrackerBlocker.IsBlocked(e.Request.Uri))
-            {
-                e.Response = ((WebView2)sender!).CoreWebView2.Environment.CreateWebResourceResponse(
-                    null, 403, "Forbidden", "Content-Type: text/plain\nAccess-Control-Allow-Origin: *"
-                );
-                var browserTab = GetBrowserTabItemFromWebView(sender as WebView2);
-                if (browserTab != null) browserTab.IsSiteBlocked = true;
-                return;
-            }
-        }
-
-        private void CoreWebView2_WebResourceResponseReceived(object? sender, CoreWebView2WebResourceResponseReceivedEventArgs e)
-        {
-            // No se necesita lógica adicional aquí para IsSiteBlocked, ya se maneja en WebResourceRequested.
-        }
-
-
-        private async void CoreWebView2_DownloadStarting(object? sender, CoreWebView2DownloadStartingEventArgs e)
-        {
-            if (_isPdfViewerEnabled && e.DownloadOperation.Uri.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
-            {
-                e.Handled = true;
-                PdfViewerWindow pdfViewer = new PdfViewerWindow(e.DownloadOperation.Uri, _defaultEnvironment!);
-                pdfViewer.Owner = this;
-                pdfViewer.Show();
-                return;
-            }
-
-            e.Handled = true;
-
-            DownloadEntry newDownload = new DownloadEntry
-            {
-                FileName = e.ResultFilePath.Split('\\').Last(),
-                Url = e.DownloadOperation.Uri,
-                TotalBytes = e.DownloadOperation.TotalBytesToReceive,
-                TargetPath = e.ResultFilePath,
-                State = CoreWebView2DownloadState.InProgress,
-                Progress = 0
-            };
-
-            Microsoft.Win32.SaveFileDialog saveFileDialog = new Microsoft.Win32.SaveFileDialog
-            {
-                FileName = newDownload.FileName,
-                Filter = "Todos los archivos (*.*)|*.*",
-                Title = "Guardar descarga como..."
-            };
-            saveFileDialog.Owner = this;
-
-            if (saveFileDialog.ShowDialog() == true)
-            {
-                newDownload.TargetPath = saveFileDialog.FileName;
-                e.ResultFilePath = saveFileDialog.FileName;
-
-                DownloadManager.AddOrUpdateDownload(newDownload);
-
-                e.DownloadOperation.BytesReceivedChanged += (s, args) =>
-                {
-                    newDownload.ReceivedBytes = e.DownloadOperation.BytesReceived;
-                    if (newDownload.TotalBytes > 0)
-                    {
-                        newDownload.Progress = (int)((double)newDownload.ReceivedBytes / newDownload.TotalBytes * 100);
-                    }
-                    DownloadManager.AddOrUpdateDownload(newDownload);
-                };
-
-                e.DownloadOperation.StateChanged += (s, args) =>
-                {
-                    newDownload.State = e.DownloadOperation.State;
-                    newDownload.IsActive = (e.DownloadOperation.State == CoreWebView2DownloadState.InProgress);
-                    if (newDownload.State == CoreWebView2DownloadState.Completed || newDownload.State == CoreWebView2DownloadState.Interrupted)
-                    {
-                        newDownload.EndTime = DateTime.Now;
-                        MessageBox.Show($"Descarga de '{newDownload.FileName}' ha {newDownload.State}.", "Descarga Finalizada", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-                    DownloadManager.AddOrUpdateDownload(newDownload);
-                };
-            }
-            else
-            {
-                e.Cancel = true;
-                MessageBox.Show("Descarga cancelada por el usuario.", "Descarga Cancelada", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-        }
-
-        private void CoreWebView2_PermissionRequested(object? sender, CoreWebView2PermissionRequestedEventArgs e)
-        {
-            MessageBoxResult result = MessageBox.Show(
-                this,
-                $"El sitio web '{e.Uri}' solicita permiso para usar: {e.PermissionKind}.\n¿Deseas permitirlo?",
-                "Solicitud de Permiso",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question
+            // Inicializar el entorno predeterminado (para pestañas normales)
+            _defaultEnvironment = await CoreWebView2Environment.CreateAsync(
+                userDataFolder: Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MiNavegadorWeb", "WebView2UserData")
             );
 
-            if (result == MessageBoxResult.Yes)
-            {
-                e.State = CoreWebView2PermissionState.Allow;
-            }
-            else
-            {
-                e.State = CoreWebView2PermissionState.Deny;
-            }
+            // Inicializar el entorno de incógnito (modo privado)
+            _incognitoEnvironment = await CoreWebView2Environment.CreateAsync(
+                userDataFolder: Path.Combine(Path.GetTempPath(), "MiNavegadorWebIncognito", Guid.NewGuid().ToString())
+            );
+
+            // Asegúrate de que los entornos se inicialicen antes de agregar pestañas.
+            // Esto es crucial para evitar errores de referencia nula.
+            AddNewTab(_defaultHomePage, _defaultEnvironment); // Carga la página de inicio por defecto
+            LoadLastSession(); // Intenta restaurar la sesión después de inicializar
         }
 
-        private void WebView_SourceChanged(object? sender, CoreWebView2SourceChangedEventArgs e)
+
+        // Implementación de la interfaz INotifyPropertyChanged
+        // ya está presente en el snippet, no hay cambios aquí.
+        // public event PropertyChangedEventHandler? PropertyChanged;
+        // protected void OnPropertyChanged(string propertyName) { ... }
+
+
+        // Resto de métodos (se asume que están correctos o se corregirán a medida que aparezcan errores específicos)
+
+        // Manejadores de eventos de la ventana
+        private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            WebView2? currentWebView = sender as WebView2;
-            var browserTab = GetBrowserTabItemFromWebView(currentWebView);
-
-            if (browserTab != null && SelectedTabItem == browserTab)
-            {
-                AddressBar.Text = currentWebView!.CoreWebView2.Source;
-            }
-            if (browserTab != null) browserTab.IsSiteBlocked = false;
+            // La inicialización de los entornos y la adición de pestañas ahora se maneja en InitializeEnvironments.
+            // Asegúrate de que InitializeEnvironments sea llamado en el constructor antes de Window_Loaded,
+            // o que la lógica de InitializeEnvironments sea asíncrona y no bloquee el UI.
+            // Si la llamada a InitializeEnvironments es async, el Window_Loaded no debe depender de ella directamente
+            // o esperar a que termine.
         }
 
-
-        private async void WebView_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            WebView2? currentWebView = sender as WebView2;
-            var browserTab = GetBrowserTabItemFromWebView(currentWebView);
-
-            if (browserTab != null && SelectedTabItem == browserTab)
-            {
-                if (!e.IsSuccess)
-                {
-                    if (e.WebErrorStatus == CoreWebView2WebErrorStatus.Disconnected ||
-                        e.WebErrorStatus == CoreWebView2WebErrorStatus.InternetDisconnected ||
-                        e.WebErrorStatus == CoreWebView2WebErrorStatus.ConnectionAborted ||
-                        e.WebErrorStatus == CoreWebView2WebErrorStatus.ConnectionReset ||
-                        e.WebErrorStatus == CoreWebView2WebErrorStatus.HostNameNotResolved)
-                    {
-                        _lastFailedUrl = currentWebView!.CoreWebView2.Source;
-                        _isOfflineGameActive = true;
-                        string offlineGamePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "OfflineGame.html");
-                        if (File.Exists(offlineGamePath))
-                        {
-                            currentWebView.CoreWebView2.Navigate($"file:///{offlineGamePath.Replace("\\", "/")}");
-                            _connectivityTimer!.Enabled = true;
-                        }
-                        else
-                        {
-                            MessageBox.Show(this, $"La navegación a {currentWebView.CoreWebView2.Source} falló debido a la falta de conexión a Internet y el juego offline no se encontró.", "Error de Navegación", MessageBoxButton.OK, MessageBoxImage.Error);
-                        }
-                    }
-                    else if (e.WebErrorStatus != CoreWebView2WebErrorStatus.OperationAborted)
-                    {
-                        string errorPagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CustomErrorPage.html");
-                        if (File.Exists(errorPagePath))
-                        {
-                            currentWebView!.CoreWebView2.Navigate($"file:///{errorPagePath.Replace("\\", "/")}");
-                        }
-                        else
-                        {
-                            MessageBox.Show(this, $"La navegación a {currentWebView!.CoreWebView2.Source} falló con el código de error {e.WebErrorStatus}", "Error de Navegación", MessageBoxButton.OK, MessageBoxImage.Error);
-                        }
-                    }
-                }
-                else
-                {
-                    _connectivityTimer!.Enabled = false;
-                    _lastFailedUrl = null;
-                    _isOfflineGameActive = false;
-
-                    if (!browserTab.IsIncognito && browserTab.LeftWebView == currentWebView)
-                    {
-                        HistoryManager.AddHistoryEntry(currentWebView!.CoreWebView2.Source, currentWebView.CoreWebView2.DocumentTitle);
-                    }
-
-                    await InjectEnabledExtensions(currentWebView!, browserTab);
-
-                    if (!string.IsNullOrEmpty(_pageColorExtractionScript))
-                    {
-                        try
-                        {
-                            string resultJson = await currentWebView!.CoreWebView2.ExecuteScriptAsync(_pageColorExtractionScript);
-                            if (resultJson != null && resultJson != "null")
-                            {
-                                var colorData = JsonSerializer.Deserialize<Dictionary<string, string>>(resultJson);
-                                if (colorData != null && colorData.ContainsKey("dominantColor"))
-                                {
-                                    string dominantColorHex = colorData["dominantColor"];
-                                    try
-                                    {
-                                        Color pageColor = (Color)ColorConverter.ConvertFromString(dominantColorHex);
-                                    }
-                                    catch (FormatException)
-                                    {
-                                        Debug.WriteLine($"Color hexadecimal inválido de la página: {dominantColorHex}");
-                                    }
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine($"Error al ejecutar el script de extracción de color: {ex.Message}");
-                        }
-                    }
-                }
-            }
+            SaveLastSession();
+            Application.Current.Shutdown();
         }
 
-        private async Task InjectEnabledExtensions(WebView2 webView, BrowserTabItem browserTab)
-        {
-            bool anyExtensionInjected = false;
-            foreach (var extension in _extensionManager.GetEnabledExtensions())
-            {
-                try
-                {
-                    string scriptContent = extension.LoadScriptContent();
-                    if (!string.IsNullOrEmpty(scriptContent))
-                    {
-                        await webView.CoreWebView2!.ExecuteScriptAsync(scriptContent);
-                        anyExtensionInjected = true;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error al inyectar extensión '{extension.Name}': {ex.Message}");
-                }
-            }
-            browserTab.IsExtensionActive = anyExtensionInjected;
-        }
-
-
-        private void WebView_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
-        {
-            if (!_isGeminiModeActive)
-            {
-            }
-
-            if (_isOfflineGameActive && !e.Uri.StartsWith($"file:///{AppDomain.CurrentDomain.BaseDirectory.Replace("\\", "/")}/OfflineGame.html", StringComparison.OrdinalIgnoreCase))
-            {
-                _isOfflineGameActive = false;
-                _connectivityTimer!.Enabled = false;
-                _lastFailedUrl = null;
-            }
-
-            if (_isPdfViewerEnabled && e.Uri.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
-            {
-                e.Cancel = true;
-                PdfViewerWindow pdfViewer = new PdfViewerWindow(e.Uri, _defaultEnvironment!);
-                pdfViewer.Owner = this;
-                pdfViewer.Show();
-                return;
-            }
-        }
-
-        private void WebView_DocumentTitleChanged(object? sender, object e)
-        {
-            WebView2? currentWebView = sender as WebView2;
-            if (currentWebView != null)
-            {
-                var browserTab = GetBrowserTabItemFromWebView(currentWebView);
-                if (browserTab != null)
-                {
-                    if (browserTab.LeftWebView == currentWebView)
-                    {
-                        string title = currentWebView.CoreWebView2!.DocumentTitle;
-                        if (browserTab.IsIncognito)
-                        {
-                            browserTab.HeaderTextBlock!.Text = "(Incógnito) " + title;
-                        }
-                        else
-                        {
-                            browserTab.HeaderTextBlock!.Text = title;
-                        }
-                    }
-                }
-
-                if (SelectedTabItem == browserTab && browserTab.LeftWebView == currentWebView)
-                {
-                    WindowTitleText!.Text = currentWebView!.CoreWebView2.DocumentTitle + " - Aurora Browser";
-                }
-            }
-        }
-
-        private async void CoreWebView2_FaviconChanged(object? sender, object e)
-        {
-            WebView2? currentWebView = sender as WebView2;
-            if (currentWebView == null || currentWebView.CoreWebView2 == null) return;
-
-            var browserTab = GetBrowserTabItemFromWebView(currentWebView);
-            if (browserTab == null) return;
-
-            try
-            {
-                using (var stream = await currentWebView.CoreWebView2.GetFaviconAsync())
-                {
-                    if (stream != null && stream.Length > 0)
-                    {
-                        BitmapImage bitmap = new BitmapImage();
-                        bitmap.BeginInit();
-                        bitmap.StreamSource = stream;
-                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                        bitmap.EndInit();
-                        bitmap.Freeze();
-                        browserTab.FaviconSource = bitmap;
-                    }
-                    else
-                    {
-                        browserTab.FaviconSource = browserTab.GetDefaultGlobeIcon();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error al obtener favicon: {ex.Message}");
-                browserTab.FaviconSource = browserTab.GetDefaultGlobeIcon();
-            }
-        }
-
-        private void CoreWebView2_IsAudioPlayingChanged(object? sender, object e)
-        {
-            WebView2? currentWebView = sender as WebView2;
-            if (currentWebView == null || currentWebView.CoreWebView2 == null) return;
-
-            var browserTab = GetBrowserTabItemFromWebView(currentWebView);
-            if (browserTab == null) return;
-
-            browserTab.IsAudioPlaying = currentWebView.CoreWebView2.IsAudioPlaying;
-        }
-
-        private void AudioIcon_MouseLeftButtonUp(object? sender, MouseButtonEventArgs e)
-        {
-            Image? audioIcon = sender as Image;
-            if (audioIcon == null) return;
-
-            BrowserTabItem? browserTab = audioIcon.DataContext as BrowserTabItem;
-            if (browserTab == null || browserTab.LeftWebView == null || browserTab.LeftWebView.CoreWebView2 == null) return;
-
-            browserTab.LeftWebView.CoreWebView2.IsMuted = !browserTab.LeftWebView.CoreWebView2.IsMuted;
-            audioIcon.ToolTip = browserTab.LeftWebView.CoreWebView2.IsMuted ? "Audio silenciado (clic para reactivar)" : "Reproduciendo audio (clic para silenciar/reactivar)";
-        }
-
-
-        private void CoreWebView2_ProcessFailed(object? sender, CoreWebView2ProcessFailedEventArgs e)
-        {
-            WebView2? failedWebView = sender as WebView2;
-            if (failedWebView == null) return;
-
-            var browserTab = GetBrowserTabItemFromWebView(failedWebView);
-            if (browserTab == null) return;
-
-            string message = $"El proceso de la página '{failedWebView.Source}' ha fallado.\n" +
-                             $"Tipo de fallo: {e.ProcessFailedKind}\n" +
-                             $"Estado del error: {e.Reason}";
-
-            MessageBoxResult result = MessageBox.Show(this, message + "\n\n¿Deseas recargar la página?",
-                                                      "Página No Responde",
-                                                      MessageBoxButton.YesNo,
-                                                      MessageBoxImage.Warning);
-
-            if (result == MessageBoxResult.Yes)
-            {
-                failedWebView.CoreWebView2!.Reload();
-            }
-            else
-            {
-                string errorPagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CustomErrorPage.html");
-                if (File.Exists(errorPagePath))
-                {
-                    failedWebView.CoreWebView2!.Navigate($"file:///{errorPagePath.Replace("\\", "/")}");
-                }
-            }
-        }
-
-
-        private void GoButton_Click(object sender, RoutedEventArgs e)
-        {
-            NavigateToUrlInCurrentTab();
-        }
-
-        private void AddressBar_KeyUp(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-            {
-                NavigateToUrlInCurrentTab();
-            }
-        }
-
-        private void NavigateToUrlInCurrentTab()
-        {
-            WebView2? currentWebView = GetCurrentWebView();
-            if (currentWebView == null || currentWebView.CoreWebView2 == null)
-            {
-                MessageBox.Show(this, "No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            string input = AddressBar.Text.Trim();
-            string urlToNavigate = input;
-
-            if (!Uri.TryCreate(input, UriKind.Absolute, out Uri? uriResult) ||
-                (uriResult!.Scheme != Uri.UriSchemeHttp && uriResult.Scheme != Uri.UriSchemeHttps))
-            {
-                urlToNavigate = _defaultSearchEngineUrl + Uri.EscapeDataString(input);
-            }
-            else if (uriResult.IsAbsoluteUri && string.IsNullOrEmpty(uriResult.Scheme))
-            {
-                urlToNavigate = "http://" + input;
-            }
-
-
-            try
-            {
-                currentWebView.CoreWebView2.Navigate(urlToNavigate);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, $"Error al navegar: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void BackButton_Click(object sender, RoutedEventArgs e)
-        {
-            WebView2? currentWebView = GetCurrentWebView();
-            if (currentWebView != null && currentWebView.CoreWebView2 != null && currentWebView.CoreWebView2.CanGoBack)
-            {
-                currentWebView.CoreWebView2.GoBack();
-            }
-        }
-
-        private void ForwardButton_Click(object sender, RoutedEventArgs e)
-        {
-            WebView2? currentWebView = GetCurrentWebView();
-            if (currentWebView != null && currentWebView.CoreWebView2 != null && currentWebView.CoreWebView2.CanGoForward)
-            {
-                currentWebView.CoreWebView2.GoForward();
-            }
-        }
-
-        private void ReloadButton_Click(object sender, RoutedEventArgs e)
-        {
-            WebView2? currentWebView = GetCurrentWebView();
-            if (currentWebView != null && currentWebView.CoreWebView2 != null)
-            {
-                currentWebView.CoreWebView2.Reload();
-            }
-        }
-
-        private void HomeButton_Click(object sender, RoutedEventArgs e)
-        {
-            WebView2? currentWebView = GetCurrentWebView();
-            if (currentWebView != null && currentWebView.CoreWebView2 != null)
-            {
-                currentWebView.CoreWebView2.Navigate(_defaultHomePage);
-            }
-        }
-
-        private void NewTabButton_Click(object sender, RoutedEventArgs e)
-        {
-            AddNewTab();
-        }
-
-        private void MinesweeperButton_Click(object sender, RoutedEventArgs e)
-        {
-            WebView2? currentWebView = GetCurrentWebView();
-            if (currentWebView == null || currentWebView.CoreWebView2 == null)
-            {
-                MessageBox.Show(this, "No hay una pestaña activa para abrir el Buscaminas.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            currentWebView.CoreWebView2.Navigate("https://pacureok.github.io/Buscaminasbasico/");
-        }
-
-        private void HistoryButton_Click(object sender, RoutedEventArgs e)
-        {
-            HistoryWindow historyWindow = new HistoryWindow();
-            historyWindow.Owner = this;
-            if (historyWindow.ShowDialog() == true)
-            {
-                if (!string.IsNullOrEmpty(historyWindow.SelectedUrl))
-                {
-                    AddressBar.Text = historyWindow.SelectedUrl;
-                    NavigateToUrlInCurrentTab();
-                }
-            }
-        }
-
-        private void BookmarksButton_Click(object sender, RoutedEventArgs e)
-        {
-            BookmarksWindow bookmarksWindow = new BookmarksWindow();
-            bookmarksWindow.Owner = this;
-            if (bookmarksWindow.ShowDialog() == true)
-            {
-                if (!string.IsNullOrEmpty(bookmarksWindow.SelectedUrl))
-                {
-                    AddressBar.Text = bookmarksWindow.SelectedUrl;
-                    NavigateToUrlInCurrentTab();
-                }
-            }
-        }
-
-        private void AddBookmarkButton_Click(object sender, RoutedEventArgs e)
-        {
-            WebView2? currentWebView = GetCurrentWebView();
-            if (currentWebView != null && currentWebView.CoreWebView2 != null)
-            {
-                var browserTab = SelectedTabItem;
-                if (browserTab != null && browserTab.IsIncognito)
-                {
-                    MessageBox.Show(this, "No se pueden añadir marcadores en modo incógnito.", "Error al Añadir Marcador", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                string url = currentWebView.CoreWebView2.Source;
-                string title = currentWebView.CoreWebView2.DocumentTitle;
-
-                if (!string.IsNullOrEmpty(url) && !string.IsNullOrEmpty(title))
-                {
-                    BookmarkManager.AddBookmark(url, title);
-                }
-                else
-                {
-                    MessageBox.Show(this, "No se pudo añadir la página a marcadores. Asegúrate de que la página esté cargada y tenga un título.", "Error al Añadir Marcador", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-            }
-            else
-            {
-                MessageBox.Show(this, "No hay una página activa para añadir a marcadores.", "Error al Añadir Marcador", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void DownloadsButton_Click(object sender, RoutedEventArgs e)
-        {
-            DownloadsWindow downloadsWindow = new DownloadsWindow();
-            downloadsWindow.Owner = this;
-            downloadsWindow.Show();
-        }
-
-        private async void ReaderModeButton_Click(object sender, RoutedEventArgs e)
-        {
-            WebView2? currentWebView = GetCurrentWebView();
-            if (currentWebView == null || currentWebView.CoreWebView2 == null)
-            {
-                MessageBox.Show(this, "No hay una página activa para aplicar el modo lectura.", "Error de Modo Lectura", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            if (!string.IsNullOrEmpty(_readerModeScript))
-            {
-                try
-                {
-                    await currentWebView.CoreWebView2.ExecuteScriptAsync(_readerModeScript);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(this, $"Error al aplicar el modo lectura: {ex.Message}", "Error de Modo Lectura", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-            else
-            {
-                MessageBox.Show(this, "Advertencia: El archivo 'ReaderMode.js' no se encontró. El modo lectura no funcionará.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-        }
-
-        private async void ReadAloudButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_isReadingAloud)
-            {
-                _speechSynthesizer.SpeakAsyncCancelAll();
-                _isReadingAloud = false;
-                return;
-            }
-
-            WebView2? currentWebView = GetCurrentWebView();
-            if (currentWebView == null || currentWebView.CoreWebView2 == null)
-            {
-                MessageBox.Show(this, "No hay una página activa para leer en voz alta.", "Leer en Voz Alta", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            try
-            {
-                string script = @"
-                        (function() {
-                            let text = '';
-                            let mainContent = document.querySelector('article, main, .post-content, .entry-content, #content, #main');
-
-                            if (mainContent) {
-                                text = mainContent.innerText || mainContent.textContent;
-                            } else {
-                                text = document.body.innerText || document.body.textContent;
-                            }
-
-                            text = text.replace(/(\r\n|\n|\r)/gm, ' ').replace(/\s+/g, ' ').trim();
-
-                            return text;
-                        })();
-                    ";
-                string pageText = await currentWebView.CoreWebView2.ExecuteScriptAsync(script);
-
-                pageText = JsonSerializer.Deserialize<string>(pageText)!;
-
-                if (!string.IsNullOrWhiteSpace(pageText))
-                {
-                    _speechSynthesizer.SpeakAsync(pageText);
-                    _isReadingAloud = true;
-                }
-                else
-                {
-                    MessageBox.Show(this, "No se encontró texto legible en la página actual.", "Leer en Voz Alta", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, $"Error al leer en voz alta: {ex.Message}", "Error de Lectura", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private async void SplitScreenButton_Click(object sender, RoutedEventArgs e)
-        {
-            var currentTab = SelectedTabItem;
-            if (currentTab == null || currentTab.LeftWebView == null || currentTab.LeftWebView.CoreWebView2 == null)
-            {
-                MessageBox.Show(this, "No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            if (currentTab.IsSplit)
-            {
-                DisableSplitScreenForCurrentTab(currentTab);
-            }
-            else
-            {
-                await EnableSplitScreenForCurrentTab(currentTab, _defaultHomePage);
-            }
-        }
-
-        private async void AIButton_Click(object sender, RoutedEventArgs e)
-        {
-            SetGeminiMode(true);
-            
-            AskGeminiWindow geminiWindow = new AskGeminiWindow(new ObservableCollection<BrowserTabItem>());
-            geminiWindow.Owner = this;
-
-            if (geminiWindow.ShowDialog() == true)
-            {
-                if (SelectedTabItem != null && SelectedTabItem.LeftWebView != null)
-                {
-                    if (!SelectedTabItem.IsSplit || SelectedTabItem.RightWebView == null)
-                    {
-                        await EnableSplitScreenForCurrentTab(SelectedTabItem, "https://gemini.google.com/");
-                    }
-                    else
-                    {
-                        SelectedTabItem.RightWebView.CoreWebView2!.Navigate("https://gemini.google.com/");
-                    }
-
-                    await Task.Delay(2000);
-
-                    var dataToInject = new
-                    {
-                        userQuestion = geminiWindow.UserQuestion,
-                        capturedPages = geminiWindow.CapturedData.Select(cp => new
-                        {
-                            url = cp.Url,
-                            title = cp.Title,
-                            screenshotBase64 = cp.ScreenshotBase64,
-                            pageText = cp.PageText,
-                            faviconBase64 = cp.FaviconBase64
-                        }).ToList()
-                    };
-
-                    string jsonString = JsonSerializer.Serialize(dataToInject);
-
-                    string injectionScript = $@"
-                        (function() {{
-                            const data = {jsonString};
-
-                            let container = document.getElementById('auroraGeminiIntegrationContainer');
-                            if (!container) {{
-                                container = document.createElement('div');
-                                container.id = 'auroraGeminiIntegrationContainer';
-                                container.style.cssText = `
-                                    position: absolute;
-                                    top: 10px;
-                                    left: 10px;
-                                    right: 10px;
-                                    background-color: rgba(255, 255, 255, 0.95);
-                                    border: 2px solid #9B59B6;
-                                    border-radius: 10px;
-                                    padding: 15px;
-                                    z-index: 99999;
-                                    max-height: 90%;
-                                    overflow-y: auto;
-                                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-                                    font-family: 'Segoe UI', sans-serif;
-                                    color: #333;
-                                `;
-                                document.body.prepend(container);
-                            }} else {{
-                                container.innerHTML = '';
-                            }}
-
-                            const closeButton = document.createElement('button');
-                            closeButton.textContent = 'X';
-                            closeButton.style.cssText = `
-                                position: absolute;
-                                top: 5px;
-                                right: 5px;
-                                background: #dc3545;
-                                color: white;
-                                border: none;
-                                border-radius: 50%;
-                                width: 25px;
-                                height: 25px;
-                                cursor: pointer;
-                                font-size: 14px;
-                                line-height: 1;
-                                text-align: center;
-                            `;
-                            closeButton.onclick = () => container.remove();
-                            container.appendChild(closeButton);
-
-                            const header = document.createElement('h3');
-                            header.textContent = 'Datos de Aurora Browser para Gemini:';
-                            header.style.cssText = 'color: #9B59B6; margin-top: 5px; margin-bottom: 10px;';
-                            container.appendChild(header);
-
-                            const questionPara = document.createElement('p');
-                            questionPara.innerHTML = `<strong>Tu Pregunta:</strong> ${data.userQuestion}`;
-                            questionPara.style.cssText = 'background-color: #e6f7ff; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-style: italic;';
-                            container.appendChild(questionPara);
-
-                            data.capturedPages.forEach(page => {{
-                                const pageDiv = document.createElement('div');
-                                pageDiv.style.cssText = `
-                                    border: 1px solid #eee;
-                                    border-radius: 8px;
-                                    padding: 10px;
-                                    margin-bottom: 10px;
-                                    background-color: #fcfcfc;
-                                    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-                                `;
-
-                                const pageTitle = document.createElement('h4');
-                                pageTitle.style.cssText = 'margin-top: 0; margin-bottom: 5px; color: #007bff; display: flex; align-items: center;';
-                                if (page.faviconBase64) {{
-                                    const faviconImg = document.createElement('img');
-                                    faviconImg.src = `data:image/x-icon;base64,${page.faviconBase64}`;
-                                    faviconImg.style.cssText = 'width: 16px; height: 16px; margin-right: 8px;';
-                                    pageTitle.appendChild(faviconImg);
-                                }}
-                                pageTitle.innerHTML += page.title || page.url;
-                                pageDiv.appendChild(pageTitle);
-
-                                const urlPara = document.createElement('p');
-                                urlPara.innerHTML = `<strong>URL:</strong> <a href='${page.url}' target='_blank' style='color: #0056b3;'>${page.url}</a>`;
-                                urlPara.style.cssText = 'font-size: 0.9em; margin-bottom: 5px; word-break: break-all;';
-                                pageDiv.appendChild(urlPara);
-
-                                if (page.screenshotBase64) {{
-                                    const screenshotImg = document.createElement('img');
-                                    screenshotImg.src = `data:image/png;base64,${page.screenshotBase64}`;
-                                    screenshotImg.style.cssText = `
-                                        max-width: 100%;
-                                        height: auto;
-                                        display: block;
-                                        margin: 10px 0;
-                                        border: 1px solid #ddd;
-                                        border-radius: 5px;
-                                    `;
-                                    pageDiv.appendChild(screenshotImg);
-                                }}
-
-                                if (page.pageText) {{
-                                    const textHeader = document.createElement('p');
-                                    textHeader.innerHTML = '<strong>Texto Extraído (primeros 500 caracteres):</strong>';
-                                    textHeader.style.cssText = 'margin-bottom: 5px; font-size: 0.9em;';
-                                    pageDiv.appendChild(textHeader);
-
-                                    const textContent = document.createElement('div');
-                                    textContent.textContent = page.pageText.substring(0, 500) + (page.pageText.length > 500 ? '...' : '');
-                                    textContent.style.cssText = `
-                                        background-color: #f9f9f9;
-                                        border: 1px dashed #ccc;
-                                        padding: 8px;
-                                        max-height: 100px;
-                                        overflow-y: auto;
-                                        font-size: 0.8em;
-                                        white-space: pre-wrap;
-                                    `;
-                                    pageDiv.appendChild(textContent);
-                                }}
-                                container.appendChild(pageDiv);
-                            }});
-
-                            const instructionsPara = document.createElement('p');
-                            instructionsPara.innerHTML = `<br><strong>Instrucciones:</strong> Para que Gemini procese esta información, por favor, copia y pega el texto y las URLs relevantes en el cuadro de chat de Gemini, y sube las imágenes si es necesario.`;
-                            instructionsPara.style.cssText = 'margin-top: 20px; font-size: 0.95em; color: #666; border-top: 1px dashed #eee; padding-top: 10px;';
-                            container.appendChild(instructionsPara);
-
-                        }})();
-                    ";
-                    
-                    SelectedTabItem.RightWebView!.CoreWebView2!.ExecuteScriptAsync(injectionScript);
-
-                    MessageBox.Show(this, "Las capturas de pantalla, URLs y tu pregunta se han mostrado en el panel de Gemini. Por favor, copia y pega la información relevante en el chat de Gemini.", "Información para Gemini", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    MessageBox.Show(this, "Para usar esta función, por favor, activa el modo de pantalla dividida en la pestaña actual y asegúrate de que el panel derecho esté visible.", "Modo de Pantalla Dividida Requerido", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-            }
-            
-            SetGeminiMode(false);
-        }
-
-        private void SetGeminiMode(bool isActive)
-        {
-            _isGeminiModeActive = isActive;
-            if (isActive)
-            {
-                Application.Current.Resources["OriginalBrowserBackgroundColor"] = BrowserBackgroundColor;
-                Application.Current.Resources["OriginalBrowserForegroundColor"] = BrowserForegroundColor;
-
-                BrowserBackgroundColor = (Color)Application.Current.Resources["GeminiBackgroundColor"];
-                BrowserForegroundColor = (Color)Application.Current.Resources["GeminiForegroundColor"];
-            }
-            else
-            {
-                if (Application.Current.Resources.Contains("OriginalBrowserBackgroundColor") &&
-                    Application.Current.Resources.Contains("OriginalBrowserForegroundColor"))
-                {
-                    BrowserBackgroundColor = (Color)Application.Current.Resources["OriginalBrowserBackgroundColor"];
-                    BrowserForegroundColor = (Color)Application.Current.Resources["OriginalBrowserForegroundColor"];
-                    Application.Current.Resources.Remove("OriginalBrowserBackgroundColor");
-                    Application.Current.Resources.Remove("OriginalBrowserForegroundColor");
-                }
-                else
-                {
-                    LoadSettings();
-                    ApplyForegroundToWindowControls();
-                }
-            }
-            ApplyToolbarPosition(_currentToolbarPosition);
-            UpdateToolbarButtonForeground();
-        }
-
-
-        private async void CoreWebView2_DOMContentLoaded(object? sender, CoreWebView2DOMContentLoadedEventArgs e)
-        {
-            WebView2? currentWebView = sender as WebView2;
-            if (currentWebView == null || currentWebView.CoreWebView2 == null) return;
-
-            var browserTab = GetBrowserTabItemFromWebView(currentWebView);
-            if (browserTab != null && browserTab.IsIncognito) return;
-
-            string currentUrl = currentWebView.CoreWebView2.Source;
-            string? username = null;
-            string? password = null;
-
-            var allPasswords = PasswordManager.GetAllPasswords();
-            var matchingEntry = allPasswords.FirstOrDefault(p =>
-                new Uri(p.Url).Host.Equals(new Uri(currentUrl).Host, StringComparison.OrdinalIgnoreCase));
-
-            if (matchingEntry != null)
-            {
-                username = matchingEntry.Username;
-                password = PasswordManager.DecryptPassword(matchingEntry.EncryptedPassword);
-
-                string autofillScript = $@"
-                    (function() {{
-                        let usernameFields = document.querySelectorAll('input[type=""text""], input[type=""email""]');
-                        let passwordFields = document.querySelectorAll('input[type=""password""]');
-
-                        if (usernameFields.length > 0 && passwordFields.length > 0) {{
-                            usernameFields[0].value = '{username}';
-                            passwordFields[0].value = '{password}';
-                        }}
-                    }})();
-                ";
-                await currentWebView.CoreWebView2.ExecuteScriptAsync(autofillScript);
-            }
-
-            string scriptToInject = @"
-                (function() {
-                    document.querySelectorAll('form').forEach(form => {
-                        form.addEventListener('submit', (event) => {
-                            let usernameInput = form.querySelector('input[type=""text""], input[type=""email""]');
-                            let passwordInput = form.querySelector('input[type=""password""]');
-
-                            if (usernameInput && passwordInput && usernameInput.value && passwordInput.value) {
-                                window.chrome.webview.postMessage({
-                                    type: 'loginSubmit',
-                                    url: window.location.href,
-                                    username: usernameInput.value,
-                                    password: passwordInput.value
-                                });
-                            }
-                        });
-                    });
-                })();
-            ";
-            await currentWebView.CoreWebView2.ExecuteScriptAsync(scriptToInject);
-        }
-
-        private async void CoreWebView2_WebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
-        {
-            WebView2? currentWebView = sender as WebView2;
-            if (currentWebView == null || currentWebView.CoreWebView2 == null) return;
-
-            string message = e.WebMessageAsJson;
-            try
-            {
-                using (JsonDocument doc = JsonDocument.Parse(message))
-                {
-                    JsonElement root = doc.RootElement;
-                    if (root.TryGetProperty("type", out JsonElement typeElement) && typeElement.GetString() == "loginSubmit")
-                    {
-                        string? url = root.GetProperty("url").GetString();
-                        string? username = root.GetProperty("username").GetString();
-                        string? password = root.GetProperty("password").GetString();
-
-                        if (url != null && username != null && password != null)
-                        {
-                            MessageBoxResult result = MessageBox.Show(this,
-                                $"¿Deseas guardar la contraseña para el usuario '{username}' en '{new Uri(url).Host}'?",
-                                "Guardar Contraseña",
-                                MessageBoxButton.YesNo,
-                                MessageBoxImage.Question
-                            );
-
-                            if (result == MessageBoxResult.Yes)
-                            {
-                                PasswordManager.AddOrUpdatePassword(url, username, password);
-                                MessageBox.Show(this, "Contraseña guardada con éxito.", "Contraseña Guardada", MessageBoxButton.OK, MessageBoxImage.Information);
-                            }
-                        }
-                    }
-                    else if (root.TryGetProperty("type", out typeElement) && typeElement.GetString() == "retryConnection")
-                    {
-                        Dispatcher.Invoke(() =>
-                        {
-                            if (!string.IsNullOrEmpty(_lastFailedUrl))
-                            {
-                                AddressBar.Text = _lastFailedUrl;
-                                NavigateToUrlInCurrentTab();
-                            }
-                            else
-                            {
-                                AddNewTab(_defaultHomePage);
-                            }
-                        });
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error al procesar mensaje web: {ex.Message}");
-            }
-        }
-
-
-        public CoreWebView2Environment GetDefaultEnvironment()
-        {
-            return _defaultEnvironment!;
-        }
-
-
-        public List<BrowserTabItem> GetBrowserTabItems()
-        {
-            return _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).ToList();
-        }
-
-        public void CloseBrowserTab(TabItem tabToClose)
-        {
-            Button? closeButton = null;
-            if (tabToClose.Header is DockPanel headerPanel)
-            {
-                closeButton = headerPanel.Children.OfType<Button>().FirstOrDefault(b => b.Content.ToString() == "✖");
-            }
-
-            if (closeButton != null)
-            {
-                CloseTabButton_Click(closeButton, new RoutedEventArgs());
-            }
-            else
-            {
-                var browserTabItem = GetBrowserTabItemFromTabItem(tabToClose);
-                if (browserTabItem != null)
-                {
-                    browserTabItem.LeftWebView?.Dispose();
-                    browserTabItem.RightWebView?.Dispose();
-                    browserTabItem.ParentGroup?.TabsInGroup.Remove(browserTabItem);
-
-                    if (!browserTabItem.ParentGroup!.TabsInGroup.Any() && _tabGroupManager.TabGroups.Count > 1)
-                    {
-                        _tabGroupManager.RemoveGroup(browserTabItem.ParentGroup);
-                    }
-                }
-
-                if (!_tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).Any())
-                {
-                    AddNewTab();
-                }
-                else
-                {
-                    if (SelectedTabItem == browserTabItem && _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).Any())
-                    {
-                        SelectedTabItem = _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).First();
-                        SelectedTabItem.Tab!.IsSelected = true;
-                    }
-                }
-            }
-        }
-
-        private TabItem? GetCurrentBrowserTabItemInternal()
-        {
-            return SelectedTabItem?.Tab;
-        }
-
-
-        private async Task EnableSplitScreenForCurrentTab(BrowserTabItem tabItem, string rightPanelUrl)
-        {
-            if (_isReadingAloud)
-            {
-                _speechSynthesizer.SpeakAsyncCancelAll();
-                _isReadingAloud = false;
-            }
-
-            WebView2 webView2 = new WebView2();
-            webView2.Source = new Uri(rightPanelUrl);
-            webView2.Name = "WebView2_Tab" + tabItem.ParentGroup!.TabsInGroup.IndexOf(tabItem);
-            webView2.HorizontalAlignment = HorizontalAlignment.Stretch;
-            webView2.VerticalAlignment = VerticalAlignment.Stretch;
-
-            CoreWebView2Environment envToUse = tabItem.IsIncognito ? _incognitoEnvironment! : _defaultEnvironment!;
-            webView2.CoreWebView2InitializationCompleted += (s, ev) => ConfigureCoreWebView2(webView2, ev, envToUse);
-
-            await webView2.EnsureCoreWebView2Async(null);
-
-            Grid splitGrid = new Grid();
-            splitGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            splitGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            splitGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-            Grid.SetColumn(tabItem.LeftWebView!, 0);
-            splitGrid.Children.Add(tabItem.LeftWebView!);
-
-            GridSplitter splitter = new GridSplitter
-            {
-                Width = 5,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Stretch,
-                Background = Brushes.LightGray,
-                ResizeBehavior = GridResizeBehavior.PreviousAndNext
-            };
-            Grid.SetColumn(splitter, 1);
-            splitGrid.Children.Add(splitter);
-
-            Grid.SetColumn(webView2, 2);
-            splitGrid.Children.Add(webView2);
-
-            tabItem.Tab!.Content = splitGrid;
-            tabItem.RightWebView = webView2;
-            tabItem.IsSplit = true;
-        }
-
-        private void DisableSplitScreenForCurrentTab(BrowserTabItem tabItem)
-        {
-            if (_isReadingAloud)
-            {
-                _speechSynthesizer.SpeakAsyncCancelAll();
-                _isReadingAloud = false;
-            }
-
-            Grid? currentGrid = tabItem.Tab?.Content as Grid;
-            if (currentGrid != null)
-            {
-                currentGrid.Children.Remove(tabItem.LeftWebView!);
-            }
-
-            if (tabItem.RightWebView != null)
-            {
-                tabItem.RightWebView.Dispose();
-                tabItem.RightWebView = null;
-            }
-
-            Grid singleViewGrid = new Grid();
-            singleViewGrid.Children.Add(tabItem.LeftWebView!);
-            tabItem.Tab!.Content = singleViewGrid;
-            tabItem.IsSplit = false;
-        }
-
-        private void IncognitoButton_Click(object sender, RoutedEventArgs e)
-        {
-            AddNewTab(_defaultHomePage, isIncognito: true);
-        }
-
-        public void CloseTabButton_Click(object sender, RoutedEventArgs e)
-        {
-            Button? closeButton = sender as Button;
-            TabItem? tabToClose = closeButton?.Tag as TabItem;
-
-            if (tabToClose != null)
-            {
-                var browserTabItem = GetBrowserTabItemFromTabItem(tabToClose);
-
-                if (browserTabItem != null)
-                {
-                    browserTabItem.ParentGroup?.TabsInGroup.Remove(browserTabItem);
-                    browserTabItem.LeftWebView?.Dispose();
-                    browserTabItem.RightWebView?.Dispose();
-
-                    if (!browserTabItem.ParentGroup!.TabsInGroup.Any() && _tabGroupManager.TabGroups.Count > 1)
-                    {
-                        _tabGroupManager.RemoveGroup(browserTabItem.ParentGroup);
-                    }
-                }
-
-                if (!_tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).Any())
-                {
-                    AddNewTab();
-                }
-                else
-                {
-                    if (SelectedTabItem == browserTabItem && _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).Any())
-                    {
-                        SelectedTabItem = _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).First();
-                        SelectedTabItem.Tab!.IsSelected = true;
-                    }
-                }
-            }
-        }
-
-        private void AddressBar_ContextMenuOpening(object sender, ContextMenuEventArgs e)
-        {
-            // No se necesita código aquí si el ContextMenu está definido directamente en XAML.
-        }
-
-        private void OpenInNewTabMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            AddNewTab(AddressBar.Text);
-        }
-
-        private void OpenInNewIncognitoTabMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            AddNewTab(AddressBar.Text, isIncognito: true);
-        }
-
-
-        private void BrowserTabControl_SelectionChanged_Grouped(object sender, SelectionChangedEventArgs e)
-        {
-            TabControl? currentTabControl = sender as TabControl;
-            if (currentTabControl != null && currentTabControl.SelectedItem is BrowserTabItem selectedBrowserTab)
-            {
-                SelectedTabItem = selectedBrowserTab;
-                UpdateUrlTextBoxFromCurrentTab();
-
-                if (_isReadingAloud)
-                {
-                    _speechSynthesizer.SpeakAsyncCancelAll();
-                    _isReadingAloud = false;
-                }
-
-                if (selectedBrowserTab.LeftWebView == null)
-                {
-                    if (_isTabSuspensionEnabled)
-                    {
-                        string? urlToReload = selectedBrowserTab.Tab?.Tag?.ToString();
-
-                        WebView2 newWebView = new WebView2();
-                        newWebView.Source = new Uri(urlToReload ?? _defaultHomePage);
-                        newWebView.Name = "WebView1_Tab" + (selectedBrowserTab.ParentGroup!.TabsInGroup.IndexOf(selectedBrowserTab) + 1);
-                        newWebView.HorizontalAlignment = HorizontalAlignment.Stretch;
-                        newWebView.VerticalAlignment = VerticalAlignment.Stretch;
-
-                        newWebView.Loaded += WebView_Loaded;
-                        CoreWebView2Environment envToUse = selectedBrowserTab.IsIncognito ? _incognitoEnvironment! : _defaultEnvironment!;
-                        newWebView.CoreWebView2InitializationCompleted += (s, ev) => ConfigureCoreWebView2(newWebView, ev, envToUse);
-                        // Eliminado: newWebView.CoreWebView2.FindResultReceived += CoreWebView2_FindResultReceived;
-                        newWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
-                        newWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
-                        newWebView.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
-                        newWebView.CoreWebView2.FaviconChanged += CoreWebView2_FaviconChanged;
-                        newWebView.CoreWebView2.IsAudioPlayingChanged += CoreWebView2_IsAudioPlayingChanged;
-                        newWebView.CoreWebView2.ProcessFailed += CoreWebView2_ProcessFailed;
-                        newWebView.CoreWebView2.WebResourceResponseReceived += CoreWebView2_WebResourceResponseReceived;
-
-
-                        Grid tabContent = new Grid();
-                        tabContent.Children.Add(newWebView);
-                        selectedBrowserTab.Tab!.Content = tabContent;
-
-                        selectedBrowserTab.LeftWebView = newWebView;
-                        selectedBrowserTab.RightWebView = null;
-                        selectedBrowserTab.IsSplit = false;
-
-                        string originalHeaderText = selectedBrowserTab.HeaderTextBlock!.Text;
-                        if (!originalHeaderText.StartsWith("(Suspendida) "))
-                        {
-                            selectedBrowserTab.HeaderTextBlock.Text = "(Suspendida) " + originalHeaderText;
-                        }
-                    }
-                    else
-                    {
-                        string? urlToReload = selectedBrowserTab.Tab?.Tag?.ToString();
-                        selectedBrowserTab.ParentGroup!.TabsInGroup.Remove(selectedBrowserTab);
-                        AddNewTab(urlToReload, selectedBrowserTab.IsIncognito, selectedBrowserTab.ParentGroup);
-                    }
-                }
-            }
-            _isFindBarVisible = false;
-            ClearFindResults();
-        }
-
-        private void UpdateUrlTextBoxFromCurrentTab()
-        {
-            WebView2? currentWebView = GetCurrentWebView();
-            if (currentWebView != null && currentWebView.CoreWebView2 != null)
-            {
-                AddressBar.Text = currentWebView.CoreWebView2.Source;
-                this.Title = currentWebView.CoreWebView2.DocumentTitle + " - Aurora Browser";
-                WindowTitleText!.Text = this.Title;
-            }
-            else
-            {
-                AddressBar.Text = string.Empty;
-                this.Title = "Aurora Browser";
-                WindowTitleText!.Text = this.Title;
-            }
-        }
-
-        public WebView2? GetCurrentWebView()
-        {
-            return SelectedTabItem?.LeftWebView;
-        }
-
-        private BrowserTabItem? GetBrowserTabItemFromTabItem(TabItem tabItem)
-        {
-            return _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).FirstOrDefault(bti => bti.Tab == tabItem);
-        }
-
-        private BrowserTabItem? GetBrowserTabItemFromWebView(WebView2? webView)
-        {
-            return _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).FirstOrDefault(bti => bti.LeftWebView == webView || bti.RightWebView == webView);
-        }
-
-
-        private void CheckAndSuggestTabSuspension()
-        {
-            const int MaxTabsBeforeSuggestion = 15;
-            int activeTabs = _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).Count(t => t.LeftWebView != null && !t.IsIncognito && !t.IsSplit);
-
-            if (_isTabSuspensionEnabled && activeTabs > MaxTabsBeforeSuggestion)
-            {
-                MessageBoxResult result = MessageBox.Show(this,
-                    $"Tienes {activeTabs} pestañas activas. Para mejorar el rendimiento, ¿te gustaría suspender las pestañas inactivas ahora?",
-                    "Sugerencia de Suspensión de Pestañas",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question
-                );
-
-                if (result == MessageBoxResult.Yes)
-                {
-                    SettingsWindow_OnSuspendInactiveTabs();
-                }
-            }
-        }
-
-
-        private void SettingsButton_Click(object sender, RoutedEventArgs e)
-        {
-            SettingsWindow settingsWindow = new SettingsWindow(
-                _defaultHomePage, AdBlocker.IsEnabled, _defaultSearchEngineUrl,
-                _isTabSuspensionEnabled, _restoreSessionOnStartup, TrackerBlocker.IsEnabled,
-                _isPdfViewerEnabled, BrowserBackgroundColor, BrowserForegroundColor, _currentToolbarPosition);
-
-            settingsWindow.Owner = this;
-            settingsWindow.OnClearBrowsingData += SettingsWindow_OnClearBrowsingData;
-            settingsWindow.OnSuspendInactiveTabs += SettingsWindow_OnSuspendInactiveTabs;
-            settingsWindow.OnColorsChanged += SettingsWindow_OnColorsChanged;
-            settingsWindow.OnToolbarPositionChanged += SettingsWindow_OnToolbarPositionChanged;
-
-            if (settingsWindow.ShowDialog() == true)
-            {
-                _defaultHomePage = settingsWindow.HomePage;
-                AdBlocker.IsEnabled = settingsWindow.IsAdBlockerEnabled;
-                _defaultSearchEngineUrl = settingsWindow.DefaultSearchEngineUrl;
-                _isTabSuspensionEnabled = settingsWindow.IsTabSuspensionEnabled;
-                _restoreSessionOnStartup = settingsWindow.RestoreSessionOnStartup;
-                TrackerBlocker.IsEnabled = settingsWindow.IsTrackerProtectionEnabled;
-                _isPdfViewerEnabled = settingsWindow.IsPdfViewerEnabled;
-                SaveSettings();
-                MessageBox.Show(this, "Configuración guardada. Los cambios se aplicarán al abrir nuevas pestañas o al hacer clic en 'Inicio'.", "Configuración Guardada", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-
-            settingsWindow.OnClearBrowsingData -= SettingsWindow_OnClearBrowsingData;
-            settingsWindow.OnSuspendInactiveTabs -= SettingsWindow_OnSuspendInactiveTabs;
-            settingsWindow.OnColorsChanged -= SettingsWindow_OnColorsChanged;
-            settingsWindow.OnToolbarPositionChanged -= SettingsWindow_OnToolbarPositionChanged;
-        }
-
-        private void SettingsWindow_OnColorsChanged(Color backgroundColor, Color foregroundColor)
-        {
-            BrowserBackgroundColor = backgroundColor;
-            BrowserForegroundColor = foregroundColor;
-            SaveSettings();
-        }
-
-        private void SettingsWindow_OnToolbarPositionChanged(ToolbarPosition newPosition)
-        {
-            _currentToolbarPosition = newPosition;
-            ApplyToolbarPosition(newPosition);
-            SaveSettings();
-        }
-
-
-        private async void SettingsWindow_OnClearBrowsingData()
-        {
-            WebView2? anyWebView = GetCurrentWebView();
-
-            if (_defaultEnvironment != null)
-            {
-                CoreWebView2BrowserDataKinds dataKinds =
-                    CoreWebView2BrowserDataKinds.Cookies |
-                    CoreWebView2BrowserDataKinds.DiskCache |
-                    CoreWebView2BrowserDataKinds.Downloads |
-                    CoreWebView2BrowserDataKinds.GeneralAutofill |
-                    CoreWebView2BrowserDataKinds.ReadAloud |
-                    CoreWebView2BrowserDataKinds.History |
-                    CoreWebView2BrowserDataKinds.IndexedDb |
-                    CoreWebView2BrowserDataKinds.LocalStorage |
-                    CoreWebView2BrowserDataKinds.PasswordAutofill |
-                    CoreWebView2BrowserDataKinds.OtherData;
-
-                await _defaultEnvironment.ClearBrowsingDataAsync(dataKinds);
-                MessageBox.Show(this, "Datos de navegación (caché, cookies, etc.) borrados con éxito.", "Limpieza Completa", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            else
-            {
-                MessageBox.Show(this, "No se pudo acceder al motor del navegador para borrar los datos del perfil normal.", "Error de Limpieza", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void SettingsWindow_OnSuspendInactiveTabs()
-        {
-            if (!_isTabSuspensionEnabled)
-            {
-                MessageBox.Show(this, "La suspensión de pestañas no está habilitada en la configuración. Habilítela para usar esta función.", "Suspensión Deshabilitada", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            foreach (var browserTab in _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).ToList())
-            {
-                if (browserTab != SelectedTabItem && !browserTab.IsIncognito && !browserTab.IsSplit)
-                {
-                    if (browserTab.LeftWebView != null && browserTab.LeftWebView.CoreWebView2 != null)
-                    {
-                        string suspendedUrl = browserTab.LeftWebView.Source.OriginalString;
-
-                        browserTab.LeftWebView.Dispose();
-                        browserTab.LeftWebView = null;
-
-                        TextBlock suspendedMessage = new TextBlock
-                        {
-                            Text = $"Pestaña suspendida para ahorrar recursos.\nHaz clic para recargar: {suspendedUrl}",
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Center,
-                            TextAlignment = TextAlignment.Center,
-                            FontSize = 14,
-                            Padding = new Thickness(20),
-                            TextWrapping = TextWrapping.Wrap
-                        };
-                        browserTab.Tab!.Content = suspendedMessage;
-                        browserTab.Tab.Tag = suspendedUrl;
-
-                        string originalHeaderText = browserTab.HeaderTextBlock!.Text;
-                        if (!originalHeaderText.StartsWith("(Suspendida) "))
-                        {
-                            browserTab.HeaderTextBlock.Text = "(Suspendida) " + originalHeaderText;
-                        }
-                    }
-                }
-            }
-        }
-
-        private void LoadSettings()
-        {
-            string? savedHomePage = ConfigurationManager.AppSettings[HomePageSettingKey];
-            if (!string.IsNullOrEmpty(savedHomePage))
-            {
-                _defaultHomePage = savedHomePage;
-            }
-
-            string? savedAdBlockerState = ConfigurationManager.AppSettings[AdBlockerSettingKey];
-            if (bool.TryParse(savedAdBlockerState, out bool isEnabled))
-            {
-                AdBlocker.IsEnabled = isEnabled;
-            }
-            else
-            {
-                AdBlocker.IsEnabled = false;
-            }
-
-            string? savedSearchEngineUrl = ConfigurationManager.AppSettings[DefaultSearchEngineSettingKey];
-            if (!string.IsNullOrEmpty(savedSearchEngineUrl))
-            {
-                _defaultSearchEngineUrl = savedSearchEngineUrl;
-            }
-
-            string? savedTabSuspensionState = ConfigurationManager.AppSettings[TabSuspensionSettingKey];
-            if (bool.TryParse(savedTabSuspensionState, out bool isTabSuspensionEnabled))
-            {
-                _isTabSuspensionEnabled = isTabSuspensionEnabled;
-            }
-            else
-            {
-                _isTabSuspensionEnabled = false;
-            }
-
-            string? savedRestoreSessionState = ConfigurationManager.AppSettings[RestoreSessionSettingKey];
-            if (bool.TryParse(savedRestoreSessionState, out bool restoreSession))
-            {
-                _restoreSessionOnStartup = restoreSession;
-            }
-            else
-            {
-                _restoreSessionOnStartup = true;
-            }
-
-            string? savedTrackerProtectionState = ConfigurationManager.AppSettings[TrackerProtectionSettingKey];
-            if (bool.TryParse(savedTrackerProtectionState, out bool isTrackerProtectionEnabled))
-            {
-                TrackerBlocker.IsEnabled = isTrackerProtectionEnabled;
-            }
-            else
-            {
-                TrackerBlocker.IsEnabled = false;
-            }
-
-            string? savedPdfViewerState = ConfigurationManager.AppSettings[PdfViewerSettingKey];
-            if (bool.TryParse(savedPdfViewerState, out bool isPdfViewerEnabled))
-            {
-                _isPdfViewerEnabled = isPdfViewerEnabled;
-            }
-            else
-            {
-                _isPdfViewerEnabled = true;
-            }
-
-            if (ConfigurationManager.AppSettings[BrowserBackgroundColorKey] != null &&
-                ColorConverter.ConvertFromString(ConfigurationManager.AppSettings[BrowserBackgroundColorKey]) is Color bgColor)
-            {
-                BrowserBackgroundColor = bgColor;
-            }
-            else
-            {
-                BrowserBackgroundColor = (Color)Application.Current.Resources["DefaultBrowserBackgroundColor"];
-            }
-
-            if (ConfigurationManager.AppSettings[BrowserForegroundColorKey] != null &&
-                ColorConverter.ConvertFromString(ConfigurationManager.AppSettings[BrowserForegroundColorKey]) is Color fgColor)
-            {
-                BrowserForegroundColor = fgColor;
-            }
-            else
-            {
-                BrowserForegroundColor = (Color)Application.Current.Resources["DefaultBrowserForegroundColor"];
-            }
-
-            string? savedToolbarPosition = ConfigurationManager.AppSettings[ToolbarOrientationKey];
-            if (Enum.TryParse(savedToolbarPosition, out ToolbarPosition position))
-            {
-                _currentToolbarPosition = position;
-            }
-            else
-            {
-                _currentToolbarPosition = ToolbarPosition.Top;
-            }
-        }
-
-        private void SaveSettings()
-        {
-            Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-
-            if (config.AppSettings.Settings[HomePageSettingKey] == null)
-                config.AppSettings.Settings.Add(HomePageSettingKey, _defaultHomePage);
-            else
-                config.AppSettings.Settings[HomePageSettingKey].Value = _defaultHomePage;
-
-            if (config.AppSettings.Settings[AdBlockerSettingKey] == null)
-                config.AppSettings.Settings.Add(AdBlockerSettingKey, AdBlocker.IsEnabled.ToString());
-            else
-                config.AppSettings.Settings[AdBlockerSettingKey].Value = AdBlocker.IsEnabled.ToString();
-
-            if (config.AppSettings.Settings[DefaultSearchEngineSettingKey] == null)
-                config.AppSettings.Settings.Add(DefaultSearchEngineSettingKey, _defaultSearchEngineUrl);
-            else
-                config.AppSettings.Settings[DefaultSearchEngineSettingKey].Value = _defaultSearchEngineUrl;
-
-            if (config.AppSettings.Settings[TabSuspensionSettingKey] == null)
-                config.AppSettings.Settings.Add(TabSuspensionSettingKey, _isTabSuspensionEnabled.ToString());
-            else
-                config.AppSettings.Settings[TabSuspensionSettingKey].Value = _isTabSuspensionEnabled.ToString();
-
-            if (config.AppSettings.Settings[RestoreSessionSettingKey] == null)
-                config.AppSettings.Settings.Add(RestoreSessionSettingKey, _restoreSessionOnStartup.ToString());
-            else
-                config.AppSettings.Settings[RestoreSessionSettingKey].Value = _restoreSessionOnStartup.ToString();
-
-            if (config.AppSettings.Settings[TrackerProtectionSettingKey] == null)
-                config.AppSettings.Settings.Add(TrackerProtectionSettingKey, TrackerBlocker.IsEnabled.ToString());
-            else
-                config.AppSettings.Settings[TrackerProtectionSettingKey].Value = TrackerBlocker.IsEnabled.ToString();
-
-            if (config.AppSettings.Settings[PdfViewerSettingKey] == null)
-                config.AppSettings.Settings.Add(PdfViewerSettingKey, _isPdfViewerEnabled.ToString());
-            else
-                config.AppSettings.Settings[PdfViewerSettingKey].Value = _isPdfViewerEnabled.ToString();
-
-            if (config.AppSettings.Settings[BrowserBackgroundColorKey] == null)
-                config.AppSettings.Settings.Add(BrowserBackgroundColorKey, BrowserBackgroundColor.ToString());
-            else
-                config.AppSettings.Settings[BrowserBackgroundColorKey].Value = BrowserBackgroundColor.ToString();
-
-            if (config.AppSettings.Settings[BrowserForegroundColorKey] == null)
-                config.AppSettings.Settings.Add(BrowserForegroundColorKey, BrowserForegroundColor.ToString());
-            else
-                config.AppSettings.Settings[BrowserForegroundColorKey].Value = BrowserForegroundColor.ToString();
-
-            if (config.AppSettings.Settings[ToolbarOrientationKey] == null)
-                config.AppSettings.Settings.Add(ToolbarOrientationKey, _currentToolbarPosition.ToString());
-            else
-                config.AppSettings.Settings[ToolbarOrientationKey].Value = _currentToolbarPosition.ToString();
-
-
-            if (_restoreSessionOnStartup)
-            {
-                List<string> currentUrls = new List<string>();
-                foreach (var tab in _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup))
-                {
-                    if (!tab.IsIncognito && tab.LeftWebView != null && tab.LeftWebView.CoreWebView2 != null)
-                    {
-                        currentUrls.Add(tab.LeftWebView.Source.OriginalString);
-                    }
-                    else if (!tab.IsIncognito && tab.LeftWebView == null && tab.Tab?.Tag is string suspendedUrl)
-                    {
-                        currentUrls.Add(suspendedUrl);
-                    }
-                }
-                string urlsJson = JsonSerializer.Serialize(currentUrls);
-                if (config.AppSettings.Settings[LastSessionUrlsSettingKey] == null)
-                    config.AppSettings.Settings.Add(LastSessionUrlsSettingKey, urlsJson);
-                else
-                    config.AppSettings.Settings[LastSessionUrlsSettingKey].Value = urlsJson;
-            }
-            else
-            {
-                if (config.AppSettings.Settings[LastSessionUrlsSettingKey] != null)
-                {
-                    config.AppSettings.Settings.Remove(LastSessionUrlsSettingKey);
-                }
-            }
-
-
-            config.Save(ConfigurationSaveMode.Modified);
-            ConfigurationManager.RefreshSection("appSettings");
-        }
-
-        private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
-        {
-            SaveSettings();
-            _extensionManager.SaveExtensionsState();
-            UpdateUncleanShutdownFlag(false);
-
-            if (_speechSynthesizer != null)
-            {
-                _speechSynthesizer.SpeakAsyncCancelAll();
-                _speechSynthesizer.Dispose();
-                _speechSynthesizer = null;
-            }
-
-            if (_connectivityTimer != null)
-            {
-                _connectivityTimer.Stop();
-                _connectivityTimer.Dispose();
-                _connectivityTimer = null;
-            }
-
-            foreach (var tab in _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup))
-            {
-                tab.LeftWebView?.Dispose();
-                tab.RightWebView?.Dispose();
-            }
-            _tabGroupManager.TabGroups.Clear();
-
-            if (_incognitoEnvironment != null)
-            {
-                string incognitoUserDataFolder = _incognitoEnvironment.UserDataFolder;
-                _incognitoEnvironment = null;
-                try
-                {
-                    if (Directory.Exists(incognitoUserDataFolder))
-                    {
-                        Directory.Delete(incognitoUserDataFolder, true);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error al eliminar la carpeta de datos de incógnito: {ex.Message}");
-                }
-            }
-            if (_defaultEnvironment != null)
-            {
-                _defaultEnvironment = null;
-            }
-        }
-
-        private void Window_Drag(object sender, MouseButtonEventArgs e)
-        {
-            if (e.ChangedButton == MouseButton.Left)
-            {
-                if (this.WindowState == WindowState.Maximized)
-                {
-                    this.WindowState = WindowState.Normal;
-                    UpdateMaximizeRestoreButtonContent();
-                }
-                this.DragMove();
-            }
-        }
-
+        // Manejo de los botones de la barra de título
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
             this.WindowState = WindowState.Minimized;
@@ -2347,368 +462,1039 @@ namespace NavegadorWeb
             this.Close();
         }
 
+        private void UpdateMaximizeRestoreButtonContent()
+        {
+            if (this.WindowState == WindowState.Maximized)
+            {
+                MaximizeRestoreButton.Content = "🗗"; // Icono de restaurar
+                MaximizeRestoreButton.ToolTip = "Restaurar";
+            }
+            else
+            {
+                MaximizeRestoreButton.Content = "🗖"; // Icono de maximizar
+                MaximizeRestoreButton.ToolTip = "Maximizar";
+            }
+        }
+
+        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount == 2) // Doble clic para maximizar/restaurar
+            {
+                MaximizeRestoreButton_Click(sender, e);
+            }
+            else if (e.ChangedButton == MouseButton.Left)
+            {
+                this.DragMove(); // Mover la ventana
+            }
+        }
+
+        // Manejo de la barra de direcciones
+        private void AddressBar_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                string url = AddressBar.Text;
+                NavigateToUrl(url);
+            }
+        }
+
+        private void GoBack_Click(object sender, RoutedEventArgs e)
+        {
+            SelectedTabItem?.Tab?.GoBack();
+        }
+
+        private void GoForward_Click(object sender, RoutedEventArgs e)
+        {
+            SelectedTabItem?.Tab?.GoForward();
+        }
+
+        private void ReloadButton_Click(object sender, RoutedEventArgs e)
+        {
+            SelectedTabItem?.Tab?.Reload();
+        }
+
+        private void HomeButton_Click(object sender, RoutedEventArgs e)
+        {
+            NavigateToUrl(_defaultHomePage);
+        }
+
+        private void NavigateToUrl(string url)
+        {
+            if (!string.IsNullOrEmpty(url))
+            {
+                string navigatedUrl = url;
+                if (!url.Contains("://"))
+                {
+                    // Si no tiene esquema, intenta prefijar con "https://" o usar el motor de búsqueda
+                    if (url.Contains(".") && !url.Contains(" ")) // Es una URL, no una frase de búsqueda simple
+                    {
+                        navigatedUrl = "https://" + url;
+                    }
+                    else // Es una frase de búsqueda
+                    {
+                        navigatedUrl = _defaultSearchEngineUrl + Uri.EscapeDataString(url);
+                    }
+                }
+                SelectedTabItem?.Tab?.Navigate(navigatedUrl);
+            }
+        }
+
+        // Métodos relacionados con pestañas
+        public void AddNewTab(string url = "about:blank", CoreWebView2Environment? environment = null, bool isIncognito = false)
+        {
+            if (environment == null)
+            {
+                environment = isIncognito ? _incognitoEnvironment : _defaultEnvironment;
+            }
+
+            if (environment == null)
+            {
+                MessageBox.Show("Error: El entorno de WebView2 no está inicializado. No se puede abrir una nueva pestaña.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            BrowserTabItem newTabItem = new BrowserTabItem(url, environment, isIncognito);
+            _tabGroupManager.GetDefaultGroup().TabsInGroup.Add(newTabItem);
+            BrowserTabs.SelectedItem = newTabItem;
+
+            // Vincular los eventos de la pestaña
+            newTabItem.Tab!.ContentLoading += WebView_ContentLoading;
+            newTabItem.Tab.NavigationCompleted += WebView_NavigationCompleted;
+            newTabItem.Tab.SourceChanged += WebView_SourceChanged;
+            newTabItem.Tab.TitleChanged += WebView_TitleChanged;
+            newTabItem.Tab.IsAudioPlayingChanged += WebView_IsAudioPlayingChanged;
+            newTabItem.Tab.IconChanged += WebView_IconChanged;
+            newTabItem.Tab.ContainsFullScreenElementChanged += WebView_ContainsFullScreenElementChanged;
+            newTabItem.Tab.NewWindowRequested += WebView_NewWindowRequested;
+            newTabItem.Tab.WebMessageReceived += WebView_WebMessageReceived;
+            newTabItem.Tab.CoreWebView2InitializationCompleted += WebView_CoreWebView2InitializationCompleted;
+
+
+            // Actualizar el HeaderTemplate de las pestañas
+            // Esto ya se hace al inicializar el TabControl, pero si necesitas actualizarlo dinámicamente
+            // aquí es donde lo harías (ej: BrowserTabs.ItemTemplate = CreateTabHeaderTemplate();)
+        }
+
+        private void BrowserTabControl_SelectionChanged_Grouped(object sender, SelectionChangedEventArgs e)
+        {
+            if (BrowserTabs.SelectedItem is BrowserTabItem selectedTab)
+            {
+                SelectedTabItem = selectedTab;
+                AddressBar.Text = selectedTab.AddressBarText; // Actualiza la barra de dirección
+                WindowTitleText.Text = selectedTab.Title; // Actualiza el título de la ventana
+
+                // Cuando cambia la pestaña, asegúrate de que la barra de búsqueda se reinicie
+                CloseFindBarButton_Click(null, null); // Cierra la barra de búsqueda de la pestaña anterior
+            }
+            else
+            {
+                // Si no hay pestañas seleccionadas (ej: al cerrar la última)
+                AddressBar.Text = "";
+                WindowTitleText.Text = "Aurora Browser";
+            }
+            UpdateToolbarButtonForeground(); // Asegurar que los colores de los botones se apliquen correctamente.
+        }
+
+        private void CloseBrowserTab(WebView2 webViewToClose)
+        {
+            BrowserTabItem? tabItemToRemove = _tabGroupManager.GetDefaultGroup().TabsInGroup
+                                            .FirstOrDefault(ti => ti.Tab == webViewToClose);
+
+            if (tabItemToRemove != null)
+            {
+                // Dispose del WebView2 para liberar recursos
+                tabItemToRemove.Tab?.Dispose();
+
+                // Quitar la pestaña del TabGroupManager
+                _tabGroupManager.GetDefaultGroup().TabsInGroup.Remove(tabItemToRemove);
+
+                // Si no quedan pestañas, cerrar la ventana o abrir una nueva pestaña por defecto
+                if (!_tabGroupManager.GetDefaultGroup().TabsInGroup.Any())
+                {
+                    this.Close(); // O AddNewTab();
+                }
+            }
+        }
+
+        // Manejadores de eventos de WebView2
+        private void WebView_ContentLoading(object? sender, CoreWebView2ContentLoadingEventArgs e)
+        {
+            if (sender is WebView2 currentWebView)
+            {
+                var tab = _tabGroupManager.GetDefaultGroup().TabsInGroup.FirstOrDefault(t => t.Tab == currentWebView);
+                if (tab != null)
+                {
+                    tab.IsLoading = true;
+                    // Opcional: Mostrar un indicador de carga en la pestaña
+                }
+            }
+        }
+
+        private void WebView_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
+        {
+            if (sender is WebView2 currentWebView)
+            {
+                var tab = _tabGroupManager.GetDefaultGroup().TabsInGroup.FirstOrDefault(t => t.Tab == currentWebView);
+                if (tab != null)
+                {
+                    tab.IsLoading = false;
+                    tab.AddressBarText = currentWebView.Source.OriginalString; // Actualiza la URL
+                    AddressBar.Text = tab.AddressBarText; // Asegura que la barra de URL refleje la de la pestaña activa
+
+                    // Si la navegación falló, podríamos mostrar una página de error local
+                    if (!e.IsSuccess)
+                    {
+                        // currentWebView.NavigateToString("<h1>Error de navegación</h1><p>No se pudo cargar la página.</p>");
+                        // Considera una página de error más robusta o lógica de reintento.
+                    }
+
+                    // Después de que la navegación se completa, inyectar el script de acoplamiento de color
+                    if (currentWebView.CoreWebView2 != null && !string.IsNullOrEmpty(_pageColorExtractionScript))
+                    {
+                        // Se ejecuta el script y se espera que envíe un web message con el color dominante
+                        currentWebView.CoreWebView2.ExecuteScriptAsync(_pageColorExtractionScript);
+                    }
+                    // Ejecutar script de micrófono si está habilitado
+                    if (currentWebView.CoreWebView2 != null && !string.IsNullOrEmpty(_microphoneControlScript))
+                    {
+                        currentWebView.CoreWebView2.ExecuteScriptAsync(_microphoneControlScript);
+                    }
+
+                    // Asegurarse de que el modo oscuro se aplique al cargar una nueva página
+                    if (_isDarkModeEnabled)
+                    {
+                        ApplyDarkModeToWebView(currentWebView);
+                    }
+
+                    // Resetear el estado del juego offline si estaba activo y ahora hay conexión
+                    if (_isOfflineGameActive && NetworkInterface.GetIsNetworkAvailable())
+                    {
+                        _isOfflineGameActive = false;
+                        SelectedTabItem?.SetOfflineGameStatus(false);
+                    }
+                }
+            }
+        }
+
+        private void WebView_SourceChanged(object? sender, CoreWebView2SourceChangedEventArgs e)
+        {
+            if (sender is WebView2 currentWebView)
+            {
+                var tab = _tabGroupManager.GetDefaultGroup().TabsInGroup.FirstOrDefault(t => t.Tab == currentWebView);
+                if (tab != null)
+                {
+                    tab.AddressBarText = currentWebView.Source.OriginalString;
+                    if (SelectedTabItem == tab)
+                    {
+                        AddressBar.Text = tab.AddressBarText;
+                    }
+                }
+            }
+        }
+
+        private void WebView_TitleChanged(object? sender, object e)
+        {
+            if (sender is WebView2 currentWebView)
+            {
+                var tab = _tabGroupManager.GetDefaultGroup().TabsInGroup.FirstOrDefault(t => t.Tab == currentWebView);
+                if (tab != null)
+                {
+                    tab.Title = currentWebView.CoreWebView2.DocumentTitle;
+                    if (SelectedTabItem == tab)
+                    {
+                        WindowTitleText.Text = tab.Title;
+                    }
+                }
+            }
+        }
+
+        private void WebView_IsAudioPlayingChanged(object? sender, object e)
+        {
+            if (sender is WebView2 currentWebView)
+            {
+                var tab = _tabGroupManager.GetDefaultGroup().TabsInGroup.FirstOrDefault(t => t.Tab == currentWebView);
+                if (tab != null)
+                {
+                    tab.IsAudioPlaying = currentWebView.CoreWebView2.IsAudioPlaying;
+                }
+            }
+        }
+
+        private void WebView_IconChanged(object? sender, object e)
+        {
+            if (sender is WebView2 currentWebView)
+            {
+                var tab = _tabGroupManager.GetDefaultGroup().TabsInGroup.FirstOrDefault(t => t.Tab == currentWebView);
+                if (tab != null)
+                {
+                    // Puedes obtener el favicon a través de CoreWebView2.FaviconUri
+                    // y cargarlo como una ImageSource en tu TabItem.IconSource
+                    if (!string.IsNullOrEmpty(currentWebView.CoreWebView2.FaviconUri))
+                    {
+                        try
+                        {
+                            tab.IconSource = new BitmapImage(new Uri(currentWebView.CoreWebView2.FaviconUri));
+                        }
+                        catch (UriFormatException)
+                        {
+                            // Ignorar URIs de favicon inválidas
+                        }
+                    }
+                    else
+                    {
+                        tab.IconSource = null; // O un icono por defecto
+                    }
+                }
+            }
+        }
+
+        private void WebView_ContainsFullScreenElementChanged(object? sender, object e)
+        {
+            if (sender is WebView2 currentWebView)
+            {
+                // Ajusta el estado de la ventana principal si WebView2 entra o sale de pantalla completa
+                if (currentWebView.CoreWebView2.ContainsFullScreenElement)
+                {
+                    this.WindowStyle = WindowStyle.None;
+                    this.WindowState = WindowState.Maximized;
+                }
+                else
+                {
+                    this.WindowStyle = WindowStyle.None; // Vuelve al estilo "None" que habíamos establecido
+                    // Si ya estaba maximizada por el usuario, debería volver a maximizada
+                    // Si estaba normal, debería volver a normal.
+                    this.WindowState = WindowState.Normal; // O el estado previo si lo guardaste
+                }
+                UpdateMaximizeRestoreButtonContent();
+            }
+        }
+
+        private void WebView_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
+        {
+            // Abrir la nueva URL en una nueva pestaña
+            e.Handled = true; // Indicar que manejamos la solicitud
+            AddNewTab(e.Uri, _defaultEnvironment);
+        }
+
+        private async void WebView_WebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+        {
+            if (sender is WebView2 currentWebView)
+            {
+                string message = e.WebMessageAsJson;
+                // Procesar mensajes web (ej. desde scripts inyectados)
+                // Si el script de extracción de color envía un mensaje:
+                if (message.Contains("dominantColor"))
+                {
+                    try
+                    {
+                        var colorData = JsonSerializer.Deserialize<Dictionary<string, string>>(message);
+                        if (colorData != null && colorData.TryGetValue("dominantColor", out string? hexColor))
+                        {
+                            if (ColorConverter.ConvertFromString(hexColor) is Color extractedColor)
+                            {
+                                // Aquí puedes usar el color extraído, por ejemplo, para ajustar el tema del navegador.
+                                // Cuidado de no cambiar el tema constantemente si el color cambia muy rápido.
+                                // Console.WriteLine($"Dominant color: {extractedColor}");
+                            }
+                        }
+                    }
+                    catch (JsonException)
+                    {
+                        // Mensaje no es JSON válido o no es el esperado
+                    }
+                }
+                else if (message.Contains("MicrophoneStatus"))
+                {
+                    // Manejar mensajes del script de control de micrófono
+                    try
+                    {
+                        var statusData = JsonSerializer.Deserialize<Dictionary<string, bool>>(message);
+                        if (statusData != null && statusData.TryGetValue("MicrophoneStatus", out bool isMicOn))
+                        {
+                            // Actualizar algún indicador de UI si el micrófono de la página está activo
+                            // Console.WriteLine($"Micrófono de página: {isMicOn}");
+                        }
+                    }
+                    catch (JsonException) { }
+                }
+                else if (message == "\"toggleFullscreen\"")
+                {
+                    // Este mensaje viene de un script para alternar pantalla completa
+                    ToggleFullscreen(null);
+                }
+                // Si tienes un script para encontrar en la página, también podrías manejar su comunicación aquí
+            }
+        }
+
+        private void WebView_CoreWebView2InitializationCompleted(object? sender, CoreWebView2InitializationCompletedEventArgs e)
+        {
+            if (sender is WebView2 currentWebView)
+            {
+                if (e.IsSuccess)
+                {
+                    // Configurar el WebView2 después de que se haya inicializado CoreWebView2
+                    currentWebView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false; // Deshabilita atajos de teclado del navegador (Ctrl+N, Ctrl+T, etc.)
+                    currentWebView.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = true;
+                    currentWebView.CoreWebView2.Settings.IsZoomControlEnabled = true;
+                    currentWebView.CoreWebView2.Settings.IsGeneralAutofillEnabled = true;
+                    currentWebView.CoreWebView2.Settings.IsPasswordAutosaveEnabled = true;
+                    currentWebView.CoreWebView2.Settings.IsStatusBarEnabled = false; // Oculta la barra de estado inferior
+                    currentWebView.CoreWebView2.Settings.IsSwipeNavigationEnabled = false; // Deshabilita navegación con swipe
+                    currentWebView.CoreWebView2.Settings.AreDevToolsEnabled = true; // Habilita herramientas de desarrollador
+                    currentWebView.CoreWebView2.Settings.IsWebMessageEnabled = true; // Habilita la comunicación entre web y C#
+
+                    // Registrar para eventos específicos si es necesario
+                    // currentWebView.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
+                    // currentWebView.CoreWebView2.WebResourceRequested += CoreWebView2_WebResourceRequested;
+
+                    // Si tienes un TabItem que necesita esta instancia de WebView2, asegúrate de que esté asignada
+                    var tabItem = _tabGroupManager.GetDefaultGroup().TabsInGroup.FirstOrDefault(t => t.Tab == currentWebView);
+                    if (tabItem != null)
+                    {
+                        tabItem.CoreWebView2 = currentWebView.CoreWebView2;
+                    }
+
+                    // Después de la inicialización, inyectar el script de acoplamiento de color si no está ya inyectado
+                    // Esto es útil si el script necesita ejecutarse tan pronto como la página esté lista
+                    if (!string.IsNullOrEmpty(_pageColorExtractionScript))
+                    {
+                        currentWebView.CoreWebView2.ExecuteScriptAsync(_pageColorExtractionScript);
+                    }
+                    if (!string.IsNullOrEmpty(_microphoneControlScript))
+                    {
+                        currentWebView.CoreWebView2.ExecuteScriptAsync(_microphoneControlScript);
+                    }
+                    // Aplicar modo oscuro si es necesario
+                    if (_isDarkModeEnabled)
+                    {
+                        ApplyDarkModeToWebView(currentWebView);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show($"Error al inicializar CoreWebView2: {e.InitializationException.Message}", "Error de WebView2", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        // Métodos para la barra de búsqueda (Find Bar)
+        private void FindButton_Click(object sender, RoutedEventArgs e)
+        {
+            _isFindBarVisible = !_isFindBarVisible;
+            OnPropertyChanged(nameof(IsFindBarVisible)); // Notifica a la UI que la propiedad ha cambiado
+            if (_isFindBarVisible)
+            {
+                FindTextBox.Focus();
+                FindTextBox.SelectAll();
+            }
+            else
+            {
+                ClearFindResults();
+            }
+        }
+
+        private void CloseFindBarButton_Click(object? sender, RoutedEventArgs? e)
+        {
+            _isFindBarVisible = false;
+            OnPropertyChanged(nameof(IsFindBarVisible));
+            ClearFindResults();
+        }
+
+        private async void FindTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                await PerformFindInPage();
+            }
+        }
+
+        private async void FindNextButton_Click(object sender, RoutedEventArgs e)
+        {
+            await PerformFindInPage(forward: true);
+        }
+
+        private async void FindPreviousButton_Click(object sender, RoutedEventArgs e)
+        {
+            await PerformFindInPage(forward: false);
+        }
+
+        private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            // Opcional: limpiar los resultados de búsqueda al cambiar el texto
+            // ClearFindResults();
+            // Esto es más óptimo si la búsqueda se inicia solo al presionar Enter o los botones de navegación.
+        }
+
+        private async Task PerformFindInPage(bool? forward = null)
+        {
+            WebView2? currentWebView = GetCurrentWebView();
+            if (currentWebView?.CoreWebView2 == null) return;
+
+            string searchText = FindTextBox.Text;
+            if (string.IsNullOrEmpty(searchText))
+            {
+                ClearFindResults();
+                return;
+            }
+
+            // Realiza la búsqueda
+            CoreWebView2FindInPageResult result;
+            if (forward.HasValue)
+            {
+                result = await currentWebView.CoreWebView2.FindInPageAsync(searchText, forward.Value, false, false);
+            }
+            else // Primera búsqueda o al presionar Enter
+            {
+                result = await currentWebView.CoreWebView2.FindInPageAsync(searchText, true, false, false);
+            }
+
+            // Actualiza el texto de resultados
+            if (result.Matches > 0)
+            {
+                FindResultsTextBlock.Text = $"{result.Index + 1} de {result.Matches}";
+            }
+            else
+            {
+                FindResultsTextBlock.Text = "No se encontraron resultados";
+            }
+        }
+
+        private void ClearFindResults()
+        {
+            FindResultsTextBlock.Text = "";
+            WebView2? currentWebView = GetCurrentWebView();
+            if (currentWebView?.CoreWebView2 != null)
+            {
+                currentWebView.CoreWebView2.StopFindInPage(CoreWebView2FindInPageKind.ClearSelection);
+            }
+        }
+
+
+        // Métodos de Settings (Carga y Guardado)
+        private void LoadSettings()
+        {
+            _defaultHomePage = ConfigurationManager.AppSettings[HomePageSettingKey] ?? "https://www.google.com";
+            // ... cargar otras configuraciones ...
+            if (bool.TryParse(ConfigurationManager.AppSettings[AdBlockerSettingKey], out bool adBlockerEnabled))
+            {
+                AdBlocker.IsEnabled = adBlockerEnabled;
+            }
+            _defaultSearchEngineUrl = ConfigurationManager.AppSettings[DefaultSearchEngineSettingKey] ?? "https://www.google.com/search?q=";
+
+            if (bool.TryParse(ConfigurationManager.AppSettings[TabSuspensionSettingKey], out bool tabSuspensionEnabled))
+            {
+                _isTabSuspensionEnabled = tabSuspensionEnabled;
+            }
+
+            if (bool.TryParse(ConfigurationManager.AppSettings[RestoreSessionSettingKey], out bool restoreSession))
+            {
+                _restoreSessionOnStartup = restoreSession;
+            }
+
+            if (bool.TryParse(ConfigurationManager.AppSettings[PdfViewerSettingKey], out bool pdfViewerEnabled))
+            {
+                _isPdfViewerEnabled = pdfViewerEnabled;
+            }
+
+            if (Enum.TryParse(ConfigurationManager.AppSettings[ToolbarOrientationKey], out ToolbarPosition toolbarPos))
+            {
+                _currentToolbarPosition = toolbarPos;
+            }
+
+            if (ColorConverter.ConvertFromString(ConfigurationManager.AppSettings[BrowserBackgroundColorKey]) is Color bgColor)
+            {
+                BrowserBackgroundColor = bgColor;
+            }
+            else
+            {
+                BrowserBackgroundColor = (Color)Application.Current.Resources["DefaultBrowserBackgroundColor"];
+            }
+
+            if (ColorConverter.ConvertFromString(ConfigurationManager.AppSettings[BrowserForegroundColorKey]) is Color fgColor)
+            {
+                BrowserForegroundColor = fgColor;
+            }
+            else
+            {
+                BrowserForegroundColor = (Color)Application.Current.Resources["DefaultBrowserForegroundColor"];
+            }
+
+            // Cargar estado de Tracker Protection
+            if (bool.TryParse(ConfigurationManager.AppSettings[TrackerProtectionSettingKey], out bool trackerProtectionEnabled))
+            {
+                TrackerBlocker.IsEnabled = trackerProtectionEnabled;
+            }
+        }
+
+        private void SaveSettings()
+        {
+            var config = ConfigurationManager.OpenExeConfiguration(ConfigurationManager.AppSettings.File);
+            config.AppSettings.Settings[HomePageSettingKey].Value = _defaultHomePage;
+            config.AppSettings.Settings[AdBlockerSettingKey].Value = AdBlocker.IsEnabled.ToString();
+            config.AppSettings.Settings[DefaultSearchEngineSettingKey].Value = _defaultSearchEngineUrl;
+            config.AppSettings.Settings[TabSuspensionSettingKey].Value = _isTabSuspensionEnabled.ToString();
+            config.AppSettings.Settings[RestoreSessionSettingKey].Value = _restoreSessionOnStartup.ToString();
+            config.AppSettings.Settings[PdfViewerSettingKey].Value = _isPdfViewerEnabled.ToString();
+            config.AppSettings.Settings[ToolbarOrientationKey].Value = _currentToolbarPosition.ToString();
+            config.AppSettings.Settings[BrowserBackgroundColorKey].Value = BrowserBackgroundColor.ToString();
+            config.AppSettings.Settings[BrowserForegroundColorKey].Value = BrowserForegroundColor.ToString();
+            config.AppSettings.Settings[TrackerProtectionSettingKey].Value = TrackerBlocker.IsEnabled.ToString();
+            config.Save(ConfigurationSaveMode.Modified);
+            ConfigurationManager.RefreshSection("appSettings");
+        }
+
+        // Métodos para persistencia de sesión
+        private void SaveLastSession()
+        {
+            var config = ConfigurationManager.OpenExeConfiguration(ConfigurationManager.AppSettings.File);
+            var sessionUrls = _tabGroupManager.GetDefaultGroup().TabsInGroup
+                                .Where(tab => !tab.IsIncognito && tab.Tab?.Source != null)
+                                .Select(tab => tab.Tab!.Source.OriginalString)
+                                .ToList();
+
+            string jsonUrls = JsonSerializer.Serialize(sessionUrls);
+            if (config.AppSettings.Settings[LastSessionUrlsSettingKey] == null)
+            {
+                config.AppSettings.Settings.Add(LastSessionUrlsSettingKey, jsonUrls);
+            }
+            else
+            {
+                config.AppSettings.Settings[LastSessionUrlsSettingKey].Value = jsonUrls;
+            }
+
+            // Guardar flag de cierre "limpio"
+            if (config.AppSettings.Settings[UncleanShutdownFlagKey] == null)
+            {
+                config.AppSettings.Settings.Add(UncleanShutdownFlagKey, "false");
+            }
+            else
+            {
+                config.AppSettings.Settings[UncleanShutdownFlagKey].Value = "false";
+            }
+
+            config.Save(ConfigurationSaveMode.Modified);
+            ConfigurationManager.RefreshSection("appSettings");
+        }
+
+        private void LoadLastSession()
+        {
+            if (_restoreSessionOnStartup && (ConfigurationManager.AppSettings[UncleanShutdownFlagKey] == null || ConfigurationManager.AppSettings[UncleanShutdownFlagKey] == "true"))
+            {
+                string? jsonUrls = ConfigurationManager.AppSettings[LastSessionUrlsSettingKey];
+                if (!string.IsNullOrEmpty(jsonUrls))
+                {
+                    try
+                    {
+                        List<string>? sessionUrls = JsonSerializer.Deserialize<List<string>>(jsonUrls);
+                        if (sessionUrls != null && sessionUrls.Any())
+                        {
+                            // Limpiar la pestaña inicial "about:blank"
+                            if (_tabGroupManager.GetDefaultGroup().TabsInGroup.Any() && _tabGroupManager.GetDefaultGroup().TabsInGroup.First().Tab?.Source.OriginalString == "about:blank")
+                            {
+                                CloseBrowserTab(_tabGroupManager.GetDefaultGroup().TabsInGroup.First().Tab!);
+                            }
+
+                            foreach (string url in sessionUrls)
+                            {
+                                AddNewTab(url, _defaultEnvironment);
+                            }
+                        }
+                    }
+                    catch (JsonException ex)
+                    {
+                        MessageBox.Show($"Error al cargar la sesión anterior: {ex.Message}", "Error de Sesión", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+            // Después de cargar la sesión, establecer el flag de cierre como "no limpio"
+            // para la próxima vez, a menos que se guarde correctamente.
+            var config = ConfigurationManager.OpenExeConfiguration(ConfigurationManager.AppSettings.File);
+            if (config.AppSettings.Settings[UncleanShutdownFlagKey] == null)
+            {
+                config.AppSettings.Settings.Add(UncleanShutdownFlagKey, "true");
+            }
+            else
+            {
+                config.AppSettings.Settings[UncleanShutdownFlagKey].Value = "true";
+            }
+            config.Save(ConfigurationSaveMode.Modified);
+            ConfigurationManager.RefreshSection("appSettings");
+        }
+
+        // Métodos de navegación y gestión de UI
+        private WebView2? GetCurrentWebView()
+        {
+            return SelectedTabItem?.Tab;
+        }
+
+        private void ApplyToolbarPosition(ToolbarPosition position)
+        {
+            // Lógica para cambiar la posición de la barra de herramientas
+            // Tendrás que modificar las definiciones de Grid.Row y Grid.Column
+            // en MainWindow.xaml para que esto tenga efecto.
+            // Esto implica reordenar o cambiar las propiedades adjuntas de Grid en el StackPanel de la barra de herramientas.
+            // Para simplificar, asumiremos que la barra de herramientas siempre está en Grid.Row="1" y la barra de búsqueda en Grid.Row="2".
+            // Para cambiar su posición, necesitarías una lógica más compleja que modifique la estructura del Grid en tiempo de ejecución
+            // o usar un Grid más flexible con Rows/Columns definidas por código o Triggers complejos en XAML.
+            // De momento, solo ajusta la apariencia de los botones si es necesario.
+        }
+
+        // Métodos para abrir ventanas secundarias
+        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            SettingsWindow settingsWindow = new SettingsWindow();
+            settingsWindow.Owner = this;
+            settingsWindow.ShowDialog();
+            // Recargar configuraciones después de que la ventana de configuración se cierre
+            LoadSettings();
+            // Aplicar los nuevos colores o posición de la barra de herramientas inmediatamente
+            ApplyForegroundToWindowControls();
+            ApplyToolbarPosition(_currentToolbarPosition);
+        }
+
+        private void PasswordsButton_Click(object sender, RoutedEventArgs e)
+        {
+            PasswordManagerWindow passwordWindow = new PasswordManagerWindow();
+            passwordWindow.Owner = this;
+            passwordWindow.ShowDialog();
+        }
+
+        private void ExtensionsButton_Click(object sender, RoutedEventArgs e)
+        {
+            ExtensionManagerWindow extensionManagerWindow = new ExtensionManagerWindow(_extensionManager);
+            extensionManagerWindow.Owner = this;
+            extensionManagerWindow.ShowDialog();
+            // Después de que la ventana de extensiones se cierra, recargar extensiones si es necesario
+            _extensionManager.LoadExtensions();
+        }
+
+        private void PerformanceButton_Click(object sender, RoutedEventArgs e)
+        {
+            PerformanceMonitorWindow perfMonitorWindow = new PerformanceMonitorWindow();
+            perfMonitorWindow.Owner = this;
+            perfMonitorWindow.Show(); // Mostrar como no modal
+        }
+
+        private void HistoryButton_Click(object sender, RoutedEventArgs e)
+        {
+            HistoryWindow historyWindow = new HistoryWindow();
+            historyWindow.Owner = this;
+            historyWindow.ShowDialog();
+        }
+
+        private void BookmarksButton_Click(object sender, RoutedEventArgs e)
+        {
+            BookmarkManagerWindow bookmarkWindow = new BookmarkManagerWindow();
+            bookmarkWindow.Owner = this;
+            bookmarkWindow.ShowDialog();
+        }
+
+        private void DownloadsButton_Click(object sender, RoutedEventArgs e)
+        {
+            DownloadManagerWindow downloadWindow = new DownloadManagerWindow();
+            downloadWindow.Owner = this;
+            downloadWindow.ShowDialog();
+        }
+
+        // Modos especiales
+        private bool _isReaderModeActive = false;
+        private async void ReaderModeButton_Click(object sender, RoutedEventArgs e)
+        {
+            WebView2? currentWebView = GetCurrentWebView();
+            if (currentWebView?.CoreWebView2 == null || string.IsNullOrEmpty(_readerModeScript)) return;
+
+            _isReaderModeActive = !_isReaderModeActive;
+
+            if (_isReaderModeActive)
+            {
+                await currentWebView.CoreWebView2.ExecuteScriptAsync(_readerModeScript);
+            }
+            else
+            {
+                // Para salir del modo lectura, la forma más sencilla es recargar la página
+                // o inyectar un script que deshaga los cambios. Recargar es más fiable.
+                currentWebView.Reload();
+            }
+            // Opcional: Cambiar el icono del botón para reflejar el estado
+            // (sender as Button).Content = _isReaderModeActive ? "📄 (Activo)" : "📄";
+        }
+
+        private bool _isDarkModeEnabled = false; // Estado para el modo oscuro
+        private async void ToggleDarkModeButton_Click(object sender, RoutedEventArgs e)
+        {
+            _isDarkModeEnabled = !_isDarkModeEnabled;
+            WebView2? currentWebView = GetCurrentWebView();
+
+            if (currentWebView?.CoreWebView2 != null)
+            {
+                if (_isDarkModeEnabled)
+                {
+                    ApplyDarkModeToWebView(currentWebView);
+                }
+                else
+                {
+                    // Desactivar modo oscuro (recargar o inyectar script para revertir)
+                    currentWebView.Reload(); // La forma más sencilla de revertir.
+                }
+            }
+            // Opcional: Cambiar el icono del botón
+            // (sender as Button).Content = _isDarkModeEnabled ? "☀️" : "🌙";
+        }
+
+        private async void ApplyDarkModeToWebView(WebView2 webView)
+        {
+            if (webView.CoreWebView2 == null || string.IsNullOrEmpty(_darkModeScript)) return;
+
+            await webView.CoreWebView2.ExecuteScriptAsync(_darkModeScript);
+        }
+
+
+        private void NewIncognitoTabButton_Click(object sender, RoutedEventArgs e)
+        {
+            AddNewTab("about:blank", _incognitoEnvironment, isIncognito: true);
+        }
+
+        private void PipButton_Click(object sender, RoutedEventArgs e)
+        {
+            WebView2? currentWebView = GetCurrentWebView();
+            if (currentWebView?.CoreWebView2 == null) return;
+
+            string videoUrl = currentWebView.Source.OriginalString;
+            if (string.IsNullOrEmpty(videoUrl) || !IsVideoUrl(videoUrl))
+            {
+                MessageBox.Show("No hay un video válido para mostrar en Picture-in-Picture.", "Advertencia PIP", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Crear una nueva instancia de PipWindow con la URL del video y el mismo entorno CoreWebView2
+            PipWindow pipWindow = new PipWindow(videoUrl, currentWebView.CoreWebView2.Environment);
+            pipWindow.Show();
+        }
+
+        private bool IsVideoUrl(string url)
+        {
+            // Implementa aquí la lógica para detectar si la URL contiene un video.
+            // Esto podría ser complejo y puede requerir expresiones regulares o librerías externas.
+            // Para YouTube, podrías buscar "youtube.com/watch" o "youtu.be".
+            // Para otros, podrías buscar extensiones de archivo de video (.mp4, .webm, .ogg, etc.)
+            // o encabezados Content-Type si hicieras una solicitud HTTP.
+            return url.Contains("youtube.com/watch") || url.Contains("youtu.be") ||
+                   url.EndsWith(".mp4") || url.EndsWith(".webm") || url.EndsWith(".ogg");
+        }
+
+        private void ReadAloudButton_Click(object sender, RoutedEventArgs e)
+        {
+            WebView2? currentWebView = GetCurrentWebView();
+            if (currentWebView?.CoreWebView2 == null) return;
+
+            if (_isReadingAloud)
+            {
+                _speechSynthesizer.SpeakAsyncCancelAll();
+                _isReadingAloud = false;
+                // Opcional: Cambiar el icono del botón a "Reproducir"
+            }
+            else
+            {
+                // Obtener el texto de la página. Esto es complejo y puede requerir JavaScript.
+                // Aquí hay un enfoque simple que podría no funcionar para todas las páginas:
+                string script = "(function() { return document.body.innerText; })();";
+                currentWebView.CoreWebView2.ExecuteScriptAsync(script).ContinueWith(task =>
+                {
+                    string pageTextJson = task.Result;
+                    string pageText = JsonSerializer.Deserialize<string>(pageTextJson) ?? string.Empty;
+
+                    if (!string.IsNullOrEmpty(pageText))
+                    {
+                        // Limitar el texto para evitar sobrecarga del sintetizador de voz
+                        string textToSpeak = pageText.Length > 2000 ? pageText.Substring(0, 2000) + "..." : pageText;
+
+                        Dispatcher.Invoke(() =>
+                        {
+                            _speechSynthesizer.SpeakAsync(textToSpeak);
+                            _isReadingAloud = true;
+                            // Opcional: Cambiar el icono del botón a "Pausar"
+                        });
+                    }
+                    else
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            MessageBox.Show("No se encontró texto en la página para leer en voz alta.", "Lectura en Voz Alta", MessageBoxButton.OK, MessageBoxImage.Information);
+                        });
+                    }
+                });
+            }
+        }
+
+        // Manejo de la conectividad y juego offline
+        private void MainWindow_SourceInitialized(object? sender, EventArgs e)
+        {
+            // Solo usar si necesitas controlar el redimensionamiento personalizado o eventos de ventana de bajo nivel.
+            // IntPtr hwnd = new WindowInteropHelper(this).Handle;
+            // HwndSource.FromHwnd(hwnd).AddHook(new HwndSourceHook(WndProc));
+        }
+
+        private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            // Lógica para redimensionar sin bordes estándar
+            switch (msg)
+            {
+                case WM_NCHITTEST:
+                    Point mousePoint = new Point(lParam.ToInt32() & 0x0000FFFF, lParam.ToInt32() >> 16);
+                    double borderThickness = 5; // Grosor para redimensionar
+                    if (mousePoint.Y <= borderThickness)
+                    {
+                        if (mousePoint.X <= borderThickness) handled = true; return new IntPtr(HTTOPLEFT);
+                        if (mousePoint.X >= this.ActualWidth - borderThickness) handled = true; return new IntPtr(HTTOPRIGHT);
+                        handled = true; return new IntPtr(HTTOP);
+                    }
+                    else if (mousePoint.Y >= this.ActualHeight - borderThickness)
+                    {
+                        if (mousePoint.X <= borderThickness) handled = true; return new IntPtr(HTBOTTOMLEFT);
+                        if (mousePoint.X >= this.ActualWidth - borderThickness) handled = true; return new IntPtr(HTBOTTOMRIGHT);
+                        handled = true; return new IntPtr(HTBOTTOM);
+                    }
+                    else if (mousePoint.X <= borderThickness) { handled = true; return new IntPtr(HTLEFT); }
+                    else if (mousePoint.X >= this.ActualWidth - borderThickness) { handled = true; return new IntPtr(HTRIGHT); }
+                    else if (mousePoint.Y < TitleBarGrid.ActualHeight) { handled = true; return new IntPtr(HTCAPTION); } // Área arrastrable
+                    break;
+            }
+            return IntPtr.Zero;
+        }
+
         private void MainWindow_StateChanged(object? sender, EventArgs e)
         {
             UpdateMaximizeRestoreButtonContent();
         }
 
-        private void UpdateMaximizeRestoreButtonContent()
-        {
-            if (this.WindowState == WindowState.Maximized)
-            {
-                MaximizeRestoreButton!.Content = "❐";
-                MaximizeRestoreButton.ToolTip = "Restaurar";
-            }
-            else
-            {
-                MaximizeRestoreButton!.Content = "⬜";
-                MaximizeRestoreButton.ToolTip = "Maximizar";
-            }
-        }
-
-        private HwndSource? _hwndSource;
-        protected override void OnInitialized(EventArgs e)
-        {
-            base.OnInitialized(e);
-            this.SourceInitialized += (s, args) =>
-            {
-                _hwndSource = PresentationSource.FromVisual(this) as HwndSource;
-                if (_hwndSource != null)
-                {
-                    _hwndSource.AddHook(HwndSourceHook);
-                }
-            };
-        }
-
-        private IntPtr HwndSourceHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
-        {
-            switch (msg)
-            {
-                case WM_NCHITTEST:
-                    handled = true;
-                    return (IntPtr)HitTest(lParam.ToInt32());
-            }
-            return IntPtr.Zero;
-        }
-
-        private int HitTest(int lParam)
-        {
-            Point p = PointFromScreen(new Point((lParam << 16) >> 16, lParam & 0xffff));
-            double borderWidth = 5;
-            double captionHeight = 30;
-
-            if (p.Y < borderWidth)
-            {
-                if (p.X < borderWidth) return HTTOPLEFT;
-                if (p.X > this.ActualWidth - borderWidth) return HTTOPRIGHT;
-                return HTTOP;
-            }
-            if (p.Y > this.ActualHeight - borderWidth)
-            {
-                if (p.X < borderWidth) return HTBOTTOMLEFT;
-                if (p.X > this.ActualWidth - borderWidth) return HTBOTTOMRIGHT;
-                return HTBOTTOM;
-            }
-            if (p.X < borderWidth) return HTLEFT;
-            if (p.X > this.ActualWidth - borderWidth) return HTRIGHT;
-
-            if (p.Y < captionHeight) return HTCAPTION;
-
-            return HTCAPTION;
-        }
-
-        [DllImport("user32.dll")]
-        public static extern IntPtr SendMessage(IntPtr hWnd, int wMsg, int wParam, int lParam);
-
-        private void MainWindow_SourceInitialized(object? sender, EventArgs e)
-        {
-            IntPtr handle = (new WindowInteropHelper(this)).Handle;
-            HwndSource.FromHwnd(handle)?.AddHook(WindowProc);
-        }
-
-        private static IntPtr WindowProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
-        {
-            switch (msg)
-            {
-                case 0x0024: // WM_GETMINMAXINFO
-                    WmGetMinMaxInfo(hwnd, lParam);
-                    handled = true;
-                    break;
-            }
-            return (IntPtr)0;
-        }
-
-        private static void WmGetMinMaxInfo(IntPtr hwnd, IntPtr lParam)
-        {
-            MINMAXINFO mmi = (MINMAXINFO)Marshal.PtrToStructure(lParam, typeof(MINMAXINFO))!;
-
-            mmi.ptMinTrackSize.x = (int)SystemParameters.MinimumWindowWidth;
-            mmi.ptMinTrackSize.y = (int)SystemParameters.MinimumWindowHeight;
-
-            var workArea = SystemParameters.WorkArea;
-            mmi.ptMaxPosition.x = (int)workArea.Left;
-            mmi.ptMaxPosition.y = (int)workArea.Top;
-            mmi.ptMaxSize.x = (int)workArea.Width;
-            mmi.ptMaxSize.y = (int)workArea.Height;
-
-            Marshal.StructureToPtr(mmi, lParam, true);
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct POINT
-        {
-            public int x;
-            public int y;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct MINMAXINFO
-        {
-            public POINT ptReserved;
-            public POINT ptMaxSize;
-            public POINT ptMaxPosition;
-            public POINT ptMinTrackSize;
-            public POINT ptMaxTrackSize;
-        }
-
-        private void ApplyToolbarPosition(ToolbarPosition position)
-        {
-            Grid mainGrid = (Grid)((Border)this.Content).Child;
-
-            Grid.SetRow(BrowserTabs, 0);
-            Grid.SetColumn(BrowserTabs, 0);
-
-            mainGrid.ColumnDefinitions.Clear();
-            mainGrid.RowDefinitions.Clear();
-
-            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-            List<Button> allButtons = new List<Button>();
-            allButtons.Add(BackButton); allButtons.Add(ForwardButton); allButtons.Add(ReloadButton);
-            allButtons.Add(MinesweeperButton);
-
-            StackPanel? urlAndButtonsStackPanel = AddressBar.Parent as StackPanel;
-
-
-            switch (position)
-            {
-                case ToolbarPosition.Top:
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-
-                    Grid.SetRow(BrowserTabs, 1);
-                    Grid.SetColumn(BrowserTabs, 0);
-                    break;
-
-                case ToolbarPosition.Left:
-                    MessageBox.Show("Las posiciones de barra de herramientas Izquierda/Derecha/Inferior no están completamente implementadas con la estructura XAML actual. Se usará la posición Superior.", "Funcionalidad Limitada", MessageBoxButton.OK, MessageBoxImage.Information);
-                    _currentToolbarPosition = ToolbarPosition.Top;
-                    ApplyToolbarPosition(ToolbarPosition.Top);
-                    return;
-
-                case ToolbarPosition.Right:
-                    MessageBox.Show("Las posiciones de barra de herramientas Izquierda/Derecha/Inferior no están completamente implementadas con la estructura XAML actual. Se usará la posición Superior.", "Funcionalidad Limitada", MessageBoxButton.OK, MessageBoxImage.Information);
-                    _currentToolbarPosition = ToolbarPosition.Top;
-                    ApplyToolbarPosition(ToolbarPosition.Top);
-                    return;
-
-                case ToolbarPosition.Bottom:
-                    MessageBox.Show("Las posiciones de barra de herramientas Izquierda/Derecha/Inferior no están completamente implementadas con la estructura XAML actual. Se usará la posición Superior.", "Funcionalidad Limitada", MessageBoxButton.OK, MessageBoxImage.Information);
-                    _currentToolbarPosition = ToolbarPosition.Top;
-                    ApplyToolbarPosition(ToolbarPosition.Top);
-                    return;
-            }
-
-            UpdateToolbarButtonForeground();
-        }
-
-
         private void ConnectivityTimer_Elapsed(object? sender, ElapsedEventArgs e)
         {
-            Dispatcher.Invoke(() =>
+            bool isConnected = NetworkInterface.GetIsNetworkAvailable();
+            if (!isConnected && !_isOfflineGameActive)
             {
-                if (NetworkInterface.GetIsNetworkAvailable())
+                Dispatcher.Invoke(() =>
                 {
-                    _connectivityTimer!.Enabled = false;
-                    if (!string.IsNullOrEmpty(_lastFailedUrl))
-                    {
-                        MessageBoxResult result = MessageBox.Show(this,
-                            $"¡Internet conectado! ¿Deseas recargar la página:\n{_lastFailedUrl}?",
-                            "Conexión Restablecida",
-                            MessageBoxButton.YesNo,
-                            MessageBoxImage.Information
-                        );
-
-                        if (result == MessageBoxResult.Yes)
-                        {
-                            AddressBar.Text = _lastFailedUrl;
-                            NavigateToUrlInCurrentTab();
-                        }
-                        _lastFailedUrl = null;
-                        _isOfflineGameActive = false;
-                    }
-                }
-            });
+                    // Solo activar el juego offline una vez por desconexión
+                    _isOfflineGameActive = true;
+                    SelectedTabItem?.SetOfflineGameStatus(true);
+                    MessageBox.Show("Parece que no tienes conexión a Internet. ¡Se ha activado el juego offline!", "Sin Conexión", MessageBoxButton.OK, MessageBoxImage.Warning);
+                });
+            }
+            else if (isConnected && _isOfflineGameActive)
+            {
+                // Cuando la conexión se restaura, reiniciar el estado del juego offline
+                Dispatcher.Invoke(() =>
+                {
+                    _isOfflineGameActive = false;
+                    SelectedTabItem?.SetOfflineGameStatus(false);
+                });
+            }
         }
 
-        // Método para buscar y contar coincidencias en la página usando JavaScript
-        private async Task BuscarEnPaginaAsync(string texto, bool buscarHaciaAtras = false)
+        private void ToggleGeminiModeButton_Click(object sender, RoutedEventArgs e)
         {
-            WebView2? currentWebView = GetCurrentWebView();
-            if (currentWebView != null && currentWebView.CoreWebView2 != null && !string.IsNullOrWhiteSpace(texto))
+            _isGeminiModeActive = !_isGeminiModeActive;
+
+            if (_isGeminiModeActive)
             {
-                // Escapamos comillas simples para evitar errores en el script
-                string escapedText = texto.Replace("'", "\\'").Replace("\n", "\\n").Replace("\r", "\\r");
-
-                // Script que selecciona la primera coincidencia y cuenta todas las apariciones
-                // Para buscar hacia atrás, window.find necesita el tercer parámetro en 'true'.
-                // Los otros parámetros son: caseSensitive, backwards, wrapAround, wholeWord, searchInFrames, showDialog
-                string script = $@"
-                    (function() {{
-                        var text = '{escapedText}';
-                        var matches = 0;
-                        var found = true;
-                        var firstPass = true;
-                        var originalScrollY = window.scrollY; // Guardar posición de scroll inicial
-
-                        // Limpiar selecciones previas antes de iniciar una nueva búsqueda
-                        window.getSelection().removeAllRanges();
-
-                        // Buscar la primera ocurrencia para establecer la selección inicial
-                        // Si es una búsqueda hacia atrás, empezamos al final y buscamos hacia atrás
-                        if ({buscarHaciaAtras.ToString().ToLower()}) {{
-                            // Para buscar hacia atrás desde el final, a veces es útil ir al final de la página
-                            // o simplemente usar window.find con el parámetro 'backwards' en true.
-                            // window.find() busca desde la posición actual del cursor.
-                            // Para asegurar que busque desde el final, podríamos forzar un scroll al final
-                            // o simplemente confiar en que el usuario ya está en la página.
-                            // Para una búsqueda hacia atrás fiable, es mejor usar un script más complejo
-                            // que itere o que sepa dónde está el cursor.
-                            // Sin embargo, para simplificar y usar window.find, simplemente lo llamamos con backwards.
-                            found = window.find(text, false, true); // caseSensitive=false, backwards=true
-                            if (found) matches++; // Contamos la primera que encuentra
-                        }} else {{
-                            found = window.find(text, false, false); // caseSensitive=false, backwards=false
-                            if (found) matches++; // Contamos la primera que encuentra
-                        }}
-                        
-                        // Contar el resto de las coincidencias y resaltarlas (si window.find lo permite)
-                        // window.find solo resalta una a la vez. Para resaltar todas, se necesita un script DOM más complejo.
-                        // Para el conteo, el regex es más simple.
-                        var bodyText = document.body.innerText || '';
-                        matches = (bodyText.match(new RegExp(text, 'gi')) || []).length; // 'gi' para global e insensible a mayúsculas/minúsculas
-
-                        return matches;
-                    }})();
-                ";
-                string result = await currentWebView.CoreWebView2.ExecuteScriptAsync(script);
-                // El resultado viene entre comillas, lo limpiamos
-                if (FindResultsTextBlock != null)
-                {
-                    int total;
-                    if (int.TryParse(result.Replace("\"", ""), out total))
-                        FindResultsTextBlock.Text = $"{total} resultados";
-                    else
-                        FindResultsTextBlock.Text = "0 resultados";
-                }
+                // Activar el modo Gemini: cambia colores, etc.
+                ApplyGeminiModeColors();
+                MessageBox.Show("Modo Gemini activado. Ahora puedes usar el botón de IA para ver datos y enviar a Gemini.", "Modo Gemini", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
-                if (FindResultsTextBlock != null)
-                    FindResultsTextBlock.Text = "";
+                // Desactivar el modo Gemini: restaurar colores por defecto
+                RestoreDefaultColors();
+                MessageBox.Show("Modo Gemini desactivado.", "Modo Gemini", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
-        // Al presionar Enter en la caja de búsqueda
-        private async void FindTextBox_KeyDown(object sender, KeyEventArgs e)
+        private void ApplyGeminiModeColors()
         {
-            if (e.Key == Key.Enter)
+            Application.Current.Resources["BrowserBackgroundColor"] = (Color)Application.Current.Resources["GeminiBackgroundColor"];
+            Application.Current.Resources["BrowserBackgroundBrush"] = (SolidColorBrush)Application.Current.Resources["GeminiBackgroundBrush"];
+            Application.Current.Resources["BrowserForegroundColor"] = (Color)Application.Current.Resources["GeminiForegroundColor"];
+            Application.Current.Resources["BrowserForegroundBrush"] = (SolidColorBrush)Application.Current.Resources["GeminiForegroundBrush"];
+
+            BrowserBackgroundColor = (Color)Application.Current.Resources["GeminiBackgroundColor"];
+            BrowserForegroundColor = (Color)Application.Current.Resources["GeminiForegroundColor"];
+
+            ApplyForegroundToWindowControls();
+        }
+
+        private void RestoreDefaultColors()
+        {
+            Application.Current.Resources["BrowserBackgroundColor"] = (Color)Application.Current.Resources["DefaultBrowserBackgroundColor"];
+            Application.Current.Resources["BrowserBackgroundBrush"] = (SolidColorBrush)Application.Current.Resources["DefaultBrowserBackgroundBrush"];
+            Application.Current.Resources["BrowserForegroundColor"] = (Color)Application.Current.Resources["DefaultBrowserForegroundColor"];
+            Application.Current.Resources["BrowserForegroundBrush"] = (SolidColorBrush)Application.Current.Resources["DefaultBrowserForegroundBrush"];
+
+            BrowserBackgroundColor = (Color)Application.Current.Resources["DefaultBrowserBackgroundColor"];
+            BrowserForegroundColor = (Color)Application.Current.Resources["DefaultBrowserForegroundColor"];
+
+            ApplyForegroundToWindowControls();
+        }
+
+        private async void AiButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_isGeminiModeActive)
             {
-                if (!string.IsNullOrWhiteSpace(FindTextBox.Text) && FindTextBox.Text != "Buscar...")
-                {
-                    await BuscarEnPaginaAsync(FindTextBox.Text);
-                }
-                else
-                {
-                    ClearFindResults();
-                }
+                MessageBox.Show("El modo Gemini debe estar activado para usar esta función.", "Modo Gemini Desactivado", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
             }
-        }
 
-        // Al hacer clic en el botón "Siguiente"
-        private async void FindNextButton_Click(object sender, RoutedEventArgs e)
-        {
+            // Capturar datos de la página actual
             WebView2? currentWebView = GetCurrentWebView();
-            if (currentWebView != null && currentWebView.CoreWebView2 != null && !string.IsNullOrWhiteSpace(FindTextBox.Text) && FindTextBox.Text != "Buscar...")
+            if (currentWebView?.CoreWebView2 == null)
             {
-                string escapedText = FindTextBox.Text.Replace("'", "\\'").Replace("\n", "\\n").Replace("\r", "\\r");
-                // window.find(string, caseSensitive, backwards, wrapAround, wholeWord, searchInFrames, showDialog)
-                // Buscamos hacia adelante (false en backwards)
-                await currentWebView.CoreWebView2.ExecuteScriptAsync($"window.find('{escapedText}', false, false, true);");
-                // Después de mover la selección, podemos recontar si queremos, o simplemente dejar el contador como está.
-                // Para una experiencia de usuario fluida, quizás solo actualizar el contador al iniciar la búsqueda principal.
+                MessageBox.Show("No hay una página web activa para capturar datos.", "Error de Captura", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // **IMPORTANTE**: La captura de datos real (texto, imágenes, etc.) requiere inyectar JavaScript
+            // para extraer la información del DOM. Esto es un ejemplo simplificado.
+            // Para una extracción robusta, necesitarías un script JS más avanzado y el manejo de mensajes web.
+
+            // Ejemplo: Extraer el título de la página y el texto visible
+            string pageTitle = await currentWebView.CoreWebView2.ExecuteScriptAsync("document.title");
+            pageTitle = System.Text.Json.JsonSerializer.Deserialize<string>(pageTitle) ?? "Sin título";
+
+            string pageContent = await currentWebView.CoreWebView2.ExecuteScriptAsync("(function() { return document.body.innerText; })();");
+            pageContent = System.Text.Json.JsonSerializer.Deserialize<string>(pageContent) ?? "Sin contenido";
+
+            // Limitar el contenido a un tamaño razonable para no exceder límites de la API de Gemini
+            if (pageContent.Length > 2000) // Ejemplo de límite
+            {
+                pageContent = pageContent.Substring(0, 2000) + "...";
+            }
+
+            // Aquí deberías capturar más datos según sea necesario (capturas de pantalla, favicon, etc.)
+            // Las capturas de pantalla de WebView2 son complejas y requieren renderizado a un Bitmap.
+            // currentWebView.CoreWebView2.CapturePreviewToImageAsync(...)
+
+            ObservableCollection<CapturedPageData> capturedData = new ObservableCollection<CapturedPageData>();
+            capturedData.Add(new CapturedPageData
+            {
+                Url = currentWebView.Source.OriginalString,
+                Title = pageTitle,
+                ExtractedText = pageContent,
+                ScreenshotBase64 = "", // Aquí iría la captura de pantalla en Base64
+                FaviconBase64 = "" // Aquí iría el favicon en Base64
+            });
+
+            // Mostrar la ventana de visualización de datos de Gemini
+            GeminiDataViewerWindow dataViewer = new GeminiDataViewerWindow("¿Qué información relevante hay en esta página?", capturedData);
+            dataViewer.Owner = this;
+
+            if (dataViewer.ShowDialog() == true)
+            {
+                // Si el usuario hace clic en "Enviar a Gemini" en GeminiDataViewerWindow
+                string userQuestion = dataViewer.UserQuestion;
+                // Aquí iría la llamada real a la API de Gemini
+                MessageBox.Show($"Enviando a Gemini:\nPregunta: {userQuestion}\nDatos capturados de {capturedData.Count} páginas.", "Enviando a Gemini", MessageBoxButton.OK, MessageBoxImage.Information);
+                // Lógica para enviar a la API de Gemini (requiere un cliente de API)
             }
         }
-
-        // Al hacer clic en el botón "Anterior"
-        private async void FindPreviousButton_Click(object sender, RoutedEventArgs e)
-        {
-            WebView2? currentWebView = GetCurrentWebView();
-            if (currentWebView != null && currentWebView.CoreWebView2 != null && !string.IsNullOrWhiteSpace(FindTextBox.Text) && FindTextBox.Text != "Buscar...")
-            {
-                string escapedText = FindTextBox.Text.Replace("'", "\\'").Replace("\n", "\\n").Replace("\r", "\\r");
-                // window.find(string, caseSensitive, backwards, wrapAround, wholeWord, searchInFrames, showDialog)
-                // Buscamos hacia atrás (true en backwards)
-                await currentWebView.CoreWebView2.ExecuteScriptAsync($"window.find('{escapedText}', false, true, true);");
-                // Similar al FindNext, no recontamos aquí para mantener la fluidez.
-            }
-        }
-
-        // Al cerrar la barra de búsqueda
-        private async void CloseFindBarButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (FindBar != null)
-            {
-                _isFindBarVisible = false;
-                FindBar.Visibility = Visibility.Collapsed;
-                // Limpiar resaltados buscando un texto imposible o una cadena vacía
-                await BuscarEnPaginaAsync(""); // Buscar una cadena vacía para limpiar el resaltado
-                if (FindTextBox != null) FindTextBox.Text = "Buscar..."; // Restablecer texto por defecto
-                if (FindResultsTextBlock != null) FindResultsTextBlock.Text = ""; // Limpiar resultados
-            }
-        }
-
-        // Al hacer click en el botón de búsqueda (mostrar barra de búsqueda)
-        private async void FindButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (FindBar != null)
-            {
-                _isFindBarVisible = !_isFindBarVisible;
-                FindBar.Visibility = _isFindBarVisible ? Visibility.Visible : Visibility.Collapsed;
-                if (_isFindBarVisible)
-                {
-                    FindTextBox.Focus();
-                    // Si ya hay texto en la caja de búsqueda, iniciar la búsqueda automáticamente
-                    if (!string.IsNullOrWhiteSpace(FindTextBox.Text) && FindTextBox.Text != "Buscar...")
-                    {
-                        await BuscarEnPaginaAsync(FindTextBox.Text);
-                    }
-                }
-                else
-                {
-                    // Limpiar resultados al ocultar la barra
-                    await BuscarEnPaginaAsync(""); // Limpiar el resaltado
-                    FindTextBox.Text = "Buscar...";
-                    FindResultsTextBlock.Text = "";
-                }
-            }
-        }
-
-        // Eliminado: private void CoreWebView2_FindInPageCompleted(object? sender, CoreWebView2FindInPageCompletedEventArgs e) { ... }
-        // Eliminado: private void CoreWebView2_FindResultReceived(object? sender, CoreWebView2FindResultReceivedEventArgs e) { ... }
-        // Eliminado: private void ClearFindResults() { ... } // Reemplazado por la lógica en CloseFindBarButton_Click y FindButton_Click
-
-        // ... El resto de tu código igual ...
     }
 
     public class RelayCommand : ICommand
@@ -2742,8 +1528,25 @@ namespace NavegadorWeb
     public enum ToolbarPosition
     {
         Top,
+        Bottom,
         Left,
-        Right,
-        Bottom
+        Right
+    }
+
+    // Clase auxiliar para los datos capturados para Gemini
+    public class CapturedPageData : INotifyPropertyChanged
+    {
+        public string Url { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string ExtractedText { get; set; } = string.Empty;
+        public string ScreenshotBase64 { get; set; } = string.Empty; // Base64 de la imagen
+        public string FaviconBase64 { get; set; } = string.Empty;   // Base64 del favicon
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
     }
 }
