@@ -57,17 +57,16 @@ namespace NavegadorWeb
                     OnPropertyChanged(nameof(BrowserBackgroundColor));
                     Application.Current.Resources["BrowserBackgroundColor"] = value;
                     Application.Current.Resources["BrowserBackgroundBrush"] = new SolidColorBrush(value);
-                    if (MainToolbarContainer != null) // Actualizar borde principal
+                    if (MainToolbarContainer != null)
                         ((Border)this.Content).BorderBrush = new SolidColorBrush(value);
                     if (LeftToolbarPlaceholder != null) LeftToolbarPlaceholder.Background = new SolidColorBrush(value);
                     if (RightToolbarPlaceholder != null) RightToolbarPlaceholder.Background = new SolidColorBrush(value);
                     if (FindBar != null) FindBar.Background = new SolidColorBrush(value);
                     if (TabGroupContainer != null) TabGroupContainer.Background = new SolidColorBrush(value);
 
-                    // Actualizar el fondo del Grid de la barra de título
                     if (mainGrid != null && mainGrid.RowDefinitions.Count > 0)
                     {
-                        if (mainGrid.Children[0] is Grid titleBarGrid) // Asumiendo que el título es el primer hijo
+                        if (mainGrid.Children[0] is Grid titleBarGrid)
                         {
                             titleBarGrid.Background = new SolidColorBrush(value);
                         }
@@ -129,7 +128,6 @@ namespace NavegadorWeb
         private System.Timers.Timer _connectivityTimer;
         private bool _isOfflineGameActive = false;
 
-        // NUEVO: Bandera para saber si el modo Gemini está activo
         private bool _isGeminiModeActive = false;
 
 
@@ -184,7 +182,7 @@ namespace NavegadorWeb
             ApplyForegroundToWindowControls();
             ApplyToolbarPosition(_currentToolbarPosition);
 
-            _connectivityTimer = new System.Timers.Timer(5000); // Verificar cada 5 segundos
+            _connectivityTimer = new System.Timers.Timer(5000);
             _connectivityTimer.Elapsed += ConnectivityTimer_Elapsed;
             _connectivityTimer.AutoReset = true;
             _connectivityTimer.Enabled = false;
@@ -203,34 +201,43 @@ namespace NavegadorWeb
             {
                 WindowTitleText.Foreground = BrowserForegroundColor != null ? new SolidColorBrush(BrowserForegroundColor) : Brushes.Black;
             }
-            // Actualizar el color de los botones de la barra de herramientas
             UpdateToolbarButtonForeground();
         }
 
         private void UpdateToolbarButtonForeground()
         {
-            // Itera sobre todos los botones que usan ToolbarButtonStyle
-            // Esto es más robusto si los botones están en diferentes paneles
-            foreach (var child in MainToolbarContainer.Children.OfType<DockPanel>().FirstOrDefault()?.Children.OfType<StackPanel>().SelectMany(sp => sp.Children.OfType<Button>()) ?? Enumerable.Empty<Button>())
+            var mainToolbarButtons = MainToolbarContainer.Children.OfType<DockPanel>()
+                                     .SelectMany(dp => dp.Children.OfType<StackPanel>())
+                                     .SelectMany(sp => sp.Children.OfType<Button>());
+
+            var leftToolbarButtons = LeftToolbarPlaceholder.Children.OfType<StackPanel>()
+                                   .SelectMany(sp => sp.Children.OfType<Button>());
+
+            var rightToolbarButtons = RightToolbarPlaceholder.Children.OfType<StackPanel>()
+                                    .SelectMany(sp => sp.Children.OfType<Button>());
+
+            var allToolbarButtons = mainToolbarButtons
+                                    .Concat(leftToolbarButtons)
+                                    .Concat(rightToolbarButtons);
+
+            foreach (var child in allToolbarButtons)
             {
-                child.Foreground = new SolidColorBrush(BrowserForegroundColor);
-            }
-            foreach (var child in LeftToolbarPlaceholder.Children.OfType<StackPanel>().FirstOrDefault()?.Children.OfType<Button>() ?? Enumerable.Empty<Button>())
-            {
-                child.Foreground = new SolidColorBrush(BrowserForegroundColor);
-            }
-            foreach (var child in RightToolbarPlaceholder.Children.OfType<StackPanel>().FirstOrDefault()?.Children.OfType<Button>() ?? Enumerable.Empty<Button>())
-            {
-                child.Foreground = new SolidColorBrush(BrowserForegroundColor);
-            }
-            // También para los botones específicos de FindBar
-            if (FindBar != null)
-            {
-                foreach (var child in ((StackPanel)FindBar.Child).Children.OfType<Button>())
+                if (child != CloseButton)
                 {
                     child.Foreground = new SolidColorBrush(BrowserForegroundColor);
                 }
             }
+
+            if (FindBar != null && FindBar.Child is StackPanel findBarStackPanel)
+            {
+                foreach (var child in findBarStackPanel.Children.OfType<Button>())
+                {
+                    child.Foreground = new SolidColorBrush(BrowserForegroundColor);
+                }
+            }
+            if (UrlTextBox != null) UrlTextBox.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (FindTextBox != null) FindTextBox.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (FindResultsTextBlock != null) FindResultsTextBlock.Foreground = new SolidColorBrush(BrowserForegroundColor);
         }
 
 
@@ -430,7 +437,7 @@ namespace NavegadorWeb
                         if (savedUrls != null && savedUrls.Any())
                         {
                             CrashRecoveryWindow recoveryWindow = new CrashRecoveryWindow();
-                            recoveryWindow.Owner = this; // Establecer Owner para que el diálogo se centre
+                            recoveryWindow.Owner = this;
                             recoveryWindow.ShowDialog();
 
                             if (recoveryWindow.ShouldRestoreSession)
@@ -526,10 +533,9 @@ namespace NavegadorWeb
             browserTab.AudioIconImage = new Image { Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
             browserTab.ExtensionIconImage = new Image { Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
             browserTab.BlockedIconImage = new Image { Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
-            // NUEVO: Instanciar y añadir el icono de Gemini
             browserTab.GeminiFeatureIcon = new Image { Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
-            browserTab.GeminiFeatureIcon.Source = browserTab.GeminiIconSource; // Asignar la fuente del icono fijo
-            browserTab.GeminiFeatureIcon.Visibility = Visibility.Collapsed; // Por defecto oculto
+            browserTab.GeminiFeatureIcon.Source = browserTab.GeminiIconSource;
+            browserTab.GeminiFeatureIcon.Visibility = Visibility.Collapsed;
             
             browserTab.HeaderTextBlock = new TextBlock { Text = "Cargando...", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 5, 0) };
 
@@ -540,7 +546,6 @@ namespace NavegadorWeb
             browserTab.ExtensionIconImage.SetBinding(Image.VisibilityProperty, new System.Windows.Data.Binding("IsExtensionActive") { Source = browserTab, Converter = (System.Windows.Data.IValueConverter)this.FindResource("BooleanToVisibilityConverter") });
             browserTab.BlockedIconImage.SetBinding(Image.SourceProperty, new System.Windows.Data.Binding("SiteBlockedIcon") { Source = browserTab });
             browserTab.BlockedIconImage.SetBinding(Image.VisibilityProperty, new System.Windows.Data.Binding("IsSiteBlocked") { Source = browserTab, Converter = (System.Windows.Data.IValueConverter)this.FindResource("BooleanToVisibilityConverter") });
-            // NUEVO: Opcional, si quieres que el icono de Gemini también se actualice automáticamente con IsSelectedForGemini
             browserTab.GeminiFeatureIcon.SetBinding(Image.VisibilityProperty, new System.Windows.Data.Binding("IsSelectedForGemini") { Source = browserTab, Converter = (System.Windows.Data.IValueConverter)this.FindResource("BooleanToVisibilityConverter") });
 
 
@@ -562,7 +567,6 @@ namespace NavegadorWeb
 
             DockPanel.SetDock(browserTab.FaviconImage, Dock.Left);
             DockPanel.SetDock(browserTab.AudioIconImage, Dock.Left);
-            // NUEVO: Posicionar el icono de Gemini en el header
             DockPanel.SetDock(browserTab.GeminiFeatureIcon, Dock.Left);
             DockPanel.SetDock(browserTab.ExtensionIconImage, Dock.Left);
             DockPanel.SetDock(browserTab.BlockedIconImage, Dock.Left);
@@ -571,7 +575,7 @@ namespace NavegadorWeb
 
             tabHeaderPanel.Children.Add(browserTab.FaviconImage);
             tabHeaderPanel.Children.Add(browserTab.AudioIconImage);
-            tabHeaderPanel.Children.Add(browserTab.GeminiFeatureIcon); // Añadir el icono de Gemini
+            tabHeaderPanel.Children.Add(browserTab.GeminiFeatureIcon);
             tabHeaderPanel.Children.Add(browserTab.ExtensionIconImage);
             tabHeaderPanel.Children.Add(browserTab.BlockedIconImage);
             tabHeaderPanel.Children.Add(browserTab.HeaderTextBlock);
@@ -737,7 +741,7 @@ namespace NavegadorWeb
                 Filter = "Todos los archivos (*.*)|*.*",
                 Title = "Guardar descarga como..."
             };
-            saveFileDialog.Owner = this; // Establecer Owner para centrar
+            saveFileDialog.Owner = this;
 
             if (saveFileDialog.ShowDialog() == true)
             {
@@ -778,7 +782,7 @@ namespace NavegadorWeb
         private void CoreWebView2_PermissionRequested(object sender, CoreWebView2PermissionRequestedEventArgs e)
         {
             MessageBoxResult result = MessageBox.Show(
-                this, // Establecer propietario
+                this,
                 $"El sitio web '{e.Uri}' solicita permiso para usar: {e.PermissionKind}.\n¿Deseas permitirlo?",
                 "Solicitud de Permiso",
                 MessageBoxButton.YesNo,
@@ -921,7 +925,10 @@ namespace NavegadorWeb
         private void WebView_NavigationStarting(object sender, CoreWebView2NavigationStartingEventArgs e)
         {
             LoadingProgressBar.Visibility = Visibility.Visible;
-            MainToolbarContainer.Background = new SolidColorBrush(BrowserBackgroundColor); // Restablecer color de la barra
+            if (!_isGeminiModeActive)
+            {
+                MainToolbarContainer.Background = new SolidColorBrush(BrowserBackgroundColor);
+            }
 
             if (_isOfflineGameActive && !e.Uri.StartsWith($"file:///{AppDomain.CurrentDomain.BaseDirectory.Replace("\\", "/")}/OfflineGame.html", StringComparison.OrdinalIgnoreCase))
             {
@@ -1360,7 +1367,7 @@ namespace NavegadorWeb
                     Filter = "Archivos PNG (*.png)|*.png|Todos los archivos (*.*)|*.*",
                     Title = "Guardar Captura de Pantalla"
                 };
-                saveFileDialog.Owner = this; // Establecer propietario
+                saveFileDialog.Owner = this;
 
                 if (saveFileDialog.ShowDialog() == true)
                 {
@@ -1542,11 +1549,11 @@ namespace NavegadorWeb
                             video.pause();
                             return video.src;
                         }
-                        let youtubeIframe = document.querySelector('iframe[src*=""youtube.com/embed""]'); // Changed to include embed
+                        let youtubeIframe = document.querySelector('iframe[src*=""youtube.com/embed""]');
                         if (youtubeIframe && youtubeIframe.src) {
                             return youtubeIframe.src;
                         }
-                        let youtubeWatchIframe = document.querySelector('iframe[src*=""youtube.com/watch""]'); // Changed to include watch
+                        let youtubeWatchIframe = document.querySelector('iframe[src*=""youtube.com/watch""]');
                         if (youtubeWatchIframe && youtubeWatchIframe.src) {
                             return youtubeWatchIframe.src;
                         }
@@ -1624,34 +1631,202 @@ namespace NavegadorWeb
             }
         }
 
-        // NUEVO: Botón para la función "Preguntar a Gemini"
-        private void AskGeminiButton_Click(object sender, RoutedEventArgs e)
+        private async void AskGeminiButton_Click(object sender, RoutedEventArgs e)
         {
-            SetGeminiMode(true); // Activa el modo Gemini (cambio de color)
+            SetGeminiMode(true);
             
-            // Pasa todas las pestañas a la ventana de Gemini.
-            // La ventana de Gemini se encargará de gestionar IsSelectedForGemini
             AskGeminiWindow geminiWindow = new AskGeminiWindow(_tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).ToObservableCollection());
-            geminiWindow.Owner = this; // Asegura que se centre sobre la ventana principal
+            geminiWindow.Owner = this;
 
             if (geminiWindow.ShowDialog() == true)
             {
-                // Si el usuario hizo clic en "Enviar a Gemini" (simulado)
-                // geminiWindow.CapturedData y geminiWindow.UserQuestion contienen la información
-                // Aquí iría la lógica para interactuar con la API real de Gemini.
-                // Por ahora, el MessageBox en AskGeminiWindow.xaml.cs ya maneja la simulación.
+                // Si el usuario hizo clic en "Enviar a Gemini"
+                if (SelectedTabItem != null && SelectedTabItem.LeftWebView != null) // Asegurarse de tener una pestaña activa
+                {
+                    // Asegurarse de que la pestaña actual esté en modo dividido y tenga un panel derecho
+                    if (!SelectedTabItem.IsSplit || SelectedTabItem.RightWebView == null)
+                    {
+                        // Si no está dividida, dividirla y navegar el panel derecho a Gemini
+                        await EnableSplitScreenForCurrentTab(SelectedTabItem, "https://gemini.google.com/");
+                    }
+                    else
+                    {
+                        // Si ya está dividida, simplemente navegar el panel derecho a Gemini
+                        SelectedTabItem.RightWebView.CoreWebView2.Navigate("https://gemini.google.com/");
+                    }
+
+                    // Esperar a que gemini.google.com cargue en el panel derecho
+                    // Esto es crucial para que el DOM esté listo para la inyección de JavaScript
+                    // Podríamos usar un evento NavigationCompleted para mayor robustez, pero un Task.Delay es suficiente para demo
+                    await Task.Delay(2000); // Espera 2 segundos para que Gemini cargue
+
+                    // Preparar los datos para enviar al JavaScript
+                    var dataToInject = new
+                    {
+                        userQuestion = geminiWindow.UserQuestion,
+                        capturedPages = geminiWindow.CapturedData.Select(cp => new
+                        {
+                            url = cp.Url,
+                            title = cp.Title,
+                            screenshotBase64 = cp.ScreenshotBase64,
+                            pageText = cp.PageText,
+                            faviconBase64 = cp.FaviconBase64
+                        }).ToList()
+                    };
+
+                    string jsonString = JsonSerializer.Serialize(dataToInject);
+
+                    // JavaScript para inyectar en la página de Gemini
+                    string injectionScript = $@"
+                        (function() {{
+                            const data = {jsonString};
+
+                            let container = document.getElementById('auroraGeminiIntegrationContainer');
+                            if (!container) {{
+                                container = document.createElement('div');
+                                container.id = 'auroraGeminiIntegrationContainer';
+                                container.style.cssText = `
+                                    position: absolute;
+                                    top: 10px;
+                                    left: 10px;
+                                    right: 10px;
+                                    background-color: rgba(255, 255, 255, 0.95);
+                                    border: 2px solid #9B59B6;
+                                    border-radius: 10px;
+                                    padding: 15px;
+                                    z-index: 99999; /* Asegurarse de que esté por encima de otros elementos */
+                                    max-height: 90%;
+                                    overflow-y: auto;
+                                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                                    font-family: 'Segoe UI', sans-serif;
+                                    color: #333;
+                                `;
+                                document.body.prepend(container); // Añadir al principio del body
+                            }} else {{
+                                container.innerHTML = ''; // Limpiar contenido si ya existe
+                            }}
+
+                            const closeButton = document.createElement('button');
+                            closeButton.textContent = 'X';
+                            closeButton.style.cssText = `
+                                position: absolute;
+                                top: 5px;
+                                right: 5px;
+                                background: #dc3545;
+                                color: white;
+                                border: none;
+                                border-radius: 50%;
+                                width: 25px;
+                                height: 25px;
+                                cursor: pointer;
+                                font-size: 14px;
+                                line-height: 1;
+                                text-align: center;
+                            `;
+                            closeButton.onclick = () => container.remove();
+                            container.appendChild(closeButton);
+
+                            const header = document.createElement('h3');
+                            header.textContent = 'Datos de Aurora Browser para Gemini:';
+                            header.style.cssText = 'color: #9B59B6; margin-top: 5px; margin-bottom: 10px;';
+                            container.appendChild(header);
+
+                            const questionPara = document.createElement('p');
+                            questionPara.innerHTML = `<strong>Tu Pregunta:</strong> ${data.userQuestion}`;
+                            questionPara.style.cssText = 'background-color: #e6f7ff; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-style: italic;';
+                            container.appendChild(questionPara);
+
+                            data.capturedPages.forEach(page => {{
+                                const pageDiv = document.createElement('div');
+                                pageDiv.style.cssText = `
+                                    border: 1px solid #eee;
+                                    border-radius: 8px;
+                                    padding: 10px;
+                                    margin-bottom: 10px;
+                                    background-color: #fcfcfc;
+                                    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+                                `;
+
+                                const pageTitle = document.createElement('h4');
+                                pageTitle.style.cssText = 'margin-top: 0; margin-bottom: 5px; color: #007bff; display: flex; align-items: center;';
+                                if (page.faviconBase64) {{
+                                    const faviconImg = document.createElement('img');
+                                    faviconImg.src = `data:image/x-icon;base64,${page.faviconBase64}`;
+                                    faviconImg.style.cssText = 'width: 16px; height: 16px; margin-right: 8px;';
+                                    pageTitle.appendChild(faviconImg);
+                                }}
+                                pageTitle.innerHTML += page.title || page.url;
+                                pageDiv.appendChild(pageTitle);
+
+                                const urlPara = document.createElement('p');
+                                urlPara.innerHTML = `<strong>URL:</strong> <a href='${page.url}' target='_blank' style='color: #0056b3;'>${page.url}</a>`;
+                                urlPara.style.cssText = 'font-size: 0.9em; margin-bottom: 5px; word-break: break-all;';
+                                pageDiv.appendChild(urlPara);
+
+                                if (page.screenshotBase64) {{
+                                    const screenshotImg = document.createElement('img');
+                                    screenshotImg.src = `data:image/png;base64,${page.screenshotBase64}`;
+                                    screenshotImg.style.cssText = `
+                                        max-width: 100%;
+                                        height: auto;
+                                        display: block;
+                                        margin: 10px 0;
+                                        border: 1px solid #ddd;
+                                        border-radius: 5px;
+                                    `;
+                                    pageDiv.appendChild(screenshotImg);
+                                }}
+
+                                if (page.pageText) {{
+                                    const textHeader = document.createElement('p');
+                                    textHeader.innerHTML = '<strong>Texto Extraído (primeros 500 caracteres):</strong>';
+                                    textHeader.style.cssText = 'margin-bottom: 5px; font-size: 0.9em;';
+                                    pageDiv.appendChild(textHeader);
+
+                                    const textContent = document.createElement('div');
+                                    textContent.textContent = page.pageText.substring(0, 500) + (page.pageText.length > 500 ? '...' : '');
+                                    textContent.style.cssText = `
+                                        background-color: #f9f9f9;
+                                        border: 1px dashed #ccc;
+                                        padding: 8px;
+                                        max-height: 100px;
+                                        overflow-y: auto;
+                                        font-size: 0.8em;
+                                        white-space: pre-wrap;
+                                    `;
+                                    pageDiv.appendChild(textContent);
+                                }}
+                                container.appendChild(pageDiv);
+                            }});
+
+                            const instructionsPara = document.createElement('p');
+                            instructionsPara.innerHTML = `<br><strong>Instrucciones:</strong> Para que Gemini procese esta información, por favor, copia y pega el texto y las URLs relevantes en el cuadro de chat de Gemini, y sube las imágenes si es necesario.`;
+                            instructionsPara.style.cssText = 'margin-top: 20px; font-size: 0.95em; color: #666; border-top: 1px dashed #eee; padding-top: 10px;';
+                            container.appendChild(instructionsPara);
+
+                        }})();
+                    ";
+                    
+                    // Ejecutar el script en el WebView2 del panel derecho
+                    await SelectedTabItem.RightWebView.CoreWebView2.ExecuteScriptAsync(injectionScript);
+
+                    MessageBox.Show(this, "Las capturas de pantalla, URLs y tu pregunta se han mostrado en el panel de Gemini. Por favor, copia y pega la información relevante en el chat de Gemini.", "Información para Gemini", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    // Comportamiento si no hay pantalla dividida o no hay RightWebView
+                    MessageBox.Show(this, "Para usar esta función, por favor, activa el modo de pantalla dividida en la pestaña actual y asegúrate de que el panel derecho esté visible.", "Modo de Pantalla Dividida Requerido", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
             
             SetGeminiMode(false); // Desactiva el modo Gemini al cerrar la ventana
         }
 
-        // NUEVO: Método para cambiar el tema del navegador al modo Gemini
         private void SetGeminiMode(bool isActive)
         {
             _isGeminiModeActive = isActive;
             if (isActive)
             {
-                // Guarda los colores actuales para restaurarlos
                 Application.Current.Resources["OriginalBrowserBackgroundColor"] = BrowserBackgroundColor;
                 Application.Current.Resources["OriginalBrowserForegroundColor"] = BrowserForegroundColor;
 
@@ -1660,7 +1835,6 @@ namespace NavegadorWeb
             }
             else
             {
-                // Restaura los colores originales si existen
                 if (Application.Current.Resources.Contains("OriginalBrowserBackgroundColor") &&
                     Application.Current.Resources.Contains("OriginalBrowserForegroundColor"))
                 {
@@ -1671,13 +1845,12 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    // Si no hay colores originales guardados (ej. primera vez), restaurar a los cargados de settings
-                    LoadSettings(); // Esto volverá a cargar los colores desde settings o los valores por defecto
+                    LoadSettings();
                     ApplyForegroundToWindowControls();
                 }
             }
-            ApplyToolbarPosition(_currentToolbarPosition); // Reaplicar la posición para actualizar los colores
-            UpdateToolbarButtonForeground(); // Asegurar que los botones cambien de color
+            ApplyToolbarPosition(_currentToolbarPosition);
+            UpdateToolbarButtonForeground();
         }
 
 
@@ -2113,8 +2286,8 @@ namespace NavegadorWeb
                 _isTabSuspensionEnabled, _restoreSessionOnStartup, TrackerBlocker.IsEnabled,
                 _isPdfViewerEnabled, BrowserBackgroundColor, BrowserForegroundColor, _currentToolbarPosition);
 
-            settingsWindow.Owner = this; // Establecer propietario
-            settingsWindow.OnClearBrowseData += SettingsWindow_OnClearBrowseData;
+            settingsWindow.Owner = this;
+            settingsWindow.OnClearBrowsingData += SettingsWindow_OnClearBrowsingData;
             settingsWindow.OnSuspendInactiveTabs += SettingsWindow_OnSuspendInactiveTabs;
             settingsWindow.OnColorsChanged += SettingsWindow_OnColorsChanged;
             settingsWindow.OnToolbarPositionChanged += SettingsWindow_OnToolbarPositionChanged;
@@ -2132,7 +2305,7 @@ namespace NavegadorWeb
                 MessageBox.Show(this, "Configuración guardada. Los cambios se aplicarán al abrir nuevas pestañas o al hacer clic en 'Inicio'.", "Configuración Guardada", MessageBoxButton.OK, MessageBoxImage.Information);
             }
 
-            settingsWindow.OnClearBrowseData -= SettingsWindow_OnClearBrowseData;
+            settingsWindow.OnClearBrowsingData -= SettingsWindow_OnClearBrowsingData;
             settingsWindow.OnSuspendInactiveTabs -= SettingsWindow_OnSuspendInactiveTabs;
             settingsWindow.OnColorsChanged -= SettingsWindow_OnColorsChanged;
             settingsWindow.OnToolbarPositionChanged -= SettingsWindow_OnToolbarPositionChanged;
@@ -2153,7 +2326,7 @@ namespace NavegadorWeb
         }
 
 
-        private async void SettingsWindow_OnClearBrowseData()
+        private async void SettingsWindow_OnClearBrowsingData()
         {
             WebView2 anyWebView = GetCurrentWebView();
 
@@ -2171,7 +2344,7 @@ namespace NavegadorWeb
                     CoreWebView2BrowserDataKinds.PasswordAutofill |
                     CoreWebView2BrowserDataKinds.OtherData;
 
-                await _defaultEnvironment.ClearBrowseDataAsync(dataKinds);
+                await _defaultEnvironment.ClearBrowsingDataAsync(dataKinds);
                 MessageBox.Show(this, "Datos de navegación (caché, cookies, etc.) borrados con éxito.", "Limpieza Completa", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
@@ -2627,9 +2800,8 @@ namespace NavegadorWeb
             mainGrid.ColumnDefinitions.Clear();
             mainGrid.RowDefinitions.Clear();
 
-            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Fila para el título de la ventana
+            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            // Reinicia los contenedores de las barras de herramientas
             MainToolbarContainer.Children.Clear();
             LeftToolbarPlaceholder.Children.Clear();
             RightToolbarPlaceholder.Children.Clear();
@@ -2639,7 +2811,6 @@ namespace NavegadorWeb
             RightToolbarPlaceholder.Visibility = Visibility.Collapsed;
             RightToolbarPlaceholder.Width = 0;
 
-            // Restablecer el BorderThickness de MainToolbarContainer
             MainToolbarContainer.BorderThickness = new Thickness(0);
 
 
@@ -2652,7 +2823,7 @@ namespace NavegadorWeb
             allButtons.Add(FindButton); allButtons.Add(PermissionsButton); allButtons.Add(PipButton);
             allButtons.Add(PasswordManagerButton); allButtons.Add(ExtensionsButton);
             allButtons.Add(MicrophoneToggleButton);
-            allButtons.Add(AskGeminiButton); // NUEVO: Añadir el botón de Gemini aquí
+            allButtons.Add(AskGeminiButton);
 
             allButtons.Add(IncognitoButton); allButtons.Add(AddBookmarkButton); allButtons.Add(NewTabButton); allButtons.Add(SettingsButton);
 
@@ -2662,8 +2833,8 @@ namespace NavegadorWeb
             switch (position)
             {
                 case ToolbarPosition.Top:
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Fila para la barra de herramientas
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Fila para el contenido
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
                     MainToolbarContainer.Visibility = Visibility.Visible;
                     Grid.SetRow(MainToolbarContainer, 1);
@@ -2683,7 +2854,7 @@ namespace NavegadorWeb
                         btn.Width = 30;
                         btn.Height = 25;
                         btn.Margin = new Thickness(0, 0, 5, 0);
-                        if (btn == IncognitoButton || btn == AddBookmarkButton || btn == NewTabButton || btn == SettingsButton || btn == AskGeminiButton) // Incluir AskGeminiButton en la derecha
+                        if (btn == IncognitoButton || btn == AddBookmarkButton || btn == NewTabButton || btn == SettingsButton || btn == AskGeminiButton)
                         {
                             topToolbarRightButtonsPanel.Children.Add(btn);
                         }
@@ -2711,16 +2882,16 @@ namespace NavegadorWeb
                     break;
 
                 case ToolbarPosition.Left:
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Fila para el contenido
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Columna para la barra de herramientas
-                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Columna para el contenido
+                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
                     MainToolbarContainer.Visibility = Visibility.Collapsed;
                     LeftToolbarPlaceholder.Visibility = Visibility.Visible;
                     LeftToolbarPlaceholder.Width = 150;
                     LeftToolbarPlaceholder.Height = Double.NaN;
-                    LeftToolbarPlaceholder.BorderThickness = new Thickness(0,0,1,0); // Borde a la derecha
+                    LeftToolbarPlaceholder.BorderThickness = new Thickness(0,0,1,0);
 
                     Grid.SetRow(LeftToolbarPlaceholder, 1);
                     Grid.SetColumn(LeftToolbarPlaceholder, 0);
@@ -2753,16 +2924,16 @@ namespace NavegadorWeb
                     break;
 
                 case ToolbarPosition.Right:
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Fila para el contenido
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Columna para el contenido
-                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Columna para la barra de herramientas
+                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
                     MainToolbarContainer.Visibility = Visibility.Collapsed;
                     RightToolbarPlaceholder.Visibility = Visibility.Visible;
                     RightToolbarPlaceholder.Width = 150;
                     RightToolbarPlaceholder.Height = Double.NaN;
-                    RightToolbarPlaceholder.BorderThickness = new Thickness(1,0,0,0); // Borde a la izquierda
+                    RightToolbarPlaceholder.BorderThickness = new Thickness(1,0,0,0);
 
                     Grid.SetRow(RightToolbarPlaceholder, 1);
                     Grid.SetColumn(RightToolbarPlaceholder, 1);
@@ -2795,8 +2966,8 @@ namespace NavegadorWeb
                     break;
 
                 case ToolbarPosition.Bottom:
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Fila para el contenido
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Fila para la barra de herramientas
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
                     MainToolbarContainer.Visibility = Visibility.Visible;
                     Grid.SetRow(MainToolbarContainer, 2);
@@ -2805,7 +2976,7 @@ namespace NavegadorWeb
                     MainToolbarContainer.Height = Double.NaN;
                     MainToolbarContainer.Width = Double.NaN;
                     MainToolbarContainer.LastChildFill = true;
-                    MainToolbarContainer.BorderThickness = new Thickness(0, 1, 0, 0); // Borde arriba
+                    MainToolbarContainer.BorderThickness = new Thickness(0, 1, 0, 0);
 
                     DockPanel bottomToolbarDockPanel = new DockPanel();
                     StackPanel bottomToolbarLeftButtonsPanel = new StackPanel { Orientation = Orientation.Horizontal };
@@ -2816,7 +2987,7 @@ namespace NavegadorWeb
                         btn.Width = 30;
                         btn.Height = 25;
                         btn.Margin = new Thickness(0, 0, 5, 0);
-                        if (btn == IncognitoButton || btn == AddBookmarkButton || btn == NewTabButton || btn == SettingsButton || btn == AskGeminiButton) // Incluir AskGeminiButton en la derecha
+                        if (btn == IncognitoButton || btn == AddBookmarkButton || btn == NewTabButton || btn == SettingsButton || btn == AskGeminiButton)
                         {
                             bottomToolbarRightButtonsPanel.Children.Add(btn);
                         }
@@ -2844,15 +3015,13 @@ namespace NavegadorWeb
                     break;
             }
 
-            // Asegura que FindBar esté en la misma celda que el TabGroupContainer
             Grid.SetRow(FindBar, Grid.GetRow(TabGroupContainer));
             Grid.SetColumn(FindBar, Grid.GetColumn(TabGroupContainer));
 
-            UpdateToolbarButtonForeground(); // Asegura que los colores de los botones se apliquen
+            UpdateToolbarButtonForeground();
         }
 
 
-        // NUEVO: Manejador del temporizador para verificar la conectividad
         private void ConnectivityTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             Dispatcher.Invoke(() =>
