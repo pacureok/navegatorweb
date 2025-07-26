@@ -12,7 +12,7 @@ using System.Text.Json;
 using System.Speech.Synthesis;
 using System.Windows.Media.Imaging;
 using System.Windows.Media;
-using System.Diagnostics;
+using System.Diagnostics; // Necesario para Process.Start
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.ComponentModel;
@@ -165,7 +165,7 @@ namespace NavegadorWeb
             TabGroupContainer.ItemsSource = _tabGroupManager.TabGroups;
 
             LoadSettings();
-            InitializeEnvironments();
+            InitializeEnvironments(); // Aquí se llama el método que ahora incluye la verificación
             LoadReaderModeScript();
             LoadDarkModeScript();
             LoadPageColorExtractionScript();
@@ -195,7 +195,8 @@ namespace NavegadorWeb
                 MaximizeRestoreButton.Foreground = BrowserForegroundColor != null ? new SolidColorBrush(BrowserForegroundColor) : Brushes.Black;
                 MinimizeButton.Foreground = BrowserForegroundColor != null ? new SolidColorBrush(BrowserForegroundColor) : Brushes.Black;
                 CloseButton.Foreground = BrowserForegroundColor != null ? new SolidColorBrush(BrowserForegroundColor) : Brushes.Black;
-                AIButton_TitleBar.Foreground = BrowserForegroundColor != null ? new SolidColorBrush(BrowserForegroundColor) : Brushes.Black;
+                // AIButton_TitleBar no existe en la versión completa del navegador, se elimina o se comenta
+                // AIButton_TitleBar.Foreground = BrowserForegroundColor != null ? new SolidColorBrush(BrowserForegroundColor) : Brushes.Black;
             }
             if (WindowTitleText != null)
             {
@@ -206,28 +207,34 @@ namespace NavegadorWeb
 
         private void UpdateToolbarButtonForeground()
         {
+            // Get all buttons from the main toolbar container (top/bottom)
             var mainToolbarButtons = MainToolbarContainer.Children.OfType<DockPanel>()
                                      .SelectMany(dp => dp.Children.OfType<StackPanel>())
                                      .SelectMany(sp => sp.Children.OfType<Button>());
 
+            // Get all buttons from the left toolbar placeholder
             var leftToolbarButtons = LeftToolbarPlaceholder.Children.OfType<StackPanel>()
                                    .SelectMany(sp => sp.Children.OfType<Button>());
 
+            // Get all buttons from the right toolbar placeholder
             var rightToolbarButtons = RightToolbarPlaceholder.Children.OfType<StackPanel>()
                                     .SelectMany(sp => sp.Children.OfType<Button>());
 
+            // Combine all button collections
             var allToolbarButtons = mainToolbarButtons
                                     .Concat(leftToolbarButtons)
                                     .Concat(rightToolbarButtons);
 
             foreach (var child in allToolbarButtons)
             {
+                // Ensure the button is not the CloseButton (X) in the title bar, which has its own style
                 if (child != CloseButton)
                 {
                     child.Foreground = new SolidColorBrush(BrowserForegroundColor);
                 }
             }
 
+            // Also for the specific buttons of FindBar
             if (FindBar != null && FindBar.Child is StackPanel findBarStackPanel)
             {
                 foreach (var child in findBarStackPanel.Children.OfType<Button>())
@@ -235,6 +242,7 @@ namespace NavegadorWeb
                     child.Foreground = new SolidColorBrush(BrowserForegroundColor);
                 }
             }
+            // Update UrlTextBox and FindTextBox foreground
             if (UrlTextBox != null) UrlTextBox.Foreground = new SolidColorBrush(BrowserForegroundColor);
             if (FindTextBox != null) FindTextBox.Foreground = new SolidColorBrush(BrowserForegroundColor);
             if (FindResultsTextBlock != null) FindResultsTextBlock.Foreground = new SolidColorBrush(BrowserForegroundColor);
@@ -392,6 +400,52 @@ namespace NavegadorWeb
 
         private async void InitializeEnvironments()
         {
+            // Paso 1: Verificar si el Runtime de WebView2 está instalado
+            string webView2Version = null;
+            try
+            {
+                // Intenta obtener la versión del Runtime disponible.
+                // Si no está instalado, esta llamada lanzará una excepción.
+                webView2Version = CoreWebView2Environment.GetAvailableBrowserVersionString();
+            }
+            catch (Exception)
+            {
+                // Captura la excepción si el Runtime no se encuentra.
+                webView2Version = null; // Asegura que la variable sea nula o vacía.
+            }
+
+            if (string.IsNullOrEmpty(webView2Version))
+            {
+                // Si el Runtime no está instalado, notifica al usuario y ofrece el enlace.
+                MessageBoxResult result = MessageBox.Show(
+                    "El componente WebView2 Runtime de Microsoft Edge no está instalado en tu sistema.\n" +
+                    "Este navegador lo requiere para funcionar.\n\n" +
+                    "¿Deseas descargarlo e instalarlo ahora?",
+                    "WebView2 Runtime No Encontrado",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Error
+                );
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    try
+                    {
+                        // Abre el enlace de descarga en el navegador predeterminado del usuario.
+                        // UseShellExecute = true es crucial para abrir URLs con el navegador por defecto.
+                        Process.Start(new ProcessStartInfo("https://developer.microsoft.com/en-us/microsoft-edge/webview2/?form=MA13LH") { UseShellExecute = true });
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"No se pudo abrir el enlace de descarga: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+
+                // Cierra la aplicación, ya que no puede funcionar sin el Runtime de WebView2.
+                Application.Current.Shutdown();
+                return; // Sale del método para evitar más ejecución.
+            }
+
+            // Paso 2: Si el Runtime de WebView2 está instalado, procede con la inicialización de los entornos.
             try
             {
                 string defaultUserDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AuroraBrowser", "UserData");
@@ -404,7 +458,8 @@ namespace NavegadorWeb
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al inicializar los entornos del navegador: {ex.Message}\nPor favor, asegúrate de tener WebView2 Runtime instalado.", "Error de Inicialización", MessageBoxButton.OK, MessageBoxImage.Error);
+                // Este catch manejará errores si el Runtime está presente pero corrupto o hay otro problema de inicialización.
+                MessageBox.Show($"Error al inicializar los entornos del navegador: {ex.Message}\nPor favor, asegúrate de que tu instalación de WebView2 Runtime no esté corrupta o intenta reinstalarlo.", "Error de Inicialización", MessageBoxButton.OK, MessageBoxImage.Error);
                 Application.Current.Shutdown();
             }
         }
@@ -505,14 +560,16 @@ namespace NavegadorWeb
 
         private async void AddNewTab(string url = null, bool isIncognito = false, TabGroup targetGroup = null)
         {
+            // Asegúrate de que los entornos estén inicializados antes de añadir pestañas
+            // Si InitializeEnvironments falló y cerró la aplicación, este código no se ejecutará.
+            // Si InitializeEnvironments aún está en progreso, espera un poco.
             if (_defaultEnvironment == null || _incognitoEnvironment == null)
             {
-                await Task.Delay(100);
-                if (_defaultEnvironment == null || _incognitoEnvironment == null)
-                {
-                    MessageBox.Show("El navegador no está listo. Por favor, reinicia la aplicación.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
+                // Esto podría ocurrir si InitializeEnvironments aún no ha terminado,
+                // o si hubo un error irrecuperable que no cerró la app inmediatamente.
+                // Es un fallback, la verificación principal está en InitializeEnvironments.
+                MessageBox.Show("El navegador no está listo para crear nuevas pestañas. Por favor, reinicia la aplicación.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
             }
 
             TabGroup groupToAdd = targetGroup ?? _tabGroupManager.GetDefaultGroup();
@@ -1555,7 +1612,7 @@ namespace NavegadorWeb
                         }
                         let youtubeWatchIframe = document.querySelector('iframe[src*=""youtube.com/watch""]');
                         if (youtubeWatchIframe && youtubeWatchIframe.src) {
-                            return youtubeWatchIframe.src;
+                            return youtubeIframe.src;
                         }
                         return null;
                     })();
@@ -2077,7 +2134,7 @@ namespace NavegadorWeb
             {
                 _speechSynthesizer.SpeakAsyncCancelAll();
                 _isReadingAloud = false;
-                ReadAloudButton.Content = "🔊";
+                ReadAloudButton.Content = "�";
             }
 
             Grid currentGrid = tabItem.Tab.Content as Grid;
@@ -3087,3 +3144,4 @@ namespace NavegadorWeb
         Bottom
     }
 }
+�
