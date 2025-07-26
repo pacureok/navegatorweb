@@ -2,7 +2,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NavegadorWeb", "NavegadorWeb\NavegadorWeb.csproj", "{YOUR_GUID_HERE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NavegadorWeb", "NavegadorWeb\NavegadorWeb.csproj", "{TU_GUID_REAL_AQUI}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -10,15 +10,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{YOUR_GUID_HERE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{YOUR_GUID_HERE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{YOUR_GUID_HERE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{YOUR_GUID_HERE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{TU_GUID_REAL_AQUI}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{TU_GUID_REAL_AQUI}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{TU_GUID_REAL_AQUI}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{TU_GUID_REAL_AQUI}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {ANOTHER_YOUR_GUID_HERE}
+		SolutionGuid = {OTRO_GUID_REAL_AQUI}
 	EndGlobalSection
 EndGlobal
