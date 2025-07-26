@@ -9,90 +9,41 @@
             overflow: hidden;
             background-color: #f7f7f7;
             display: flex;
+            flex-direction: column; /* Cambiado a columna para centrar mejor el contenido */
             justify-content: center;
             align-items: center;
             height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             color: #333;
+            text-align: center; /* Centrar texto */
         }
-        #game-container {
-            text-align: center;
+        #message-container {
             background-color: #fff;
-            padding: 20px;
+            padding: 30px;
             border-radius: 10px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        #minesweeper-grid {
-            display: grid;
-            border: 1px solid #ccc;
-            margin: 20px auto;
-        }
-        .cell {
-            width: 30px;
-            height: 30px;
-            background-color: #ddd;
-            border: 2px outset #bbb;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.2em;
-            font-weight: bold;
-            cursor: pointer;
-            user-select: none; /* Evitar selección de texto */
-        }
-        .cell.opened {
-            background-color: #f0f0f0;
-            border: 1px inset #bbb;
-        }
-        .cell.mine {
-            background-color: red;
-            border: 1px inset #bbb;
-        }
-        .cell.flagged {
-            background-color: lightblue;
-        }
-        .cell.number-1 { color: blue; }
-        .cell.number-2 { color: green; }
-        .cell.number-3 { color: red; }
-        .cell.number-4 { color: darkblue; }
-        .cell.number-5 { color: darkred; }
-        .cell.number-6 { color: teal; }
-        .cell.number-7 { color: black; }
-        .cell.number-8 { color: gray; }
-
-        #message {
-            margin-top: 10px;
-            font-size: 1.3em;
-            color: #555;
-            min-height: 25px; /* Para mantener espacio */
-        }
-        #restart-button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            font-size: 1.1em;
-            background-color: #007bff; /* Azul para reiniciar */
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        #restart-button:hover {
-            background-color: #0056b3;
+            max-width: 500px;
+            margin: 20px;
         }
         #retry-button {
-            margin-top: 10px;
-            padding: 10px 20px;
+            margin-top: 20px;
+            padding: 12px 25px;
             font-size: 1.1em;
-            background-color: #4CAF50;
+            background-color: #4CAF50; /* Un verde amigable */
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
         }
         #retry-button:hover {
             background-color: #45a049;
+            transform: translateY(-2px);
+        }
+        #retry-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(76, 175, 80, 0.5);
         }
         h1 {
             color: #555;
@@ -105,21 +56,18 @@
     </style>
 </head>
 <body>
-    <div id="game-container">
+    <div id="message-container">
         <h1>¡Parece que no hay conexión a Internet!</h1>
-        <p>Pero no te preocupes, puedes jugar al Buscaminas mientras esperas.</p>
-        <div id="minesweeper-grid"></div>
-        <div id="message"></div>
-        <button id="restart-button">Reiniciar Juego</button>
+        <p>No te preocupes, el navegador Aurora está esperando a que la conexión se restablezca.</p>
         <button id="retry-button">Intentar reconectar</button>
     </div>
-    <script src="MinesweeperGame.js"></script>
     <script>
         // JavaScript para enviar un mensaje a la aplicación WPF cuando el usuario haga clic en "Intentar reconectar"
         document.getElementById('retry-button').addEventListener('click', () => {
             if (window.chrome && window.chrome.webview) {
                 window.chrome.webview.postMessage({ type: 'retryConnection' });
             } else {
+                // Fallback si no se ejecuta en WebView2 (ej. directamente en un navegador)
                 alert('No se pudo enviar el mensaje a la aplicación. Por favor, recarga la página manualmente.');
             }
         });
