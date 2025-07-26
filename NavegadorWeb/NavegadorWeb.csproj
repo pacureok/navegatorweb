@@ -174,7 +174,7 @@
     <Compile Update="AskGeminiWindow.xaml.cs">
       <DependentUpon>AskGeminiWindow.xaml</DependentUpon>
     </Compile>
-    </ItemGroup>
+  </ItemGroup>
 
   <ItemGroup>
     <Content Include="CustomErrorPage.html">
