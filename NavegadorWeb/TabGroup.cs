@@ -1,41 +1,39 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 
 namespace NavegadorWeb
 {
-    /// <summary>
-    /// Representa un grupo de pestañas en el navegador.
-    /// Implementa INotifyPropertyChanged para que la UI se actualice automáticamente.
-    /// </summary>
     public class TabGroup : INotifyPropertyChanged
     {
-        private string _groupName;
-        public string GroupName
+        private string _name;
+        public string Name
         {
-            get { return _groupName; }
+            get => _name;
             set
             {
-                if (_groupName != value)
+                if (_name != value)
                 {
-                    _groupName = value;
-                    OnPropertyChanged(nameof(GroupName));
+                    _name = value;
+                    OnPropertyChanged(nameof(Name));
                 }
             }
         }
 
         public ObservableCollection<BrowserTabItem> TabsInGroup { get; set; }
 
-        public TabGroup(string name)
-        {
-            GroupName = name;
-            TabsInGroup = new ObservableCollection<BrowserTabItem>();
-        }
-
-        public event PropertyChangedEventHandler PropertyChanged;
+        // Implementación explícita del evento PropertyChanged para INotifyPropertyChanged
+        public event PropertyChangedEventHandler? PropertyChanged; // Se añadió '?' para nulabilidad
 
         protected void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public TabGroup(string name)
+        {
+            Name = name;
+            TabsInGroup = new ObservableCollection<BrowserTabItem>();
         }
     }
 }
