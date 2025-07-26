@@ -108,19 +108,8 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ToggleButton">
                         <Grid VerticalAlignment="Center" HorizontalAlignment="Left">
-                            <Border x:Name="OuterBorder"
-                                    Background="{TemplateBinding Background}"
-                                    CornerRadius="10"
-                                    Width="40"
-                                    Height="20"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="1"/>
-                            <Ellipse x:Name="ToggleThumb"
-                                     Fill="{TemplateBinding Foreground}"
-                                     Width="16"
-                                     Height="16"
-                                     HorizontalAlignment="Left"
-                                     Margin="2,0,0,0"/>
+                            <Border x:Name="OuterBorder" Background="{TemplateBinding Background}" CornerRadius="10" Width="40" Height="20" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"/>
+                            <Ellipse x:Name="ToggleThumb" Fill="{TemplateBinding Foreground}" Width="16" Height="16" HorizontalAlignment="Left" Margin="2,0,0,0"/>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
@@ -141,27 +130,16 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type ListBoxItem}">
-                        <Border x:Name="border"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                Padding="{TemplateBinding Padding}"
-                                SnapsToDevicePixels="true">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
-                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="true">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#3a3e47"/>
-                                <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource BrowserBackgroundColor}"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource BrowserForegroundColor}"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="border" Property="Background" Value="#444a54"/>
-                                <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -169,116 +147,150 @@
             </Setter>
         </Style>
 
+        <Style TargetType="ComboBox">
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Background" Value="#1a1a1a"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
+            <Setter Property="BorderBrush" Value="#333333"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="5"/>
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="#1a1a1a"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
+            <Setter Property="Padding" Value="5"/>
+        </Style>
+
+        <Style TargetType="Slider">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Track x:Name="PART_Track" Grid.Row="1">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge" Background="#61afef"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge" Background="#333333"/>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Background="{DynamicResource BrowserForegroundColor}"/>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
     </Window.Resources>
 
-    <Border Background="{DynamicResource BrowserBackgroundBrush}"
-            CornerRadius="10"
-            BorderBrush="{DynamicResource BrowserForegroundColor}"
-            BorderThickness="1">
-        <Grid x:Name="mainGrid" >
+    <Border Background="{DynamicResource BrowserBackgroundBrush}" CornerRadius="10" BorderBrush="#333333" BorderThickness="1">
+        <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> <RowDefinition Height="*"/>    </Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> <RowDefinition Height="*"/>    <RowDefinition Height="Auto"/> </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <Grid Grid.Row="0" x:Name="TitleBarGrid"
-                  Background="{DynamicResource BrowserBackgroundBrush}"
-                  MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+            <Border Grid.Row="0" Grid.Column="0" Height="30" Background="Transparent" MouseLeftButtonDown="Window_MouseLeftButtonDown">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-                <Image Source="icono.ico" Width="16" Height="16" Margin="5,0,0,0" VerticalAlignment="Center" Grid.Column="0"/>
-                <TextBlock x:Name="WindowTitleText"
-                           Text="Aurora Browser"
-                           Grid.Column="1"
-                           VerticalAlignment="Center"
-                           HorizontalAlignment="Left"
-                           Margin="5,0,0,0"
-                           Foreground="{DynamicResource BrowserForegroundColor}"
-                           FontWeight="Bold"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0">
+                        <Image Source="/Resources/gemini_icon.ico" Width="16" Height="16" Margin="0,0,5,0"/>
+                        <TextBlock Text="Aurora Browser" Foreground="{DynamicResource BrowserForegroundColor}" FontWeight="Bold" VerticalAlignment="Center"/>
+                    </StackPanel>
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Grid.Column="4">
-                    <Button x:Name="MinimizeButton" Content="—" Click="MinimizeButton_Click"
-                            ToolTip="Minimizar" Style="{StaticResource WindowControlButton}"/>
-                    <Button x:Name="MaximizeRestoreButton" Content="🗖" Click="MaximizeRestoreButton_Click"
-                            ToolTip="Maximizar / Restaurar" Style="{StaticResource WindowControlButton}"/>
-                    <Button x:Name="CloseButton" Content="✕" Click="CloseButton_Click"
-                            ToolTip="Cerrar" Style="{StaticResource WindowCloseButton}"/>
-                </StackPanel>
-            </Grid>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="—" Width="30" Height="30" Click="MinimizeButton_Click" ToolTip="Minimizar"/>
+                        <Button x:Name="MaximizeRestoreButton" Content="⬜" Width="30" Height="30" Click="MaximizeRestoreButton_Click" ToolTip="Maximizar/Restaurar"/>
+                        <Button Content="✕" Width="30" Height="30" Click="CloseButton_Click" ToolTip="Cerrar"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
 
-            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Stretch" Margin="5">
-                <Button Content="←" Click="GoBack_Click" ToolTip="Ir atrás" FontWeight="Bold"/>
-                <Button Content="→" Click="GoForward_Click" ToolTip="Ir adelante" FontWeight="Bold"/>
-                <Button Content="↻" Command="{Binding ReloadCommand}" ToolTip="Recargar página" FontWeight="Bold"/>
-                <Button Content="🏠" Click="HomeButton_Click" ToolTip="Ir a la página de inicio" FontWeight="Bold"/>
-                <Button Content="🔍" Command="{Binding ToggleFindBarCommand}" ToolTip="Buscar en la página" FontWeight="Bold"/>
-                <Button Content="⚙️" Click="SettingsButton_Click" ToolTip="Configuración" FontWeight="Bold"/>
-                <Button Content="🔖" Command="{Binding OpenBookmarksCommand}" ToolTip="Marcadores" FontWeight="Bold"/>
-                <Button Content="🕒" Command="{Binding OpenHistoryCommand}" ToolTip="Historial" FontWeight="Bold"/>
-                <Button Content="⬇️" Command="{Binding OpenDownloadsCommand}" ToolTip="Descargas" FontWeight="Bold"/>
-                <Button Content="🔑" Click="PasswordsButton_Click" ToolTip="Administrar contraseñas" FontWeight="Bold"/>
-                <Button Content="🔌" Click="ExtensionsButton_Click" ToolTip="Extensiones" FontWeight="Bold"/>
-                <Button Content="🖼️" Command="{Binding ScreenshotCommand}" ToolTip="Captura de pantalla" FontWeight="Bold"/>
-                <Button Content="⚡" Click="PerformanceButton_Click" ToolTip="Rendimiento" FontWeight="Bold"/>
-                <Button Content="🕵️" Click="NewIncognitoTabButton_Click" ToolTip="Nueva pestaña de incógnito" FontWeight="Bold"/>
-                <Button Content="🎥" Click="PipButton_Click" ToolTip="Modo Picture-in-Picture" FontWeight="Bold"/>
-                <Button Content="📄" Click="ReaderModeButton_Click" ToolTip="Modo lectura" FontWeight="Bold"/>
-                <Button Content="🗣️" Click="ReadAloudButton_Click" ToolTip="Leer en voz alta" FontWeight="Bold"/>
-                <Button Content="🌙" Click="ToggleDarkModeButton_Click" ToolTip="Alternar modo oscuro" FontWeight="Bold"/>
-                <Button Content="⚡" Click="ToggleGeminiModeButton_Click" ToolTip="Modo Gemini" FontWeight="Bold"/>
+            <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource BrowserBackgroundBrush}" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="5">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
+                    <Button Grid.Column="0" Command="{Binding NavigateBackCommand}" ToolTip="Atrás">
+                        <Image Source="/Resources/back.png" Width="16" Height="16"/>
+                    </Button>
+                    <Button Grid.Column="1" Command="{Binding NavigateForwardCommand}" ToolTip="Adelante">
+                        <Image Source="/Resources/forward.png" Width="16" Height="16"/>
+                    </Button>
+                    <Button Grid.Column="2" Command="{Binding ReloadCommand}" ToolTip="Recargar">
+                        <Image Source="/Resources/reload.png" Width="16" Height="16"/>
+                    </Button>
+                    <Button Grid.Column="3" Command="{Binding HomeCommand}" ToolTip="Inicio">
+                        <Image Source="/Resources/home.png" Width="16" Height="16"/>
+                    </Button>
+                    <Button Grid.Column="4" Command="{Binding NewTabCommand}" ToolTip="Nueva Pestaña">
+                        <Image Source="/Resources/new_tab.png" Width="16" Height="16"/>
+                    </Button>
 
-                <TextBox x:Name="AddressBar"
-                         Text="{Binding SelectedTabItem.AddressBarText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         KeyDown="AddressBar_KeyDown"
-                         VerticalContentAlignment="Center"
-                         HorizontalAlignment="Stretch"
-                         Margin="5,0"
-                         ContextMenu="{StaticResource AddressBarContextMenu}"
-                         TextWrapping="Wrap"
-                         AcceptsReturn="False"
-                         ScrollViewer.CanContentScroll="True"
-                         VerticalScrollBarVisibility="Auto"
-                         HorizontalScrollBarVisibility="Auto">
-                    <TextBox.Style>
-                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-                            <Setter Property="Width" Value="*"/> <Style.Triggers>
-                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=StackPanel}, Path=Orientation}" Value="Horizontal">
-                                    <Setter Property="Width" Value="*"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBox.Style>
-                </TextBox>
-                
-                <ContextMenu x:Key="AddressBarContextMenu">
-                    <MenuItem Header="Cortar" Command="ApplicationCommands.Cut"/>
-                    <MenuItem Header="Copiar" Command="ApplicationCommands.Copy"/>
-                    <MenuItem Header="Pegar" Command="ApplicationCommands.Paste"/>
-                </ContextMenu>
-            </StackPanel>
+                    <TextBox x:Name="AddressBar" Grid.Column="5" Margin="5,0" KeyDown="AddressBar_KeyDown" Text="{Binding SelectedTabItem.AddressBarText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Introduce una URL o término de búsqueda"/>
+
+                    <Button Grid.Column="6" Command="{Binding ToggleAdBlockerCommand}" ToolTip="{Binding AdBlockerEnabled, Converter={StaticResource AdBlockerTooltipConverter}}" Margin="0,0,5,0">
+                        <Image Source="/Resources/blocked_icon.png" Width="16" Height="16" Opacity="{Binding AdBlockerEnabled, Converter={StaticResource BooleanToOpacityConverter}}"/>
+                    </Button>
+
+                    <Button Grid.Column="7" Command="{Binding ToggleDarkThemeCommand}" ToolTip="Alternar Tema Oscuro/Claro">
+                        <Image Source="{Binding IsDarkTheme, Converter={StaticResource ThemeIconConverter}}" Width="16" Height="16"/>
+                    </Button>
+
+                    <Button Grid.Column="8" Click="ShowExtensionsButton_Click" ToolTip="Extensiones">
+                        <Image Source="/Resources/extensions.png" Width="16" Height="16"/>
+                    </Button>
+
+                    <Button Grid.Column="9" Click="ShowSettingsButton_Click" ToolTip="Configuración">
+                        <Image Source="/Resources/settings.png" Width="16" Height="16"/>
+                    </Button>
+
+                    <Button Grid.Column="10" Click="ShowHistoryButton_Click" ToolTip="Historial">
+                        <Image Source="/Resources/history.png" Width="16" Height="16"/>
+                    </Button>
+
+                    <Button Grid.Column="11" Click="ShowBookmarksButton_Click" ToolTip="Marcadores">
+                        <Image Source="/Resources/bookmarks.png" Width="16" Height="16"/>
+                    </Button>
+                </Grid>
+            </Border>
 
             <Border x:Name="FindBar"
-                    Grid.Row="2"
-                    Visibility="{Binding IsFindBarVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    Grid.Row="2" Grid.Column="0"
                     Background="{DynamicResource BrowserBackgroundBrush}"
-                    BorderBrush="{DynamicResource BrowserForegroundColor}"
-                    BorderThickness="0,1,0,1"
-                    Margin="0,0,0,5"
-                    Padding="5">
+                    BorderBrush="#333333"
+                    BorderThickness="0,0,0,1"
+                    Padding="5"
+                    Visibility="Collapsed">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <TextBlock Text="Buscar:" VerticalAlignment="Center" Margin="0,0,5,0"
                                Foreground="{DynamicResource BrowserForegroundColor}"/>
                     <TextBox x:Name="FindTextBox"
                              Width="200"
-                             VerticalContentAlignment="Center"
                              KeyDown="FindTextBox_KeyDown"
                              TextChanged="FindTextBox_TextChanged"
                              Margin="0,0,5,0"/>
