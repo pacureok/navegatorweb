@@ -174,7 +174,7 @@
       <DependentUpon>CrashRecoveryWindow.xaml</DependentUpon>
     </Compile>
     <Compile Update="TabManagerWindow.xaml.cs">
-      <DependentUpon>TabManagerWindow.xaml</DependentUpon>
+      <DependentUpon>TabManager.xaml</DependentUpon>
     </Compile>
     <Compile Update="DataExtractionWindow.xaml.cs">
       <DependentUpon>DataExtractionWindow.xaml</DependentUpon>
