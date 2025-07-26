@@ -1,4 +1,4 @@
-using Microsoft.Web.WebView2.Core; // ¡Esta línea es CRUCIAL para CoreWebView2FindInPage!
+using Microsoft.Web.WebView2.Core; // ¡Esta línea es CRUCIAL y debe estar al inicio!
 using Microsoft.Web.WebView2.Wpf;
 using System;
 using System.Collections.Generic;
@@ -23,6 +23,8 @@ using System.Timers;
 
 namespace NavegadorWeb
 {
+    // La clase partial MainWindow ya es generada por el compilador para incluir los elementos XAML.
+    // NO necesitamos una declaración 'public partial class MainWindow : Window' adicional aquí.
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
         private string _defaultHomePage = "https://www.google.com";
@@ -110,8 +112,8 @@ namespace NavegadorWeb
         private SpeechSynthesizer _speechSynthesizer;
         private bool _isReadingAloud = false;
 
-        private bool _isFindBarVisible = false;
-        private CoreWebView2FindInPage? _findInPage; // ¡Restaurado!
+        private bool _isFindBarVisible = false; // Declaración única aquí
+        private CoreWebView2FindInPage? _findInPage;
 
         private string? _lastFailedUrl = null;
         private System.Timers.Timer? _connectivityTimer;
@@ -130,8 +132,8 @@ namespace NavegadorWeb
         public ICommand OpenHistoryCommand { get; private set; }
         public ICommand OpenBookmarksCommand { get; private set; }
         public ICommand OpenDownloadsCommand { get; private set; }
-        public ICommand ToggleFindBarCommand { get; private set; } // ¡Restaurado!
-        public ICommand CloseFindBarCommand { get; private set; } // ¡Restaurado!
+        public ICommand ToggleFindBarCommand { get; private set; }
+        public ICommand CloseFindBarCommand { get; private set; }
 
         private const int WM_NCHITTEST = 0x0084;
         private const int HTLEFT = 10;
@@ -146,7 +148,7 @@ namespace NavegadorWeb
 
         public MainWindow()
         {
-            InitializeComponent();
+            InitializeComponent(); // Esto inicializa los elementos XAML y los asigna a sus campos.
             _tabGroupManager = new TabGroupManager();
             _extensionManager = new ExtensionManager();
             this.DataContext = this;
@@ -205,7 +207,7 @@ namespace NavegadorWeb
             }
 
             if (AddressBar != null) AddressBar.Foreground = new SolidColorBrush(BrowserForegroundColor);
-            // Restaurado: Asegúrate de que FindTextBox y FindResultsTextBlock existan en XAML si los usas.
+            // Asegúrate de que FindTextBox y FindResultsTextBlock existan en XAML si los usas.
             if (FindTextBox != null) FindTextBox.Foreground = new SolidColorBrush(BrowserForegroundColor);
             if (FindResultsTextBlock != null) FindResultsTextBlock.Foreground = new SolidColorBrush(BrowserForegroundColor);
         }
@@ -223,8 +225,8 @@ namespace NavegadorWeb
             OpenHistoryCommand = new RelayCommand(HistoryButton_Click);
             OpenBookmarksCommand = new RelayCommand(BookmarksButton_Click);
             OpenDownloadsCommand = new RelayCommand(DownloadsButton_Click);
-            ToggleFindBarCommand = new RelayCommand(FindButton_Click); // ¡Restaurado!
-            CloseFindBarCommand = new RelayCommand(CloseFindBarButton_Click); // ¡Restaurado!
+            ToggleFindBarCommand = new RelayCommand(FindButton_Click);
+            CloseFindBarCommand = new RelayCommand(CloseFindBarButton_Click);
         }
 
         private void ToggleFullscreen(object? parameter)
@@ -289,12 +291,12 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    MessageBox.Show("Advertencia: El archivo 'ReaderMode.js' no se encontró. El modo lectura no funcionará.", "Archivo Faltante", MessageBoxButton.OK, Image.Warning);
+                    MessageBox.Show("Advertencia: El archivo 'ReaderMode.js' no se encontró. El modo lectura no funcionará.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al cargar el script de modo lectura: {ex.Message}", "Error", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show($"Error al cargar el script de modo lectura: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -309,12 +311,12 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    MessageBox.Show("Advertencia: El archivo 'DarkMode.js' no se encontró. El modo oscuro global no funcionará.", "Archivo Faltante", MessageBoxButton.OK, Image.Warning);
+                    MessageBox.Show("Advertencia: El archivo 'DarkMode.js' no se encontró. El modo oscuro global no funcionará.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al cargar el script de modo oscuro: {ex.Message}", "Error", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show($"Error al cargar el script de modo oscuro: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -329,12 +331,12 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    MessageBox.Show("Advertencia: El archivo 'PageColorExtractor.js' no se encontró. La aclimatación de color de página no funcionará.", "Archivo Faltante", MessageBoxButton.OK, Image.Warning);
+                    MessageBox.Show("Advertencia: El archivo 'PageColorExtractor.js' no se encontró. La aclimatación de color de página no funcionará.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al cargar el script de extracción de color de página: {ex.Message}", "Error", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show($"Error al cargar el script de extracción de color de página: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -349,12 +351,12 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    MessageBox.Show("Advertencia: El archivo 'MicrophoneControl.js' no se encontró. El control de micrófono de la página no funcionará.", "Archivo Faltante", MessageBoxButton.OK, Image.Warning);
+                    MessageBox.Show("Advertencia: El archivo 'MicrophoneControl.js' no se encontró. El control de micrófono de la página no funcionará.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al cargar el script de control de micrófono: {ex.Message}", "Error", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show($"Error al cargar el script de control de micrófono: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -379,7 +381,7 @@ namespace NavegadorWeb
                     "¿Deseas descargarlo e instalarlo ahora?",
                     "WebView2 Runtime No Encontrado",
                     MessageBoxButton.YesNo,
-                    Image.Error
+                    MessageBoxImage.Error
                 );
 
                 if (result == MessageBoxResult.Yes)
@@ -390,7 +392,7 @@ namespace NavegadorWeb
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"No se pudo abrir el enlace de descarga: {ex.Message}", "Error", MessageBoxButton.OK, Image.Error);
+                        MessageBox.Show($"No se pudo abrir el enlace de descarga: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
 
@@ -410,7 +412,7 @@ namespace NavegadorWeb
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al inicializar los entornos del navegador: {ex.Message}\nPor favor, asegúrate de que tu instalación de WebView2 Runtime no esté corrupta o intenta reinstalarlo.", "Error de Inicialización", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show($"Error al inicializar los entornos del navegador: {ex.Message}\nPor favor, asegúrate de que tu instalación de WebView2 Runtime no esté corrupta o intenta reinstalarlo.", "Error de Inicialización", MessageBoxButton.OK, MessageBoxImage.Error);
                 Application.Current.Shutdown();
             }
         }
@@ -482,7 +484,7 @@ namespace NavegadorWeb
                     }
                     catch (JsonException ex)
                     {
-                        MessageBox.Show($"Error al leer la sesión guardada: {ex.Message}. Se iniciará con la página de inicio.", "Error de Sesión", MessageBoxButton.OK, Image.Error);
+                        MessageBox.Show($"Error al leer la sesión guardada: {ex.Message}. Se iniciará con la página de inicio.", "Error de Sesión", MessageBoxButton.OK, MessageBoxImage.Error);
                         AddNewTab(_defaultHomePage);
                     }
                 }
@@ -513,7 +515,7 @@ namespace NavegadorWeb
         {
             if (_defaultEnvironment == null || _incognitoEnvironment == null)
             {
-                MessageBox.Show("El navegador no está listo para crear nuevas pestañas. Por favor, reinicia la aplicación.", "Error", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show("El navegador no está listo para crear nuevas pestañas. Por favor, reinicia la aplicación.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -604,7 +606,7 @@ namespace NavegadorWeb
             webView1.SourceChanged += WebView_SourceChanged;
             webView1.NavigationCompleted += WebView_NavigationCompleted;
             webView1.CoreWebView2.DocumentTitleChanged += WebView_DocumentTitleChanged;
-            webView1.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted; // ¡Restaurado!
+            webView1.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted;
             webView1.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
             webView1.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
             webView1.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
@@ -650,7 +652,7 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.SourceChanged -= WebView_SourceChanged;
                 currentWebView.CoreWebView2.NavigationCompleted -= WebView_NavigationCompleted;
                 currentWebView.CoreWebView2.NavigationStarting -= WebView_NavigationStarting;
-                currentWebView.CoreWebView2.FindInPageCompleted -= CoreWebView2_FindInPageCompleted; // ¡Restaurado!
+                currentWebView.CoreWebView2.FindInPageCompleted -= CoreWebView2_FindInPageCompleted;
                 currentWebView.CoreWebView2.PermissionRequested -= CoreWebView2_PermissionRequested;
                 currentWebView.CoreWebView2.WebMessageReceived -= CoreWebView2_WebMessageReceived;
                 currentWebView.CoreWebView2.DOMContentLoaded -= CoreWebView2_DOMContentLoaded;
@@ -673,7 +675,7 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.SourceChanged += WebView_SourceChanged;
                 currentWebView.CoreWebView2.NavigationCompleted += WebView_NavigationCompleted;
                 currentWebView.CoreWebView2.NavigationStarting += WebView_NavigationStarting;
-                currentWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted; // ¡Restaurado!
+                currentWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted;
                 currentWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
                 currentWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
                 currentWebView.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
@@ -769,7 +771,7 @@ namespace NavegadorWeb
                     if (newDownload.State == CoreWebView2DownloadState.Completed || newDownload.State == CoreWebView2DownloadState.Interrupted)
                     {
                         newDownload.EndTime = DateTime.Now;
-                        MessageBox.Show($"Descarga de '{newDownload.FileName}' ha {newDownload.State}.", "Descarga Finalizada", MessageBoxButton.OK, Image.Information);
+                        MessageBox.Show($"Descarga de '{newDownload.FileName}' ha {newDownload.State}.", "Descarga Finalizada", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     DownloadManager.AddOrUpdateDownload(newDownload);
                 };
@@ -777,7 +779,7 @@ namespace NavegadorWeb
             else
             {
                 e.Cancel = true;
-                MessageBox.Show("Descarga cancelada por el usuario.", "Descarga Cancelada", MessageBoxButton.OK, Image.Information);
+                MessageBox.Show("Descarga cancelada por el usuario.", "Descarga Cancelada", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
@@ -788,7 +790,7 @@ namespace NavegadorWeb
                 $"El sitio web '{e.Uri}' solicita permiso para usar: {e.PermissionKind}.\n¿Deseas permitirlo?",
                 "Solicitud de Permiso",
                 MessageBoxButton.YesNo,
-                Image.Question
+                MessageBoxImage.Question
             );
 
             if (result == MessageBoxResult.Yes)
@@ -839,7 +841,7 @@ namespace NavegadorWeb
                         }
                         else
                         {
-                            MessageBox.Show(this, $"La navegación a {currentWebView.CoreWebView2.Source} falló debido a la falta de conexión a Internet y el juego offline no se encontró.", "Error de Navegación", MessageBoxButton.OK, Image.Error);
+                            MessageBox.Show(this, $"La navegación a {currentWebView.CoreWebView2.Source} falló debido a la falta de conexión a Internet y el juego offline no se encontró.", "Error de Navegación", MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                     }
                     else if (e.WebErrorStatus != CoreWebView2WebErrorStatus.OperationAborted)
@@ -851,7 +853,7 @@ namespace NavegadorWeb
                         }
                         else
                         {
-                            MessageBox.Show(this, $"La navegación a {currentWebView!.CoreWebView2.Source} falló con el código de error {e.WebErrorStatus}", "Error de Navegación", MessageBoxButton.OK, Image.Error);
+                            MessageBox.Show(this, $"La navegación a {currentWebView!.CoreWebView2.Source} falló con el código de error {e.WebErrorStatus}", "Error de Navegación", MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                     }
                 }
@@ -1048,7 +1050,7 @@ namespace NavegadorWeb
             MessageBoxResult result = MessageBox.Show(this, message + "\n\n¿Deseas recargar la página?",
                                                       "Página No Responde",
                                                       MessageBoxButton.YesNo,
-                                                      Image.Warning);
+                                                      MessageBoxImage.Warning);
 
             if (result == MessageBoxResult.Yes)
             {
@@ -1083,7 +1085,7 @@ namespace NavegadorWeb
             WebView2? currentWebView = GetCurrentWebView();
             if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
-                MessageBox.Show(this, "No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show(this, "No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1107,7 +1109,7 @@ namespace NavegadorWeb
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, $"Error al navegar: {ex.Message}", "Error", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show(this, $"Error al navegar: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1157,7 +1159,7 @@ namespace NavegadorWeb
             WebView2? currentWebView = GetCurrentWebView();
             if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
-                MessageBox.Show(this, "No hay una pestaña activa para abrir el Buscaminas.", "Error", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show(this, "No hay una pestaña activa para abrir el Buscaminas.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1200,7 +1202,7 @@ namespace NavegadorWeb
                 var browserTab = SelectedTabItem;
                 if (browserTab != null && browserTab.IsIncognito)
                 {
-                    MessageBox.Show(this, "No se pueden añadir marcadores en modo incógnito.", "Error al Añadir Marcador", MessageBoxButton.OK, Image.Warning);
+                    MessageBox.Show(this, "No se pueden añadir marcadores en modo incógnito.", "Error al Añadir Marcador", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -1213,12 +1215,12 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    MessageBox.Show(this, "No se pudo añadir la página a marcadores. Asegúrate de que la página esté cargada y tenga un título.", "Error al Añadir Marcador", MessageBoxButton.OK, Image.Warning);
+                    MessageBox.Show(this, "No se pudo añadir la página a marcadores. Asegúrate de que la página esté cargada y tenga un título.", "Error al Añadir Marcador", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             else
             {
-                MessageBox.Show(this, "No hay una página activa para añadir a marcadores.", "Error al Añadir Marcador", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show(this, "No hay una página activa para añadir a marcadores.", "Error al Añadir Marcador", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1234,7 +1236,7 @@ namespace NavegadorWeb
             WebView2? currentWebView = GetCurrentWebView();
             if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
-                MessageBox.Show(this, "No hay una página activa para aplicar el modo lectura.", "Error de Modo Lectura", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show(this, "No hay una página activa para aplicar el modo lectura.", "Error de Modo Lectura", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1246,12 +1248,12 @@ namespace NavegadorWeb
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(this, $"Error al aplicar el modo lectura: {ex.Message}", "Error de Modo Lectura", MessageBoxButton.OK, Image.Error);
+                    MessageBox.Show(this, $"Error al aplicar el modo lectura: {ex.Message}", "Error de Modo Lectura", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             else
             {
-                MessageBox.Show(this, "Advertencia: El archivo 'ReaderMode.js' no se encontró. El modo lectura no funcionará.", "Archivo Faltante", MessageBoxButton.OK, Image.Warning);
+                MessageBox.Show(this, "Advertencia: El archivo 'ReaderMode.js' no se encontró. El modo lectura no funcionará.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -1267,7 +1269,7 @@ namespace NavegadorWeb
             WebView2? currentWebView = GetCurrentWebView();
             if (currentWebView == null || currentWebView.CoreWebView2 == null)
             {
-                MessageBox.Show(this, "No hay una página activa para leer en voz alta.", "Leer en Voz Alta", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show(this, "No hay una página activa para leer en voz alta.", "Leer en Voz Alta", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1300,12 +1302,12 @@ namespace NavegadorWeb
                 }
                 else
                 {
-                    MessageBox.Show(this, "No se encontró texto legible en la página actual.", "Leer en Voz Alta", MessageBoxButton.OK, Image.Information);
+                    MessageBox.Show(this, "No se encontró texto legible en la página actual.", "Leer en Voz Alta", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, $"Error al leer en voz alta: {ex.Message}", "Error de Lectura", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show(this, $"Error al leer en voz alta: {ex.Message}", "Error de Lectura", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1314,7 +1316,7 @@ namespace NavegadorWeb
             var currentTab = SelectedTabItem;
             if (currentTab == null || currentTab.LeftWebView == null || currentTab.LeftWebView.CoreWebView2 == null)
             {
-                MessageBox.Show(this, "No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show(this, "No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1497,11 +1499,11 @@ namespace NavegadorWeb
                     
                     SelectedTabItem.RightWebView!.CoreWebView2!.ExecuteScriptAsync(injectionScript);
 
-                    MessageBox.Show(this, "Las capturas de pantalla, URLs y tu pregunta se han mostrado en el panel de Gemini. Por favor, copia y pega la información relevante en el chat de Gemini.", "Información para Gemini", MessageBoxButton.OK, Image.Information);
+                    MessageBox.Show(this, "Las capturas de pantalla, URLs y tu pregunta se han mostrado en el panel de Gemini. Por favor, copia y pega la información relevante en el chat de Gemini.", "Información para Gemini", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
-                    MessageBox.Show(this, "Para usar esta función, por favor, activa el modo de pantalla dividida en la pestaña actual y asegúrate de que el panel derecho esté visible.", "Modo de Pantalla Dividida Requerido", MessageBoxButton.OK, Image.Warning);
+                    MessageBox.Show(this, "Para usar esta función, por favor, activa el modo de pantalla dividida en la pestaña actual y asegúrate de que el panel derecho esté visible.", "Modo de Pantalla Dividida Requerido", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             
@@ -1620,13 +1622,13 @@ namespace NavegadorWeb
                                 $"¿Deseas guardar la contraseña para el usuario '{username}' en '{new Uri(url).Host}'?",
                                 "Guardar Contraseña",
                                 MessageBoxButton.YesNo,
-                                Image.Question
+                                MessageBoxImage.Question
                             );
 
                             if (result == MessageBoxResult.Yes)
                             {
                                 PasswordManager.AddOrUpdatePassword(url, username, password);
-                                MessageBox.Show(this, "Contraseña guardada con éxito.", "Contraseña Guardada", MessageBoxButton.OK, Image.Information);
+                                MessageBox.Show(this, "Contraseña guardada con éxito.", "Contraseña Guardada", MessageBoxButton.OK, MessageBoxImage.Information);
                             }
                         }
                     }
@@ -1871,7 +1873,7 @@ namespace NavegadorWeb
                         newWebView.Loaded += WebView_Loaded;
                         CoreWebView2Environment envToUse = selectedBrowserTab.IsIncognito ? _incognitoEnvironment! : _defaultEnvironment!;
                         newWebView.CoreWebView2InitializationCompleted += (s, ev) => ConfigureCoreWebView2(newWebView, ev, envToUse);
-                        newWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted; // ¡Restaurado!
+                        newWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted;
                         newWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
                         newWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
                         newWebView.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
@@ -1904,7 +1906,7 @@ namespace NavegadorWeb
                 }
             }
             _isFindBarVisible = false;
-            ClearFindResults(); // ¡Restaurado!
+            ClearFindResults();
         }
 
         private void UpdateUrlTextBoxFromCurrentTab()
@@ -1951,7 +1953,7 @@ namespace NavegadorWeb
                     $"Tienes {activeTabs} pestañas activas. Para mejorar el rendimiento, ¿te gustaría suspender las pestañas inactivas ahora?",
                     "Sugerencia de Suspensión de Pestañas",
                     MessageBoxButton.YesNo,
-                    Image.Question
+                    MessageBoxImage.Question
                 );
 
                 if (result == MessageBoxResult.Yes)
@@ -1985,7 +1987,7 @@ namespace NavegadorWeb
                 TrackerBlocker.IsEnabled = settingsWindow.IsTrackerProtectionEnabled;
                 _isPdfViewerEnabled = settingsWindow.IsPdfViewerEnabled;
                 SaveSettings();
-                MessageBox.Show(this, "Configuración guardada. Los cambios se aplicarán al abrir nuevas pestañas o al hacer clic en 'Inicio'.", "Configuración Guardada", MessageBoxButton.OK, Image.Information);
+                MessageBox.Show(this, "Configuración guardada. Los cambios se aplicarán al abrir nuevas pestañas o al hacer clic en 'Inicio'.", "Configuración Guardada", MessageBoxButton.OK, MessageBoxImage.Information);
             }
 
             settingsWindow.OnClearBrowsingData -= SettingsWindow_OnClearBrowsingData;
@@ -2028,11 +2030,11 @@ namespace NavegadorWeb
                     CoreWebView2BrowserDataKinds.OtherData;
 
                 await _defaultEnvironment.ClearBrowsingDataAsync(dataKinds);
-                MessageBox.Show(this, "Datos de navegación (caché, cookies, etc.) borrados con éxito.", "Limpieza Completa", MessageBoxButton.OK, Image.Information);
+                MessageBox.Show(this, "Datos de navegación (caché, cookies, etc.) borrados con éxito.", "Limpieza Completa", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
-                MessageBox.Show(this, "No se pudo acceder al motor del navegador para borrar los datos del perfil normal.", "Error de Limpieza", MessageBoxButton.OK, Image.Error);
+                MessageBox.Show(this, "No se pudo acceder al motor del navegador para borrar los datos del perfil normal.", "Error de Limpieza", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -2040,7 +2042,7 @@ namespace NavegadorWeb
         {
             if (!_isTabSuspensionEnabled)
             {
-                MessageBox.Show(this, "La suspensión de pestañas no está habilitada en la configuración. Habilítela para usar esta función.", "Suspensión Deshabilitada", MessageBoxButton.OK, Image.Warning);
+                MessageBox.Show(this, "La suspensión de pestañas no está habilitada en la configuración. Habilítela para usar esta función.", "Suspensión Deshabilitada", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -2500,19 +2502,19 @@ namespace NavegadorWeb
                     break;
 
                 case ToolbarPosition.Left:
-                    MessageBox.Show("Las posiciones de barra de herramientas Izquierda/Derecha/Inferior no están completamente implementadas con la estructura XAML actual. Se usará la posición Superior.", "Funcionalidad Limitada", MessageBoxButton.OK, Image.Information);
+                    MessageBox.Show("Las posiciones de barra de herramientas Izquierda/Derecha/Inferior no están completamente implementadas con la estructura XAML actual. Se usará la posición Superior.", "Funcionalidad Limitada", MessageBoxButton.OK, MessageBoxImage.Information);
                     _currentToolbarPosition = ToolbarPosition.Top;
                     ApplyToolbarPosition(ToolbarPosition.Top);
                     return;
 
                 case ToolbarPosition.Right:
-                    MessageBox.Show("Las posiciones de barra de herramientas Izquierda/Derecha/Inferior no están completamente implementadas con la estructura XAML actual. Se usará la posición Superior.", "Funcionalidad Limitada", MessageBoxButton.OK, Image.Information);
+                    MessageBox.Show("Las posiciones de barra de herramientas Izquierda/Derecha/Inferior no están completamente implementadas con la estructura XAML actual. Se usará la posición Superior.", "Funcionalidad Limitada", MessageBoxButton.OK, MessageBoxImage.Information);
                     _currentToolbarPosition = ToolbarPosition.Top;
                     ApplyToolbarPosition(ToolbarPosition.Top);
                     return;
 
                 case ToolbarPosition.Bottom:
-                    MessageBox.Show("Las posiciones de barra de herramientas Izquierda/Derecha/Inferior no están completamente implementadas con la estructura XAML actual. Se usará la posición Superior.", "Funcionalidad Limitada", MessageBoxButton.OK, Image.Information);
+                    MessageBox.Show("Las posiciones de barra de herramientas Izquierda/Derecha/Inferior no están completamente implementadas con la estructura XAML actual. Se usará la posición Superior.", "Funcionalidad Limitada", MessageBoxButton.OK, MessageBoxImage.Information);
                     _currentToolbarPosition = ToolbarPosition.Top;
                     ApplyToolbarPosition(ToolbarPosition.Top);
                     return;
@@ -2535,7 +2537,7 @@ namespace NavegadorWeb
                             $"¡Internet conectado! ¿Deseas recargar la página:\n{_lastFailedUrl}?",
                             "Conexión Restablecida",
                             MessageBoxButton.YesNo,
-                            Image.Information
+                            MessageBoxImage.Information
                         );
 
                         if (result == MessageBoxResult.Yes)
@@ -2550,7 +2552,6 @@ namespace NavegadorWeb
             });
         }
 
-        // Métodos de FindInPage restaurados
         private void ClearFindResults()
         {
             if (FindTextBox != null) FindTextBox.Text = string.Empty;
@@ -2558,11 +2559,8 @@ namespace NavegadorWeb
             if (_findInPage != null) _findInPage.ClearHighlight();
         }
 
-        private bool _isFindBarVisible = false; // Declarada arriba, pero se asegura su estado aquí.
-
         private void FindButton_Click(object sender, RoutedEventArgs e)
         {
-            // Asumiendo que FindBar es un Grid o StackPanel que contiene FindTextBox, FindNextButton, FindPreviousButton, etc.
             if (FindBar != null)
             {
                 _isFindBarVisible = !_isFindBarVisible;
@@ -2595,6 +2593,141 @@ namespace NavegadorWeb
                 FindResultsTextBlock.Text = $"{e.Matches} resultados";
             }
         }
+
+        // Manejadores de eventos para los botones de búsqueda (Find)
+        private async void FindTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                WebView2? currentWebView = GetCurrentWebView();
+                if (currentWebView != null && currentWebView.CoreWebView2 != null)
+                {
+                    if (_findInPage == null)
+                    {
+                        _findInPage = currentWebView.CoreWebView2.FindInPage;
+                    }
+                    _findInPage.Find(FindTextBox.Text, CoreWebView2FindMatchOptions.None);
+                }
+            }
+        }
+
+        private void FindTextBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (FindTextBox.Text == "Buscar...")
+            {
+                FindTextBox.Text = string.Empty;
+            }
+        }
+
+        private void FindTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(FindTextBox.Text))
+            {
+                FindTextBox.Text = "Buscar...";
+            }
+        }
+
+        private async void FindNextButton_Click(object sender, RoutedEventArgs e)
+        {
+            WebView2? currentWebView = GetCurrentWebView();
+            if (currentWebView != null && currentWebView.CoreWebView2 != null && _findInPage != null)
+            {
+                _findInPage.Find(FindTextBox.Text, CoreWebView2FindMatchOptions.None);
+            }
+        }
+
+        private async void FindPreviousButton_Click(object sender, RoutedEventArgs e)
+        {
+            WebView2? currentWebView = GetCurrentWebView();
+            if (currentWebView != null && currentWebView.CoreWebView2 != null && _findInPage != null)
+            {
+                _findInPage.Find(FindTextBox.Text, CoreWebView2FindMatchOptions.None | CoreWebView2FindMatchOptions.Backwards);
+            }
+        }
+
+        // Manejadores de eventos para otros botones que faltaban
+        private void PerformanceMonitorButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Monitor de Rendimiento no implementado aún.", "Información", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void PasswordManagerButton_Click(object sender, RoutedEventArgs e)
+        {
+            PasswordManagerWindow passwordManagerWindow = new PasswordManagerWindow();
+            passwordManagerWindow.Owner = this;
+            passwordManagerWindow.ShowDialog();
+        }
+
+        private void ExtensionsButton_Click(object sender, RoutedEventArgs e)
+        {
+            ExtensionWindow extensionWindow = new ExtensionWindow(_extensionManager);
+            extensionWindow.Owner = this;
+            extensionWindow.ShowDialog();
+        }
+
+        private void MicrophoneToggleButton_Click(object sender, RoutedEventArgs e)
+        {
+            WebView2? currentWebView = GetCurrentWebView();
+            if (currentWebView == null || currentWebView.CoreWebView2 == null)
+            {
+                MessageBox.Show(this, "No hay una página activa para controlar el micrófono.", "Error de Micrófono", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(_microphoneControlScript))
+            {
+                try
+                {
+                    // Este script debería alternar el estado del micrófono o mostrar un mensaje.
+                    // Suponemos que el script MicrophoneControl.js tiene una función para esto.
+                    currentWebView.CoreWebView2.ExecuteScriptAsync(_microphoneControlScript);
+                    MessageBox.Show("Comando de control de micrófono enviado a la página.", "Micrófono", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, $"Error al controlar el micrófono: {ex.Message}", "Error de Micrófono", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            else
+            {
+                MessageBox.Show(this, "Advertencia: El archivo 'MicrophoneControl.js' no se encontró. El control de micrófono de la página no funcionará.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private async void ScreenshotButton_Click(object sender, RoutedEventArgs e)
+        {
+            WebView2? currentWebView = GetCurrentWebView();
+            if (currentWebView == null || currentWebView.CoreWebView2 == null)
+            {
+                MessageBox.Show(this, "No hay una página activa para capturar.", "Error de Captura", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            try
+            {
+                Microsoft.Win32.SaveFileDialog saveFileDialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    FileName = $"Screenshot_{DateTime.Now:yyyyMMdd_HHmmss}.png",
+                    Filter = "Archivos PNG (*.png)|*.png",
+                    Title = "Guardar captura de pantalla como..."
+                };
+                saveFileDialog.Owner = this;
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    using (var stream = new FileStream(saveFileDialog.FileName, FileMode.Create))
+                    {
+                        await currentWebView.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream);
+                    }
+                    MessageBox.Show(this, $"Captura de pantalla guardada en:\n{saveFileDialog.FileName}", "Captura Exitosa", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, $"Error al guardar la captura de pantalla: {ex.Message}", "Error de Captura", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
     }
 
     public class RelayCommand : ICommand
