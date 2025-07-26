@@ -126,10 +126,6 @@
       <XamlRuntime>WPF</XamlRuntime>
       <SubType>Designer</SubType>
     </Page>
-    <Page Update="GeminiDataViewerWindow.xaml"> <!-- NUEVO: Ventana para mostrar datos de Gemini -->
-      <XamlRuntime>WPF</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
   </ItemGroup>
 
   <ItemGroup>
@@ -181,9 +177,6 @@
     <Compile Update="AskGeminiWindow.xaml.cs">
       <DependentUpon>AskGeminiWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Update="GeminiDataViewerWindow.xaml.cs"> <!-- NUEVO: Código de la ventana de datos de Gemini -->
-      <DependentUpon>GeminiDataViewerWindow.xaml</DependentUpon>
-    </Compile>
 
     <!-- Clases de lógica de negocio y utilidades -->
     <Compile Include="AdBlocker.cs" />
@@ -224,9 +217,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="OfflineGame.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="GeminiIntegrationDisplay.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="blocked_domains.txt">
