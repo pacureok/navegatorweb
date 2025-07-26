@@ -1,94 +1,76 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics; // Necesario para Process
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
+using System.Windows.Threading;
+using System;
+using Microsoft.Web.WebView2.Wpf; // Asegúrate de que esta línea esté presente
 
 namespace NavegadorWeb
 {
-    /// <summary>
-    /// Lógica de interacción para PerformanceMonitorWindow.xaml
-    /// </summary>
-    public partial class PerformanceMonitorWindow : Window
+    public partial class PerformanceMonitorWindow : Window, INotifyPropertyChanged
     {
-        // Delegado para obtener la lista de pestañas de MainWindow
-        public delegate List<MainWindow.BrowserTabItem> GetTabsDelegate();
-        private GetTabsDelegate _getTabsCallback;
+        private ObservableCollection<BrowserTabItem> _browserTabs;
+        public ObservableCollection<BrowserTabItem> BrowserTabs
+        {
+            get => _browserTabs;
+            set
+            {
+                if (_browserTabs != value)
+                {
+                    _browserTabs = value;
+                    OnPropertyChanged(nameof(BrowserTabs));
+                }
+            }
+        }
 
-        public PerformanceMonitorWindow(GetTabsDelegate getTabsCallback)
+        private DispatcherTimer _updateTimer;
+
+        // Implementación explícita del evento PropertyChanged para INotifyPropertyChanged
+        public event PropertyChangedEventHandler? PropertyChanged; // Se añadió '?' para nulabilidad
+
+        protected void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public PerformanceMonitorWindow(ObservableCollection<BrowserTabItem> tabs)
         {
             InitializeComponent();
-            _getTabsCallback = getTabsCallback;
+            this.DataContext = this;
+            BrowserTabs = tabs; // Asigna la colección de pestañas pasada
+
+            _updateTimer = new DispatcherTimer();
+            _updateTimer.Interval = TimeSpan.FromSeconds(1); // Actualizar cada segundo
+            _updateTimer.Tick += UpdateTimer_Tick;
+            _updateTimer.Start();
         }
 
-        /// <summary>
-        /// Se ejecuta cuando la ventana se ha cargado.
-        /// </summary>
-        private void Window_Loaded(object sender, RoutedEventArgs e)
+        private void UpdateTimer_Tick(object? sender, EventArgs e) // Se añadió '?'
         {
-            RefreshPerformanceInfo();
-        }
-
-        /// <summary>
-        /// Actualiza la información de rendimiento mostrada.
-        /// </summary>
-        private void RefreshPerformanceInfo()
-        {
-            // Actualizar el uso total de memoria del navegador
-            long totalMemoryBytes = Process.GetCurrentProcess().WorkingSet64;
-            TotalMemoryUsageTextBlock.Text = FormatBytes(totalMemoryBytes);
-
-            // Actualizar la lista de pestañas
-            List<MainWindow.BrowserTabItem> browserTabs = _getTabsCallback?.Invoke();
-            if (browserTabs != null)
+            // Actualiza la información de rendimiento de cada pestaña
+            foreach (var tab in BrowserTabs)
             {
-                var tabPerformanceInfos = new List<TabPerformanceInfo>();
-                foreach (var tab in browserTabs)
+                if (tab.LeftWebView != null && tab.LeftWebView.CoreWebView2 != null)
                 {
-                    bool isSuspended = (tab.LeftWebView == null && !tab.IsSplit);
-                    tabPerformanceInfos.Add(new TabPerformanceInfo(
-                        tab.HeaderTextBlock.Text,
-                        tab.LeftWebView?.Source?.OriginalString ?? "about:blank",
-                        tab.IsIncognito,
-                        isSuspended,
-                        tab.Tab
-                    ));
+                    // Ejemplo de cómo podrías obtener y actualizar datos de rendimiento
+                    // Nota: WebView2 no expone directamente el uso de CPU/RAM de forma granular por pestaña.
+                    // Esto es más un placeholder o para mostrar información general.
+                    // Para datos reales, necesitarías monitorear procesos externos o usar APIs más avanzadas.
+                    tab.LastActivity = DateTime.Now; // Simplemente actualiza la hora de actividad
+                    // tab.CpuUsage = GetCpuUsageForWebView(tab.LeftWebView); // Esto requeriría lógica compleja
+                    // tab.MemoryUsage = GetMemoryUsageForWebView(tab.LeftWebView); // Esto requeriría lógica compleja
                 }
-                TabsPerformanceListView.ItemsSource = tabPerformanceInfos;
             }
         }
 
-        /// <summary>
-        /// Formatea un número de bytes a un formato legible (KB, MB, GB).
-        /// </summary>
-        private string FormatBytes(long bytes)
+        private void Window_Closing(object? sender, CancelEventArgs e) // Se añadió '?'
         {
-            string[] Suffix = { "B", "KB", "MB", "GB", "TB" };
-            int i = 0;
-            double dblSByte = bytes;
-            while (Math.Round(dblSByte / 1024) >= 1)
-            {
-                dblSByte /= 1024;
-                i++;
-            }
-            return string.Format("{0:n1} {1}", dblSByte, Suffix[i]);
+            _updateTimer.Stop();
         }
 
-        /// <summary>
-        /// Maneja el clic en el botón "Actualizar".
-        /// </summary>
-        private void RefreshButton_Click(object sender, RoutedEventArgs e)
-        {
-            RefreshPerformanceInfo();
-        }
-
-        /// <summary>
-        /// Cierra la ventana del monitor de rendimiento.
-        /// </summary>
-        private void CloseButton_Click(object sender, RoutedEventArgs e)
-        {
-            this.Close();
-        }
+        // Métodos placeholder para obtener uso de CPU/Memoria (requerirían implementación compleja)
+        // private double GetCpuUsageForWebView(WebView2 webView) { return 0.0; }
+        // private long GetMemoryUsageForWebView(WebView2 webView) { return 0; }
     }
 }
