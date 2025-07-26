@@ -27,11 +27,12 @@
     <None Remove="Resources\extensions.png" />
     <None Remove="Resources\extension_icon.png" />
     <None Remove="Resources\find.png" />
+    <None Remove="Resources\gemini_icon.ico" /> <!-- NUEVO: Icono de Gemini -->
     <None Remove="Resources\globe_icon.png" />
     <None Remove="Resources\history.png" />
     <None Remove="Resources\home.png" />
     <None Remove="Resources\incognito.png" />
-    <None Remove="Resources\microphone.png" /> <!-- NUEVO -->
+    <None Remove="Resources\microphone.png" />
     <None Remove="Resources\moon.png" />
     <None Remove="Resources\new_tab.png" />
     <None Remove="Resources\password.png" />
@@ -121,6 +122,10 @@
       <XamlRuntime>WPF</XamlRuntime>
       <SubType>Designer</SubType>
     </Page>
+    <Page Update="AskGeminiWindow.xaml"> <!-- NUEVO: Ventana de Gemini -->
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
   </ItemGroup>
 
   <ItemGroup>
@@ -169,6 +174,9 @@
     <Compile Update="PdfViewerWindow.xaml.cs">
       <DependentUpon>PdfViewerWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Update="AskGeminiWindow.xaml.cs"> <!-- NUEVO: Código de la ventana de Gemini -->
+      <DependentUpon>AskGeminiWindow.xaml</DependentUpon>
+    </Compile>
 
     <!-- Clases de lógica de negocio y utilidades -->
     <Compile Include="AdBlocker.cs" />
@@ -208,6 +216,12 @@
     <Content Include="MicrophoneControl.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="OfflineGame.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="GeminiIntegrationDisplay.html"> <!-- NUEVO: Página para mostrar la integración con Gemini -->
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="blocked_domains.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -228,11 +242,12 @@
     <Resource Include="Resources\extensions.png" />
     <Resource Include="Resources\extension_icon.png" />
     <Resource Include="Resources\find.png" />
+    <Resource Include="Resources\gemini_icon.ico" /> <!-- NUEVO: Icono de Gemini -->
     <Resource Include="Resources\globe_icon.png" />
     <Resource Include="Resources\history.png" />
     <Resource Include="Resources\home.png" />
     <Resource Include="Resources\incognito.png" />
-    <Resource Include="Resources\microphone.png" /> <!-- NUEVO -->
+    <Resource Include="Resources\microphone.png" />
     <Resource Include="Resources\moon.png" />
     <Resource Include="Resources\new_tab.png" />
     <Resource Include="Resources\password.png" />
