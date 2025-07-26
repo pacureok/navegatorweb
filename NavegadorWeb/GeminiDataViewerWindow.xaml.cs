@@ -45,16 +45,12 @@ namespace NavegadorWeb
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public GeminiDataViewerWindow(ObservableCollection<BrowserTabItem> browserTabs)
+        public GeminiDataViewerWindow(ObservableCollection<CapturedPageData> capturedData)
         {
             InitializeComponent();
             this.DataContext = this;
-            CapturedData = new ObservableCollection<CapturedPageData>();
+            CapturedData = capturedData;
             UserQuestionTextBox.Text = ""; // Inicializar el TextBox de la pregunta del usuario
-
-            // Llenar CapturedData con los datos de las pestañas seleccionadas
-            // Esta parte se llenará cuando el usuario seleccione las pestañas en la ventana principal
-            // y haga clic en "Enviar a Gemini"
         }
 
         public GeminiDataViewerWindow(string userQuestion, ObservableCollection<CapturedPageData> capturedData)
