@@ -35,7 +35,7 @@
                                     <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="16" TextWrapping="Wrap" Margin="0,0,0,5"/>
                                     <TextBlock Text="{Binding Url}" FontStyle="Italic" TextWrapping="Wrap" Margin="0,0,0,5"/>
                                     <TextBlock Text="Texto Extraído:" FontWeight="Bold" Margin="0,5,0,0"/>
-                                    <!-- INICIO DE LA CORRECCIÓN PARA VerticalScrollBarVisibility -->
+                                    <!-- CORRECCIÓN: Se envuelve el TextBlock en un ScrollViewer para VerticalScrollBarVisibility -->
                                     <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="100">
                                         <TextBlock Text="{Binding ExtractedText}" TextWrapping="Wrap" Margin="0,0,0,5"/>
                                     </ScrollViewer>
