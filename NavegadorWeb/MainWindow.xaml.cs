@@ -24,7 +24,6 @@ using System.Timers;
 namespace NavegadorWeb
 {
     // La clase partial MainWindow ya es generada por el compilador para incluir los elementos XAML.
-    // NO necesitamos una declaración 'public partial class MainWindow : Window' adicional aquí.
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
         private string _defaultHomePage = "https://www.google.com";
@@ -112,8 +111,8 @@ namespace NavegadorWeb
         private SpeechSynthesizer _speechSynthesizer;
         private bool _isReadingAloud = false;
 
-        private bool _isFindBarVisible = false; // Declaración única aquí
-        private CoreWebView2FindInPage? _findInPage;
+        private bool _isFindBarVisible = false;
+        // Eliminada la variable _findInPage, ya que CoreWebView2FindInPage no existe.
 
         private string? _lastFailedUrl = null;
         private System.Timers.Timer? _connectivityTimer;
@@ -606,7 +605,8 @@ namespace NavegadorWeb
             webView1.SourceChanged += WebView_SourceChanged;
             webView1.NavigationCompleted += WebView_NavigationCompleted;
             webView1.CoreWebView2.DocumentTitleChanged += WebView_DocumentTitleChanged;
-            webView1.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted;
+            // Cambiado de FindInPageCompleted a FindResultReceived
+            webView1.CoreWebView2.FindResultReceived += CoreWebView2_FindResultReceived;
             webView1.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
             webView1.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
             webView1.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
@@ -652,7 +652,8 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.SourceChanged -= WebView_SourceChanged;
                 currentWebView.CoreWebView2.NavigationCompleted -= WebView_NavigationCompleted;
                 currentWebView.CoreWebView2.NavigationStarting -= WebView_NavigationStarting;
-                currentWebView.CoreWebView2.FindInPageCompleted -= CoreWebView2_FindInPageCompleted;
+                // Cambiado de FindInPageCompleted a FindResultReceived
+                currentWebView.CoreWebView2.FindResultReceived -= CoreWebView2_FindResultReceived;
                 currentWebView.CoreWebView2.PermissionRequested -= CoreWebView2_PermissionRequested;
                 currentWebView.CoreWebView2.WebMessageReceived -= CoreWebView2_WebMessageReceived;
                 currentWebView.CoreWebView2.DOMContentLoaded -= CoreWebView2_DOMContentLoaded;
@@ -675,7 +676,8 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.SourceChanged += WebView_SourceChanged;
                 currentWebView.CoreWebView2.NavigationCompleted += WebView_NavigationCompleted;
                 currentWebView.CoreWebView2.NavigationStarting += WebView_NavigationStarting;
-                currentWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted;
+                // Cambiado de FindInPageCompleted a FindResultReceived
+                currentWebView.CoreWebView2.FindResultReceived += CoreWebView2_FindResultReceived;
                 currentWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
                 currentWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
                 currentWebView.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
@@ -1873,7 +1875,8 @@ namespace NavegadorWeb
                         newWebView.Loaded += WebView_Loaded;
                         CoreWebView2Environment envToUse = selectedBrowserTab.IsIncognito ? _incognitoEnvironment! : _defaultEnvironment!;
                         newWebView.CoreWebView2InitializationCompleted += (s, ev) => ConfigureCoreWebView2(newWebView, ev, envToUse);
-                        newWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted;
+                        // Cambiado de FindInPageCompleted a FindResultReceived
+                        newWebView.CoreWebView2.FindResultReceived += CoreWebView2_FindResultReceived;
                         newWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
                         newWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
                         newWebView.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
@@ -2556,7 +2559,13 @@ namespace NavegadorWeb
         {
             if (FindTextBox != null) FindTextBox.Text = string.Empty;
             if (FindResultsTextBlock != null) FindResultsTextBlock.Text = string.Empty;
-            if (_findInPage != null) _findInPage.ClearHighlight();
+            // No hay _findInPage.ClearHighlight() directamente. La API Find() maneja el resaltado.
+            // Para limpiar el resaltado, se puede buscar una cadena vacía o una cadena que no exista.
+            WebView2? currentWebView = GetCurrentWebView();
+            if (currentWebView != null && currentWebView.CoreWebView2 != null)
+            {
+                currentWebView.CoreWebView2.Find(string.Empty, CoreWebView2FindMatchOptions.None);
+            }
         }
 
         private void FindButton_Click(object sender, RoutedEventArgs e)
@@ -2568,6 +2577,15 @@ namespace NavegadorWeb
                 if (_isFindBarVisible)
                 {
                     FindTextBox.Focus();
+                    // Iniciar una búsqueda con el texto actual si existe
+                    if (!string.IsNullOrWhiteSpace(FindTextBox.Text) && FindTextBox.Text != "Buscar...")
+                    {
+                        WebView2? currentWebView = GetCurrentWebView();
+                        if (currentWebView != null && currentWebView.CoreWebView2 != null)
+                        {
+                            currentWebView.CoreWebView2.Find(FindTextBox.Text, CoreWebView2FindMatchOptions.None);
+                        }
+                    }
                 }
                 else
                 {
@@ -2586,7 +2604,8 @@ namespace NavegadorWeb
             }
         }
 
-        private void CoreWebView2_FindInPageCompleted(object? sender, CoreWebView2FindInPageCompletedEventArgs e)
+        // Manejador de evento correcto para la búsqueda en página
+        private void CoreWebView2_FindResultReceived(object? sender, CoreWebView2FindResultReceivedEventArgs e)
         {
             if (FindResultsTextBlock != null)
             {
@@ -2595,18 +2614,15 @@ namespace NavegadorWeb
         }
 
         // Manejadores de eventos para los botones de búsqueda (Find)
-        private async void FindTextBox_KeyDown(object sender, KeyEventArgs e)
+        private void FindTextBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
                 WebView2? currentWebView = GetCurrentWebView();
-                if (currentWebView != null && currentWebView.CoreWebView2 != null)
+                if (currentWebView != null && currentWebView.CoreWebView2 != null && !string.IsNullOrWhiteSpace(FindTextBox.Text) && FindTextBox.Text != "Buscar...")
                 {
-                    if (_findInPage == null)
-                    {
-                        _findInPage = currentWebView.CoreWebView2.FindInPage;
-                    }
-                    _findInPage.Find(FindTextBox.Text, CoreWebView2FindMatchOptions.None);
+                    // Inicia la búsqueda desde el principio
+                    currentWebView.CoreWebView2.Find(FindTextBox.Text, CoreWebView2FindMatchOptions.None);
                 }
             }
         }
@@ -2627,21 +2643,23 @@ namespace NavegadorWeb
             }
         }
 
-        private async void FindNextButton_Click(object sender, RoutedEventArgs e)
+        private void FindNextButton_Click(object sender, RoutedEventArgs e)
         {
             WebView2? currentWebView = GetCurrentWebView();
-            if (currentWebView != null && currentWebView.CoreWebView2 != null && _findInPage != null)
+            if (currentWebView != null && currentWebView.CoreWebView2 != null && !string.IsNullOrWhiteSpace(FindTextBox.Text) && FindTextBox.Text != "Buscar...")
             {
-                _findInPage.Find(FindTextBox.Text, CoreWebView2FindMatchOptions.None);
+                // Busca la siguiente ocurrencia
+                currentWebView.CoreWebView2.Find(FindTextBox.Text, CoreWebView2FindMatchOptions.None);
             }
         }
 
-        private async void FindPreviousButton_Click(object sender, RoutedEventArgs e)
+        private void FindPreviousButton_Click(object sender, RoutedEventArgs e)
         {
             WebView2? currentWebView = GetCurrentWebView();
-            if (currentWebView != null && currentWebView.CoreWebView2 != null && _findInPage != null)
+            if (currentWebView != null && currentWebView.CoreWebView2 != null && !string.IsNullOrWhiteSpace(FindTextBox.Text) && FindTextBox.Text != "Buscar...")
             {
-                _findInPage.Find(FindTextBox.Text, CoreWebView2FindMatchOptions.None | CoreWebView2FindMatchOptions.Backwards);
+                // Busca la ocurrencia anterior
+                currentWebView.CoreWebView2.Find(FindTextBox.Text, CoreWebView2FindMatchOptions.None | CoreWebView2FindMatchOptions.Backwards);
             }
         }
 
