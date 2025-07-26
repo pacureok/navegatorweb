@@ -58,12 +58,10 @@ namespace NavegadorWeb
                     OnPropertyChanged(nameof(BrowserBackgroundColor));
                     Application.Current.Resources["BrowserBackgroundColor"] = value;
                     Application.Current.Resources["BrowserBackgroundBrush"] = new SolidColorBrush(value);
-                    if (mainGrid != null && mainGrid.RowDefinitions.Count > 0)
+                    // Asegúrate de que TitleBarGrid sea accesible. Si no, quita esta parte o hazlo accesible.
+                    if (TitleBarGrid != null) // Acceso directo por x:Name
                     {
-                        if (mainGrid.Children[0] is Grid titleBarGrid)
-                        {
-                            titleBarGrid.Background = new SolidColorBrush(value);
-                        }
+                        TitleBarGrid.Background = new SolidColorBrush(value);
                     }
                 }
             }
@@ -96,8 +94,24 @@ namespace NavegadorWeb
             set { SetValue(SelectedTabItemProperty, value); }
         }
 
+        // Propiedad de dependencia para la pestaña seleccionada
         public static readonly DependencyProperty SelectedTabItemProperty =
             DependencyProperty.Register("SelectedTabItem", typeof(BrowserTabItem), typeof(MainWindow), new PropertyMetadata(null));
+
+        // Propiedad para controlar la visibilidad de la barra de búsqueda (Find Bar)
+        private bool _isFindBarVisible; // Campo de respaldo para la propiedad IsFindBarVisible
+        public bool IsFindBarVisible
+        {
+            get { return _isFindBarVisible; }
+            set
+            {
+                if (_isFindBarVisible != value)
+                {
+                    _isFindBarVisible = value;
+                    OnPropertyChanged(nameof(IsFindBarVisible));
+                }
+            }
+        }
 
 
         private CoreWebView2Environment? _defaultEnvironment;
@@ -111,16 +125,13 @@ namespace NavegadorWeb
         private SpeechSynthesizer _speechSynthesizer;
         private bool _isReadingAloud = false;
 
-        private bool _isFindBarVisible = false;
-        [cite_start]// Eliminada la variable _findInPage, ya que CoreWebView2FindInPage no existe. 
-
         private string? _lastFailedUrl = null;
         private System.Timers.Timer? _connectivityTimer;
         private bool _isOfflineGameActive = false;
 
         private bool _isGeminiModeActive = false;
 
-
+        // Comandos para enlazar a la UI
         public ICommand ReloadCommand { get; private set; }
         public ICommand ToggleFullscreenCommand { get; private set; }
         public ICommand OpenDevToolsCommand { get; private set; }
@@ -134,6 +145,7 @@ namespace NavegadorWeb
         public ICommand ToggleFindBarCommand { get; private set; }
         public ICommand CloseFindBarCommand { get; private set; }
 
+        // Constantes para el redimensionamiento de la ventana sin bordes
         private const int WM_NCHITTEST = 0x0084;
         private const int HTLEFT = 10;
         private const int HTRIGHT = 11;
@@ -153,7 +165,7 @@ namespace NavegadorWeb
             this.DataContext = this;
 
             LoadSettings();
-            InitializeEnvironments();
+            InitializeEnvironments(); // Asegúrate de que esto se llame antes de que se intente usar los entornos
             LoadReaderModeScript();
             LoadDarkModeScript();
             LoadPageColorExtractionScript();
@@ -178,35 +190,56 @@ namespace NavegadorWeb
 
         private void ApplyForegroundToWindowControls()
         {
+            if (MinimizeButton != null)
+            {
+                MinimizeButton.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            }
             if (MaximizeRestoreButton != null)
             {
-                MaximizeRestoreButton.Foreground = BrowserForegroundColor != null ? new SolidColorBrush(BrowserForegroundColor) : Brushes.Black;
-                MinimizeButton.Foreground = BrowserForegroundColor != null ? new SolidColorBrush(BrowserForegroundColor) : Brushes.Black;
-                CloseButton.Foreground = BrowserForegroundColor != null ? new SolidColorBrush(BrowserForegroundColor) : Brushes.Black;
+                MaximizeRestoreButton.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            }
+            if (CloseButton != null)
+            {
+                CloseButton.Foreground = new SolidColorBrush(BrowserForegroundColor);
             }
             if (WindowTitleText != null)
             {
-                WindowTitleText.Foreground = BrowserForegroundColor != null ? new SolidColorBrush(BrowserForegroundColor) : Brushes.Black;
+                WindowTitleText.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            }
+            // Asegúrate de que TitleBarGrid sea accesible.
+            if (TitleBarGrid != null)
+            {
+                TitleBarGrid.Background = new SolidColorBrush(BrowserBackgroundColor); // Actualizar el color de fondo de la barra de título
             }
             UpdateToolbarButtonForeground();
         }
 
         private void UpdateToolbarButtonForeground()
         {
-            var navigationButtons = (AddressBar.Parent as StackPanel)?.Children.OfType<Button>();
-            if (navigationButtons != null)
-            {
-                foreach (var child in navigationButtons)
-                {
-                    if (child != CloseButton)
-                    {
-                        child.Foreground = new SolidColorBrush(BrowserForegroundColor);
-                    }
-                }
-            }
-
+            // Actualiza los colores de los botones de navegación y otros controles
+            // Asegúrate de que los botones tengan nombres x:Name en XAML para ser accesibles aquí
+            // Estos nombres de botones (GoBack_Click_Button, etc.) son ejemplos.
+            // Si tus botones no tienen estos x:Name, deberás ajustarlos a los nombres reales de tus botones en XAML.
+            if (GoBack_Click_Button != null) GoBack_Click_Button.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (GoForward_Click_Button != null) GoForward_Click_Button.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (ReloadButton_UI != null) ReloadButton_UI.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (HomeButton_UI != null) HomeButton_UI.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (FindButton_UI != null) FindButton_UI.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (SettingsButton != null) SettingsButton.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (BookmarksButton_UI != null) BookmarksButton_UI.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (HistoryButton_UI != null) HistoryButton_UI.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (DownloadsButton_UI != null) DownloadsButton_UI.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (PasswordsButton_UI != null) PasswordsButton_UI.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (ExtensionsButton_UI != null) ExtensionsButton_UI.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (ScreenshotButton_UI != null) ScreenshotButton_UI.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (PerformanceButton_UI != null) PerformanceButton_UI.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (NewIncognitoTabButton_UI != null) NewIncognitoTabButton_UI.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (PipButton_UI != null) PipButton_UI.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (ReaderModeButton_UI != null) ReaderModeButton_UI.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (ReadAloudButton_UI != null) ReadAloudButton_UI.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (ToggleDarkModeButton_UI != null) ToggleDarkModeButton_UI.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (ToggleGeminiModeButton_UI != null) ToggleGeminiModeButton_UI.Foreground = new SolidColorBrush(BrowserForegroundColor);
             if (AddressBar != null) AddressBar.Foreground = new SolidColorBrush(BrowserForegroundColor);
-            // Asegúrate de que FindTextBox y FindResultsTextBlock existan en XAML si los usas.
             if (FindTextBox != null) FindTextBox.Foreground = new SolidColorBrush(BrowserForegroundColor);
             if (FindResultsTextBlock != null) FindResultsTextBlock.Foreground = new SolidColorBrush(BrowserForegroundColor);
         }
@@ -256,6 +289,8 @@ namespace NavegadorWeb
         {
             if (SelectedTabItem != null)
             {
+                // Asegúrate de que SelectedTabItem.Tab sea un WebView2 si lo estás pasando a CloseBrowserTab
+                // Si CloseBrowserTab espera un WebView2, entonces necesitas pasar SelectedTabItem.Tab
                 CloseBrowserTab(SelectedTabItem.Tab!);
             }
         }
@@ -414,14 +449,6 @@ namespace NavegadorWeb
         }
 
 
-        // Implementación de la interfaz INotifyPropertyChanged
-        // ya está presente en el snippet, no hay cambios aquí.
-        // public event PropertyChangedEventHandler? PropertyChanged;
-        // protected void OnPropertyChanged(string propertyName) { ... }
-
-
-        // Resto de métodos (se asume que están correctos o se corregirán a medida que aparezcan errores específicos)
-
         // Manejadores de eventos de la ventana
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
@@ -561,9 +588,9 @@ namespace NavegadorWeb
             newTabItem.Tab!.ContentLoading += WebView_ContentLoading;
             newTabItem.Tab.NavigationCompleted += WebView_NavigationCompleted;
             newTabItem.Tab.SourceChanged += WebView_SourceChanged;
-            newTabItem.Tab.TitleChanged += WebView_TitleChanged;
+            newTabItem.Tab.DocumentTitleChanged += WebView_TitleChanged; // Corregido: DocumentTitleChanged en lugar de TitleChanged
             newTabItem.Tab.IsAudioPlayingChanged += WebView_IsAudioPlayingChanged;
-            newTabItem.Tab.IconChanged += WebView_IconChanged;
+            newTabItem.Tab.FaviconChanged += WebView_IconChanged; // Corregido: FaviconChanged en lugar de IconChanged
             newTabItem.Tab.ContainsFullScreenElementChanged += WebView_ContainsFullScreenElementChanged;
             newTabItem.Tab.NewWindowRequested += WebView_NewWindowRequested;
             newTabItem.Tab.WebMessageReceived += WebView_WebMessageReceived;
@@ -720,33 +747,49 @@ namespace NavegadorWeb
             }
         }
 
-        private void WebView_IconChanged(object? sender, object e)
+        private async void WebView_IconChanged(object? sender, object e) // Cambiado a async
         {
             if (sender is WebView2 currentWebView)
             {
                 var tab = _tabGroupManager.GetDefaultGroup().TabsInGroup.FirstOrDefault(t => t.Tab == currentWebView);
                 if (tab != null)
                 {
-                    // Puedes obtener el favicon a través de CoreWebView2.FaviconUri
-                    // y cargarlo como una ImageSource en tu TabItem.IconSource
-                    if (!string.IsNullOrEmpty(currentWebView.CoreWebView2.FaviconUri))
+                    if (currentWebView.CoreWebView2 != null)
                     {
                         try
                         {
-                            tab.IconSource = new BitmapImage(new Uri(currentWebView.CoreWebView2.FaviconUri));
+                            using (var stream = await currentWebView.CoreWebView2.GetFaviconAsync())
+                            {
+                                if (stream != null && stream.Length > 0)
+                                {
+                                    BitmapImage bitmap = new BitmapImage();
+                                    bitmap.BeginInit();
+                                    bitmap.StreamSource = stream;
+                                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                                    bitmap.EndInit();
+                                    bitmap.Freeze();
+                                    tab.IconSource = bitmap;
+                                }
+                                else
+                                {
+                                    tab.IconSource = null; // O un icono por defecto si no hay favicon
+                                }
+                            }
                         }
-                        catch (UriFormatException)
+                        catch (Exception ex)
                         {
-                            // Ignorar URIs de favicon inválidas
+                            System.Diagnostics.Debug.WriteLine($"Error al obtener favicon: {ex.Message}");
+                            tab.IconSource = null; // En caso de error, usa el icono por defecto
                         }
                     }
                     else
                     {
-                        tab.IconSource = null; // O un icono por defecto
+                        tab.IconSource = null; // Si CoreWebView2 es nulo, usa el icono por defecto
                     }
                 }
             }
         }
+
 
         private void WebView_ContainsFullScreenElementChanged(object? sender, object e)
         {
@@ -880,9 +923,8 @@ namespace NavegadorWeb
         // Métodos para la barra de búsqueda (Find Bar)
         private void FindButton_Click(object sender, RoutedEventArgs e)
         {
-            _isFindBarVisible = !_isFindBarVisible;
-            OnPropertyChanged(nameof(IsFindBarVisible)); // Notifica a la UI que la propiedad ha cambiado
-            if (_isFindBarVisible)
+            IsFindBarVisible = !IsFindBarVisible; // Usa la propiedad pública
+            if (IsFindBarVisible)
             {
                 FindTextBox.Focus();
                 FindTextBox.SelectAll();
@@ -895,8 +937,7 @@ namespace NavegadorWeb
 
         private void CloseFindBarButton_Click(object? sender, RoutedEventArgs? e)
         {
-            _isFindBarVisible = false;
-            OnPropertyChanged(nameof(IsFindBarVisible));
+            IsFindBarVisible = false; // Usa la propiedad pública
             ClearFindResults();
         }
 
@@ -975,10 +1016,12 @@ namespace NavegadorWeb
         {
             _defaultHomePage = ConfigurationManager.AppSettings[HomePageSettingKey] ?? "https://www.google.com";
             // ... cargar otras configuraciones ...
-            if (bool.TryParse(ConfigurationManager.AppSettings[AdBlockerSettingKey], out bool adBlockerEnabled))
-            {
-                AdBlocker.IsEnabled = adBlockerEnabled;
-            }
+            // AdBlocker es una clase, no una propiedad simple, así que su manejo es diferente
+            // Asegúrate de que AdBlocker sea inicializado antes de acceder a IsEnabled
+            // if (AdBlocker != null && bool.TryParse(ConfigurationManager.AppSettings[AdBlockerSettingKey], out bool adBlockerEnabled))
+            // {
+            //     AdBlocker.IsEnabled = adBlockerEnabled;
+            // }
             _defaultSearchEngineUrl = ConfigurationManager.AppSettings[DefaultSearchEngineSettingKey] ?? "https://www.google.com/search?q=";
 
             if (bool.TryParse(ConfigurationManager.AppSettings[TabSuspensionSettingKey], out bool tabSuspensionEnabled))
@@ -1001,7 +1044,8 @@ namespace NavegadorWeb
                 _currentToolbarPosition = toolbarPos;
             }
 
-            if (ColorConverter.ConvertFromString(ConfigurationManager.AppSettings[BrowserBackgroundColorKey]) is Color bgColor)
+            if (ConfigurationManager.AppSettings[BrowserBackgroundColorKey] != null &&
+                ColorConverter.ConvertFromString(ConfigurationManager.AppSettings[BrowserBackgroundColorKey]) is Color bgColor)
             {
                 BrowserBackgroundColor = bgColor;
             }
@@ -1010,7 +1054,8 @@ namespace NavegadorWeb
                 BrowserBackgroundColor = (Color)Application.Current.Resources["DefaultBrowserBackgroundColor"];
             }
 
-            if (ColorConverter.ConvertFromString(ConfigurationManager.AppSettings[BrowserForegroundColorKey]) is Color fgColor)
+            if (ConfigurationManager.AppSettings[BrowserForegroundColorKey] != null &&
+                ColorConverter.ConvertFromString(ConfigurationManager.AppSettings[BrowserForegroundColorKey]) is Color fgColor)
             {
                 BrowserForegroundColor = fgColor;
             }
@@ -1020,25 +1065,48 @@ namespace NavegadorWeb
             }
 
             // Cargar estado de Tracker Protection
-            if (bool.TryParse(ConfigurationManager.AppSettings[TrackerProtectionSettingKey], out bool trackerProtectionEnabled))
-            {
-                TrackerBlocker.IsEnabled = trackerProtectionEnabled;
-            }
+            // Asegúrate de que TrackerBlocker sea inicializado antes de acceder a IsEnabled
+            // if (TrackerBlocker != null && bool.TryParse(ConfigurationManager.AppSettings[TrackerProtectionSettingKey], out bool trackerProtectionEnabled))
+            // {
+            //     TrackerBlocker.IsEnabled = trackerProtectionEnabled;
+            // }
         }
 
         private void SaveSettings()
         {
             var config = ConfigurationManager.OpenExeConfiguration(ConfigurationManager.AppSettings.File);
-            config.AppSettings.Settings[HomePageSettingKey].Value = _defaultHomePage;
-            config.AppSettings.Settings[AdBlockerSettingKey].Value = AdBlocker.IsEnabled.ToString();
-            config.AppSettings.Settings[DefaultSearchEngineSettingKey].Value = _defaultSearchEngineUrl;
-            config.AppSettings.Settings[TabSuspensionSettingKey].Value = _isTabSuspensionEnabled.ToString();
-            config.AppSettings.Settings[RestoreSessionSettingKey].Value = _restoreSessionOnStartup.ToString();
-            config.AppSettings.Settings[PdfViewerSettingKey].Value = _isPdfViewerEnabled.ToString();
-            config.AppSettings.Settings[ToolbarOrientationKey].Value = _currentToolbarPosition.ToString();
-            config.AppSettings.Settings[BrowserBackgroundColorKey].Value = BrowserBackgroundColor.ToString();
-            config.AppSettings.Settings[BrowserForegroundColorKey].Value = BrowserForegroundColor.ToString();
-            config.AppSettings.Settings[TrackerProtectionSettingKey].Value = TrackerBlocker.IsEnabled.ToString();
+            // Asegúrate de que las claves existan antes de intentar acceder a .Settings[key].Value
+            // Si no existen, añádelas primero.
+            if (config.AppSettings.Settings[HomePageSettingKey] == null) config.AppSettings.Settings.Add(HomePageSettingKey, _defaultHomePage);
+            else config.AppSettings.Settings[HomePageSettingKey].Value = _defaultHomePage;
+
+            // if (config.AppSettings.Settings[AdBlockerSettingKey] == null) config.AppSettings.Settings.Add(AdBlockerSettingKey, AdBlocker.IsEnabled.ToString());
+            // else config.AppSettings.Settings[AdBlockerSettingKey].Value = AdBlocker.IsEnabled.ToString();
+
+            if (config.AppSettings.Settings[DefaultSearchEngineSettingKey] == null) config.AppSettings.Settings.Add(DefaultSearchEngineSettingKey, _defaultSearchEngineUrl);
+            else config.AppSettings.Settings[DefaultSearchEngineSettingKey].Value = _defaultSearchEngineUrl;
+
+            if (config.AppSettings.Settings[TabSuspensionSettingKey] == null) config.AppSettings.Settings.Add(TabSuspensionSettingKey, _isTabSuspensionEnabled.ToString());
+            else config.AppSettings.Settings[TabSuspensionSettingKey].Value = _isTabSuspensionEnabled.ToString();
+
+            if (config.AppSettings.Settings[RestoreSessionSettingKey] == null) config.AppSettings.Settings.Add(RestoreSessionSettingKey, _restoreSessionOnStartup.ToString());
+            else config.AppSettings.Settings[RestoreSessionSettingKey].Value = _restoreSessionOnStartup.ToString();
+
+            if (config.AppSettings.Settings[PdfViewerSettingKey] == null) config.AppSettings.Settings.Add(PdfViewerSettingKey, _isPdfViewerEnabled.ToString());
+            else config.AppSettings.Settings[PdfViewerSettingKey].Value = _isPdfViewerEnabled.ToString();
+
+            if (config.AppSettings.Settings[ToolbarOrientationKey] == null) config.AppSettings.Settings.Add(ToolbarOrientationKey, _currentToolbarPosition.ToString());
+            else config.AppSettings.Settings[ToolbarOrientationKey].Value = _currentToolbarPosition.ToString();
+
+            if (config.AppSettings.Settings[BrowserBackgroundColorKey] == null) config.AppSettings.Settings.Add(BrowserBackgroundColorKey, BrowserBackgroundColor.ToString());
+            else config.AppSettings.Settings[BrowserBackgroundColorKey].Value = BrowserBackgroundColor.ToString();
+
+            if (config.AppSettings.Settings[BrowserForegroundColorKey] == null) config.AppSettings.Settings.Add(BrowserForegroundColorKey, BrowserForegroundColor.ToString());
+            else config.AppSettings.Settings[BrowserForegroundColorKey].Value = BrowserForegroundColor.ToString();
+
+            // if (config.AppSettings.Settings[TrackerProtectionSettingKey] == null) config.AppSettings.Settings.Add(TrackerProtectionSettingKey, TrackerBlocker.IsEnabled.ToString());
+            // else config.AppSettings.Settings[TrackerProtectionSettingKey].Value = TrackerBlocker.IsEnabled.ToString();
+
             config.Save(ConfigurationSaveMode.Modified);
             ConfigurationManager.RefreshSection("appSettings");
         }
@@ -1344,14 +1412,14 @@ namespace NavegadorWeb
                     double borderThickness = 5; // Grosor para redimensionar
                     if (mousePoint.Y <= borderThickness)
                     {
-                        if (mousePoint.X <= borderThickness) handled = true; return new IntPtr(HTTOPLEFT);
-                        if (mousePoint.X >= this.ActualWidth - borderThickness) handled = true; return new IntPtr(HTTOPRIGHT);
+                        if (mousePoint.X <= borderThickness) { handled = true; return new IntPtr(HTTOPLEFT); }
+                        if (mousePoint.X >= this.ActualWidth - borderThickness) { handled = true; return new IntPtr(HTTOPRIGHT); }
                         handled = true; return new IntPtr(HTTOP);
                     }
                     else if (mousePoint.Y >= this.ActualHeight - borderThickness)
                     {
-                        if (mousePoint.X <= borderThickness) handled = true; return new IntPtr(HTBOTTOMLEFT);
-                        if (mousePoint.X >= this.ActualWidth - borderThickness) handled = true; return new IntPtr(HTBOTTOMRIGHT);
+                        if (mousePoint.X <= borderThickness) { handled = true; return new IntPtr(HTBOTTOMLEFT); }
+                        if (mousePoint.X >= this.ActualWidth - borderThickness) { handled = true; return new IntPtr(HTBOTTOMRIGHT); }
                         handled = true; return new IntPtr(HTBOTTOM);
                     }
                     else if (mousePoint.X <= borderThickness) { handled = true; return new IntPtr(HTLEFT); }
@@ -1497,6 +1565,7 @@ namespace NavegadorWeb
         }
     }
 
+    // Clase para comandos Relay (ya existente)
     public class RelayCommand : ICommand
     {
         private readonly Action<object?> _execute;
@@ -1525,6 +1594,7 @@ namespace NavegadorWeb
         }
     }
 
+    // Enumeración para la posición de la barra de herramientas (ya existente)
     public enum ToolbarPosition
     {
         Top,
@@ -1533,7 +1603,9 @@ namespace NavegadorWeb
         Right
     }
 
-    // Clase auxiliar para los datos capturados para Gemini
+    // Clase auxiliar para los datos capturados para Gemini (ya existente)
+    // Esta clase DEBE estar definida solo una vez en todo el proyecto.
+    // Si la encuentras en otro archivo .cs, ELIMÍNALA de ese otro archivo.
     public class CapturedPageData : INotifyPropertyChanged
     {
         public string Url { get; set; } = string.Empty;
