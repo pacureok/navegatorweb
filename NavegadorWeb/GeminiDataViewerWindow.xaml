@@ -20,30 +20,31 @@
         <TextBlock Grid.Row="0" Text="Información Capturada para Gemini" FontSize="20" FontWeight="Bold" Margin="10" HorizontalAlignment="Center" Foreground="#333"/>
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
-            <TextBlock Text="Pregunta del Usuario:" FontWeight="SemiBold" Margin="0,0,5,0" VerticalAlignment="Center" Foreground="#555"/>
-            <TextBox x:Name="UserQuestionTextBox" Width="400" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" MaxHeight="60" Background="#E0E0E0" BorderBrush="#CCC" Padding="5"/>
+            <TextBlock Text="Pregunta del Usuario:" FontWeight="SemiBold" Margin="0,0,5,0"/>
+            <TextBox x:Name="UserQuestionTextBox" Width="400" Text="{Binding UserQuestion, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     VerticalContentAlignment="Center" HorizontalAlignment="Center" />
         </StackPanel>
 
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="10">
-            <StackPanel x:Name="CapturedDataPanel">
-                <!-- Los datos capturados se añadirán aquí dinámicamente desde el código C# -->
-                <!-- Ejemplo de cómo se vería un elemento: -->
-                <!--
-                <Border BorderBrush="#CCC" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,5,0,5" Background="White">
-                    <StackPanel>
-                        <TextBlock Text="URL:" FontWeight="Bold"/>
-                        <TextBlock Text="https://ejemplo.com/pagina1" TextWrapping="Wrap" Foreground="Blue"/>
-                        <TextBlock Text="Título:" FontWeight="Bold" Margin="0,5,0,0"/>
-                        <TextBlock Text="Título de la Página de Ejemplo" TextWrapping="Wrap"/>
-                        <TextBlock Text="Texto Extraído:" FontWeight="Bold" Margin="0,5,0,0"/>
-                        <TextBlock Text="Este es un fragmento del texto extraído de la página..." TextWrapping="Wrap" MaxHeight="100" VerticalScrollBarVisibility="Auto"/>
-                        <TextBlock Text="Captura de Pantalla:" FontWeight="Bold" Margin="0,5,0,0"/>
-                        <Image Source="data:image/png;base64,..." MaxHeight="200" Stretch="Uniform"/>
-                        <TextBlock Text="Favicon:" FontWeight="Bold" Margin="0,5,0,0"/>
-                        <Image Source="data:image/x-icon;base64,..." Width="24" Height="24" HorizontalAlignment="Left"/>
-                    </StackPanel>
-                </Border>
-                -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="10,0">
+            <StackPanel x:Name="CapturedDataPanel" Orientation="Vertical" HorizontalAlignment="Stretch" DataContext="{Binding}">
+                <ItemsControl ItemsSource="{Binding CapturedData}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border BorderBrush="#CCCCCC" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,5">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="16" TextWrapping="Wrap" Margin="0,0,0,5"/>
+                                    <TextBlock Text="{Binding Url}" FontStyle="Italic" TextWrapping="Wrap" Margin="0,0,0,5"/>
+                                    <TextBlock Text="Texto Extraído:" FontWeight="Bold" Margin="0,5,0,0"/>
+                                    <TextBlock Text="{Binding ExtractedText}" TextWrapping="Wrap" MaxHeight="100" VerticalScrollBarVisibility="Auto" Margin="0,0,0,5"/>
+                                    <TextBlock Text="Captura de Pantalla:" FontWeight="Bold" Margin="0,5,0,0"/>
+                                    <Image Source="{Binding ScreenshotBase64}" MaxHeight="200" Stretch="Uniform" Margin="0,0,0,5"/>
+                                    <TextBlock Text="Favicon:" FontWeight="Bold" Margin="0,5,0,0"/>
+                                    <Image Source="{Binding FaviconBase64}" Width="24" Height="24" HorizontalAlignment="Left"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </StackPanel>
         </ScrollViewer>
 
