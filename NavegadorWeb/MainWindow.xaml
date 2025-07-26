@@ -299,18 +299,17 @@
                          Width="Auto"
                          MinWidth="200"
                          Margin="5,0,5,0"
-                         ContextMenuOpening="AddressBar_ContextMenuOpening"
-                         ContextMenu="{StaticResource AddressBarContextMenu}"/>
+                         ContextMenuOpening="AddressBar_ContextMenuOpening">
+                    <!-- ContextMenu MOVido aquí, directamente como propiedad de AddressBar -->
+                    <TextBox.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Abrir en nueva pestaña" Click="OpenInNewTabMenuItem_Click"/>
+                            <MenuItem Header="Abrir en nueva pestaña de incógnito" Click="OpenInNewIncognitoTabMenuItem_Click"/>
+                        </ContextMenu>
+                    </TextBox.ContextMenu>
+                </TextBox>
                 <Button Content="Go" Click="GoButton_Click" ToolTip="Ir a la URL"/>
             </StackPanel>
-
-            <!-- ContextMenu para la AddressBar -->
-            <Window.ContextMenu>
-                <ContextMenu x:Key="AddressBarContextMenu">
-                    <MenuItem Header="Abrir en nueva pestaña" Click="OpenInNewTabMenuItem_Click"/>
-                    <MenuItem Header="Abrir en nueva pestaña de incógnito" Click="OpenInNewIncognitoTabMenuItem_Click"/>
-                </ContextMenu>
-            </Window.ContextMenu>
 
             <!-- Barra de Búsqueda (FindBar) -->
             <Border x:Name="FindBar"
