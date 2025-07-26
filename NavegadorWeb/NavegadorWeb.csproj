@@ -14,9 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Asegúrate de que todos los archivos PNG estén en la carpeta Resources/ -->
-    <!-- y que sus propiedades en Visual Studio estén configuradas para "Build Action: Resource" -->
-    <!-- y "Copy to Output Directory: Do not copy" (para recursos WPF) o "Copy always" (para scripts/archivos de texto) -->
     <None Remove="Resources\add_bookmark.png" />
     <None Remove="Resources\ai.png" />
     <None Remove="Resources\audio_playing_icon.png" />
@@ -178,7 +175,6 @@
       <DependentUpon>AskGeminiWindow.xaml</DependentUpon>
     </Compile>
 
-    <!-- Clases de lógica de negocio y utilidades -->
     <Compile Include="AdBlocker.cs" />
     <Compile Include="BookmarkManager.cs" />
     <Compile Include="BrowserTabItem.cs" />
@@ -197,7 +193,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Archivos JavaScript y HTML que se copian al directorio de salida -->
     <Content Include="CustomErrorPage.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -219,6 +214,8 @@
     <Content Include="OfflineGame.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="MinesweeperGame.js"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="blocked_domains.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -228,7 +225,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Iconos PNG que se incluyen como recursos de la aplicación -->
     <Resource Include="Resources\add_bookmark.png" />
     <Resource Include="Resources\ai.png" />
     <Resource Include="Resources\audio_playing_icon.png" />
