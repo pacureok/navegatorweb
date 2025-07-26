@@ -1,64 +1,68 @@
+using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using System;
 using System.Windows;
+using System.Windows.Input;
+using System.IO;
 
 namespace NavegadorWeb
 {
-    /// <summary>
-    /// Lógica de interacción para PipWindow.xaml
-    /// </summary>
     public partial class PipWindow : Window
     {
-        private WebView2 _originalWebView; // Referencia al WebView2 original de donde se extrajo el video
+        private string _videoUrl;
+        private CoreWebView2Environment? _environment;
 
-        public PipWindow(string videoUrl, WebView2 originalWebView)
+        public PipWindow(string videoUrl, CoreWebView2Environment? environment = null)
         {
             InitializeComponent();
-            _originalWebView = originalWebView; // Guardar la referencia al WebView original
-            InitializePipWebView(videoUrl);
+            _videoUrl = videoUrl;
+            _environment = environment;
+            this.Topmost = true;
         }
 
-        private async void InitializePipWebView(string videoUrl)
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            // Asegurarse de que el WebView2 esté inicializado
-            await PipWebView.EnsureCoreWebView2Async(null);
-
-            // Navegar al video. Para YouTube, a menudo es mejor usar la URL de embebido.
-            // Esto es una simplificación; en un caso real, necesitarías parsear la URL
-            // para obtener la URL de embebido correcta para diferentes plataformas.
-            if (videoUrl.Contains("youtube.com/watch?v="))
+            try
             {
-                string videoId = videoUrl.Split(new string[] { "v=" }, StringSplitOptions.None)[1].Split('&')[0];
-                PipWebView.Source = new Uri($"https://www.youtube.com/embed/{videoId}?autoplay=1&controls=1");
-            }
-            else
-            {
-                // Para otros videos, intentar navegar directamente.
-                // Esto podría no funcionar para todos los reproductores web.
-                PipWebView.Source = new Uri(videoUrl);
-            }
+                if (_environment != null)
+                {
+                    await pipWebView.EnsureCoreWebView2Async(_environment);
+                }
+                else
+                {
+                    string tempUserDataFolder = Path.Combine(Path.GetTempPath(), "AuroraBrowserPip", Guid.NewGuid().ToString());
+                    CoreWebView2Environment newEnvironment = await CoreWebView2Environment.CreateAsync(null, tempUserDataFolder);
+                    await pipWebView.EnsureCoreWebView2Async(newEnvironment);
+                }
 
-            // Opcional: Deshabilitar algunas interacciones en el WebView2 PIP si no son necesarias
-            PipWebView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false;
-            PipWebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
-            PipWebView.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false;
-            PipWebView.CoreWebView2.Settings.AreHostObjectsAllowed = false;
-            PipWebView.CoreWebView2.Settings.IsGeneralAutofillEnabled = false;
-            PipWebView.CoreWebView2.Settings.IsPasswordAutosaveEnabled = false;
-            PipWebView.CoreWebView2.Settings.IsPinchZoomEnabled = false;
-            PipWebView.CoreWebView2.Settings.IsZoomControlEnabled = false;
+                if (pipWebView.CoreWebView2 != null)
+                {
+                    pipWebView.CoreWebView2.Settings.IsStatusBarEnabled = false;
+                    pipWebView.CoreWebView2.Settings.AreDevToolsEnabled = false;
+                    pipWebView.CoreWebView2.Settings.IsZoomControlEnabled = false;
+                    pipWebView.CoreWebView2.Settings.IsGeneralAutofillEnabled = false;
+                    pipWebView.CoreWebView2.Navigate(_videoUrl);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al cargar el contenido en la ventana PIP: {ex.Message}", "Error PIP", MessageBoxButton.OK, MessageBoxImage.Error);
+                this.Close();
+            }
         }
 
-        /// <summary>
-        /// Maneja el evento de cierre de la ventana PIP.
-        /// </summary>
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // Opcional: Reactivar el video en la pestaña original si se cerró el PIP
-            // Esto requeriría que el JavaScript en la página original sepa cómo manejarlo.
-            // Por simplicidad, solo pausamos el video en la página original al abrir el PIP.
-            // Aquí, simplemente nos aseguramos de que el WebView2 se deseche correctamente.
-            PipWebView.Dispose();
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                this.DragMove();
+            }
+        }
+
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            pipWebView?.Dispose();
+            this.Close();
         }
     }
 }
