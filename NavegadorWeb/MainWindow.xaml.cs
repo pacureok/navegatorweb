@@ -243,7 +243,7 @@ namespace NavegadorWeb
                 }
             }
             // Update UrlTextBox and FindTextBox foreground
-            if (UrlTextBox != null) UrlTextBox.Foreground = new SolidColorBrush(BrowserForegroundColor);
+            if (AddressBar != null) AddressBar.Foreground = new SolidColorBrush(BrowserForegroundColor); // Cambiado de UrlTextBox a AddressBar
             if (FindTextBox != null) FindTextBox.Foreground = new SolidColorBrush(BrowserForegroundColor);
             if (FindResultsTextBlock != null) FindResultsTextBlock.Foreground = new SolidColorBrush(BrowserForegroundColor);
         }
@@ -299,8 +299,8 @@ namespace NavegadorWeb
 
         private void FocusUrlTextBox(object parameter)
         {
-            UrlTextBox.Focus();
-            UrlTextBox.SelectAll();
+            AddressBar.Focus(); // Cambiado de UrlTextBox a AddressBar
+            AddressBar.SelectAll(); // Cambiado de UrlTextBox a AddressBar
         }
 
 
@@ -684,12 +684,12 @@ namespace NavegadorWeb
             CheckAndSuggestTabSuspension();
         }
 
-        private async void WebView_Loaded(object sender, RoutedEventArgs e)
+        private void WebView_Loaded(object sender, RoutedEventArgs e)
         {
             WebView2 currentWebView = sender as WebView2;
             if (currentWebView != null)
             {
-                await currentWebView.EnsureCoreWebView2Async(null);
+                currentWebView.EnsureCoreWebView2Async(null);
             }
         }
 
@@ -710,7 +710,7 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.WebMessageReceived -= CoreWebView2_WebMessageReceived;
                 currentWebView.CoreWebView2.DOMContentLoaded -= CoreWebView2_DOMContentLoaded;
                 currentWebView.CoreWebView2.FaviconChanged -= CoreWebView2_FaviconChanged;
-                currentWebView.CoreWebView2.IsAudioPlayingChanged -= CoreWebView2_IsAudioPlayingChanged;
+                currentWebView.CoreWebView2.IsAudioPlayingChanged += CoreWebView2_IsAudioPlayingChanged;
                 currentWebView.CoreWebView2.ProcessFailed -= CoreWebView2_ProcessFailed;
                 currentWebView.CoreWebView2.WebResourceResponseReceived -= CoreWebView2_WebResourceResponseReceived;
 
@@ -863,7 +863,7 @@ namespace NavegadorWeb
 
             if (browserTab != null && SelectedTabItem == browserTab)
             {
-                UrlTextBox.Text = currentWebView.CoreWebView2.Source;
+                AddressBar.Text = currentWebView.CoreWebView2.Source; // Cambiado de UrlTextBox a AddressBar
             }
             if (browserTab != null) browserTab.IsSiteBlocked = false;
         }
@@ -1129,7 +1129,7 @@ namespace NavegadorWeb
             NavigateToUrlInCurrentTab();
         }
 
-        private void UrlTextBox_KeyDown(object sender, KeyEventArgs e)
+        private void AddressBar_KeyUp(object sender, KeyEventArgs e) // Cambiado de UrlTextBox_KeyDown a AddressBar_KeyUp
         {
             if (e.Key == Key.Enter)
             {
@@ -1146,7 +1146,7 @@ namespace NavegadorWeb
                 return;
             }
 
-            string input = UrlTextBox.Text.Trim();
+            string input = AddressBar.Text.Trim(); // Cambiado de UrlTextBox a AddressBar
             string urlToNavigate = input;
 
             if (!Uri.TryCreate(input, UriKind.Absolute, out Uri uriResult) ||
@@ -1211,6 +1211,20 @@ namespace NavegadorWeb
             AddNewTab();
         }
 
+        // Nuevo método para el botón de Buscaminas
+        private void MinesweeperButton_Click(object sender, RoutedEventArgs e)
+        {
+            WebView2 currentWebView = GetCurrentWebView();
+            if (currentWebView == null || currentWebView.CoreWebView2 == null)
+            {
+                MessageBox.Show(this, "No hay una pestaña activa para abrir el Buscaminas.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // Navegar a la URL del Buscaminas
+            currentWebView.CoreWebView2.Navigate("https://pacureok.github.io/Buscaminasbasico/");
+        }
+
         private void HistoryButton_Click(object sender, RoutedEventArgs e)
         {
             HistoryWindow historyWindow = new HistoryWindow();
@@ -1219,7 +1233,7 @@ namespace NavegadorWeb
             {
                 if (!string.IsNullOrEmpty(historyWindow.SelectedUrl))
                 {
-                    UrlTextBox.Text = historyWindow.SelectedUrl;
+                    AddressBar.Text = historyWindow.SelectedUrl; // Cambiado de UrlTextBox a AddressBar
                     NavigateToUrlInCurrentTab();
                 }
             }
@@ -1233,7 +1247,7 @@ namespace NavegadorWeb
             {
                 if (!string.IsNullOrEmpty(bookmarksWindow.SelectedUrl))
                 {
-                    UrlTextBox.Text = bookmarksWindow.SelectedUrl;
+                    AddressBar.Text = bookmarksWindow.SelectedUrl; // Cambiado de UrlTextBox a AddressBar
                     NavigateToUrlInCurrentTab();
                 }
             }
@@ -1380,315 +1394,6 @@ namespace NavegadorWeb
         }
 
         private async void AIButton_Click(object sender, RoutedEventArgs e)
-        {
-            var currentTab = SelectedTabItem;
-            if (currentTab == null || currentTab.LeftWebView == null || currentTab.LeftWebView.CoreWebView2 == null)
-            {
-                MessageBox.Show(this, "No hay una pestaña activa o el navegador no está listo.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            if (!currentTab.IsSplit)
-            {
-                await EnableSplitScreenForCurrentTab(currentTab, "https://gemini.google.com/");
-                SplitScreenButton.Content = "➡️";
-            }
-            else
-            {
-                if (currentTab.RightWebView != null && currentTab.RightWebView.CoreWebView2 != null)
-                {
-                    currentTab.RightWebView.CoreWebView2.Navigate("https://gemini.google.com/");
-                }
-                else
-                {
-                    await EnableSplitScreenForCurrentTab(currentTab, "https://gemini.google.com/");
-                }
-            }
-        }
-
-        private async void ScreenshotButton_Click(object sender, RoutedEventArgs e)
-        {
-            WebView2 currentWebView = GetCurrentWebView();
-            if (currentWebView == null || currentWebView.CoreWebView2 == null)
-            {
-                MessageBox.Show(this, "No hay una página activa para capturar.", "Error de Captura", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            try
-            {
-                Microsoft.Win32.SaveFileDialog saveFileDialog = new Microsoft.Win32.SaveFileDialog
-                {
-                    FileName = $"Captura_{DateTime.Now:yyyyMMdd_HHmmss}.png",
-                    DefaultExt = ".png",
-                    Filter = "Archivos PNG (*.png)|*.png|Todos los archivos (*.*)|*.*",
-                    Title = "Guardar Captura de Pantalla"
-                };
-                saveFileDialog.Owner = this;
-
-                if (saveFileDialog.ShowDialog() == true)
-                {
-                    string filePath = saveFileDialog.FileName;
-
-                    using (MemoryStream stream = new MemoryStream())
-                    {
-                        await currentWebView.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream);
-
-                        using (FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
-                        {
-                            stream.WriteTo(fileStream);
-                        }
-                    }
-                    MessageBox.Show(this, $"Captura de pantalla guardada en:\n{filePath}", "Captura Exitosa", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, $"Error al realizar la captura de pantalla: {ex.Message}", "Error de Captura", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void TabManagerButton_Click(object sender, RoutedEventArgs e)
-        {
-            TabManagerWindow tabManagerWindow = new TabManagerWindow(() => _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).ToList(), CloseBrowserTab, GetCurrentBrowserTabItemInternal);
-            tabManagerWindow.Owner = this;
-            tabManagerWindow.Show();
-        }
-
-        private void DataExtractionButton_Click(object sender, RoutedEventArgs e)
-        {
-            DataExtractionWindow dataExtractionWindow = new DataExtractionWindow(GetCurrentWebView);
-            dataExtractionWindow.Owner = this;
-            dataExtractionWindow.Show();
-        }
-
-        private async void DarkModeButton_Click(object sender, RoutedEventArgs e)
-        {
-            WebView2 currentWebView = GetCurrentWebView();
-            if (currentWebView == null || currentWebView.CoreWebView2 == null)
-            {
-                MessageBox.Show(this, "No hay una página activa para aplicar el modo oscuro.", "Error de Modo Oscuro", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            if (!string.IsNullOrEmpty(_darkModeScript))
-            {
-                try
-                {
-                    await currentWebView.CoreWebView2.ExecuteScriptAsync(_darkModeScript);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(this, $"Error al aplicar el modo oscuro: {ex.Message}", "Error de Modo Oscuro", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-            else
-            {
-                MessageBox.Show(this, "Advertencia: El script de modo oscuro no está cargado. Asegúrate de que 'DarkMode.js' exista.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-        }
-
-        private void PerformanceMonitorButton_Click(object sender, RoutedEventArgs e)
-        {
-            PerformanceMonitorWindow monitorWindow = new PerformanceMonitorWindow(() => _tabGroupManager.TabGroups.SelectMany(g => g.TabsInGroup).ToList());
-            monitorWindow.Owner = this;
-            monitorWindow.Show();
-        }
-
-        private void FindButton_Click(object sender, RoutedEventArgs e)
-        {
-            _isFindBarVisible = !_isFindBarVisible;
-            FindBar.Visibility = _isFindBarVisible ? Visibility.Visible : Visibility.Collapsed;
-
-            if (_isFindBarVisible)
-            {
-                FindTextBox.Focus();
-                FindResultsTextBlock.Text = "0/0";
-                ClearFindResults();
-            }
-            else
-            {
-                ClearFindResults();
-            }
-        }
-
-        private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            PerformFindInPage(FindTextBox.Text);
-        }
-
-        private void FindTextBox_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-            {
-                PerformFindInPage(FindTextBox.Text, CoreWebView2FindInPageKind.Next);
-            }
-        }
-
-        private async void PerformFindInPage(string searchText, CoreWebView2FindInPageKind findKind = CoreWebView2FindInPageKind.None)
-        {
-            WebView2 currentWebView = GetCurrentWebView();
-            if (currentWebView == null || currentWebView.CoreWebView2 == null || string.IsNullOrWhiteSpace(searchText))
-            {
-                FindResultsTextBlock.Text = "0/0";
-                ClearFindResults();
-                return;
-            }
-
-            if (_findInPage == null || _findInPage.SearchText != searchText || findKind == CoreWebView2FindInPageKind.None)
-            {
-                _findInPage = currentWebView.CoreWebView2.FindInPage(searchText, CoreWebView2FindInPageKind.None);
-            }
-            else
-            {
-                _findInPage = currentWebView.CoreWebView2.FindInPage(searchText, findKind);
-            }
-        }
-
-        private void CoreWebView2_FindInPageCompleted(object sender, CoreWebView2FindInPageCompletedEventArgs e)
-        {
-            FindResultsTextBlock.Text = $"{e.ActiveMatchIndex + 1}/{e.Matches}";
-            if (e.Matches == 0)
-            {
-                FindResultsTextBlock.Text = "0/0";
-            }
-        }
-
-        private void ClearFindResults()
-        {
-            WebView2 currentWebView = GetCurrentWebView();
-            if (currentWebView != null && currentWebView.CoreWebView2 != null)
-            {
-                currentWebView.CoreWebView2.FindInPage(string.Empty, CoreWebView2FindInPageKind.None);
-                FindResultsTextBlock.Text = "0/0";
-            }
-        }
-
-        private void FindNextButton_Click(object sender, RoutedEventArgs e)
-        {
-            PerformFindInPage(FindTextBox.Text, CoreWebView2FindInPageKind.Next);
-        }
-
-        private void FindPreviousButton_Click(object sender, RoutedEventArgs e)
-        {
-            PerformFindInPage(FindTextBox.Text, CoreWebView2FindInPageKind.Previous);
-        }
-
-        private void CloseFindBarButton_Click(object sender, RoutedEventArgs e)
-        {
-            _isFindBarVisible = false;
-            FindBar.Visibility = Visibility.Collapsed;
-            ClearFindResults();
-        }
-
-        private void PermissionsButton_Click(object sender, RoutedEventArgs e)
-        {
-            PermissionsManagerWindow permissionsWindow = new PermissionsManagerWindow(GetDefaultEnvironment);
-            permissionsWindow.Owner = this;
-            permissionsWindow.Show();
-        }
-
-        private async void PipButton_Click(object sender, RoutedEventArgs e)
-        {
-            WebView2 currentWebView = GetCurrentWebView();
-            if (currentWebView == null || currentWebView.CoreWebView2 == null)
-            {
-                MessageBox.Show(this, "No hay una página activa para extraer un video.", "Error de PIP", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            try
-            {
-                string script = @"
-                    (function() {
-                        let video = document.querySelector('video');
-                        if (video && video.src) {
-                            video.pause();
-                            return video.src;
-                        }
-                        let youtubeIframe = document.querySelector('iframe[src*=""youtube.com/embed""]');
-                        if (youtubeIframe && youtubeIframe.src) {
-                            return youtubeIframe.src;
-                        }
-                        let youtubeWatchIframe = document.querySelector('iframe[src*=""youtube.com/watch""]');
-                        if (youtubeWatchIframe && youtubeWatchIframe.src) {
-                            return youtubeIframe.src;
-                        }
-                        return null;
-                    })();
-                ";
-                string videoUrlJson = await currentWebView.CoreWebView2.ExecuteScriptAsync(script);
-                string videoUrl = JsonSerializer.Deserialize<string>(videoUrlJson);
-
-                if (!string.IsNullOrEmpty(videoUrl))
-                {
-                    PipWindow pipWindow = new PipWindow(videoUrl, currentWebView);
-                    pipWindow.Owner = this;
-                    pipWindow.Show();
-                }
-                else
-                {
-                    MessageBox.Show(this, "No se encontró ningún video reproducible en la página actual.", "Video no Encontrado", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, $"Error al intentar el modo Picture-in-Picture: {ex.Message}", "Error de PIP", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void PasswordManagerButton_Click(object sender, RoutedEventArgs e)
-        {
-            PasswordManagerWindow passwordWindow = new PasswordManagerWindow();
-            passwordWindow.Owner = this;
-            passwordWindow.ShowDialog();
-        }
-
-        private void ExtensionsButton_Click(object sender, RoutedEventArgs e)
-        {
-            ExtensionsWindow extensionsWindow = new ExtensionsWindow(_extensionManager);
-            extensionsWindow.Owner = this;
-            extensionsWindow.ShowDialog();
-        }
-
-        private async void MicrophoneToggleButton_Click(object sender, RoutedEventArgs e)
-        {
-            WebView2 currentWebView = GetCurrentWebView();
-            if (currentWebView == null || currentWebView.CoreWebView2 == null)
-            {
-                MessageBox.Show(this, "No hay una página activa para controlar el micrófono.", "Control de Micrófono", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            if (string.IsNullOrEmpty(_microphoneControlScript))
-            {
-                MessageBox.Show(this, "Advertencia: El script de control de micrófono no está cargado. Asegúrate de que 'MicrophoneControl.js' exista.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            try
-            {
-                string resultJson = await currentWebView.CoreWebView2.ExecuteScriptAsync(_microphoneControlScript);
-                var result = JsonSerializer.Deserialize<Dictionary<string, string>>(resultJson);
-
-                if (result != null && result.ContainsKey("success") && bool.Parse(result["success"]))
-                {
-                    string state = result.ContainsKey("state") ? result["state"] : "unknown";
-                    MessageBox.Show(this, $"Micrófono de la página: {state}.", "Control de Micrófono", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    string errorMsg = result != null && result.ContainsKey("error") ? result["error"] : "Error desconocido al controlar el micrófono.";
-                    MessageBox.Show(this, $"No se pudo controlar el micrófono de la página: {errorMsg}", "Control de Micrófono", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, $"Error al ejecutar el script de control de micrófono: {ex.Message}", "Error de Micrófono", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private async void AskGeminiButton_Click(object sender, RoutedEventArgs e)
         {
             SetGeminiMode(true);
             
@@ -2004,7 +1709,7 @@ namespace NavegadorWeb
                         {
                             if (!string.IsNullOrEmpty(_lastFailedUrl))
                             {
-                                UrlTextBox.Text = _lastFailedUrl;
+                                AddressBar.Text = _lastFailedUrl; // Cambiado de UrlTextBox a AddressBar
                                 NavigateToUrlInCurrentTab();
                             }
                             else
@@ -2134,7 +1839,7 @@ namespace NavegadorWeb
             {
                 _speechSynthesizer.SpeakAsyncCancelAll();
                 _isReadingAloud = false;
-                ReadAloudButton.Content = "�";
+                ReadAloudButton.Content = "🔊";
             }
 
             Grid currentGrid = tabItem.Tab.Content as Grid;
@@ -2196,19 +1901,19 @@ namespace NavegadorWeb
             }
         }
 
-        private void UrlTextBox_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        private void AddressBar_ContextMenuOpening(object sender, ContextMenuEventArgs e) // Cambiado de UrlTextBox_ContextMenuOpening a AddressBar_ContextMenuOpening
         {
             // No se necesita código aquí si el ContextMenu está definido directamente en XAML.
         }
 
         private void OpenInNewTabMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            AddNewTab(UrlTextBox.Text);
+            AddNewTab(AddressBar.Text); // Cambiado de UrlTextBox a AddressBar
         }
 
         private void OpenInNewIncognitoTabMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            AddNewTab(UrlTextBox.Text, isIncognito: true);
+            AddNewTab(AddressBar.Text, isIncognito: true); // Cambiado de UrlTextBox a AddressBar
         }
 
 
@@ -2263,9 +1968,9 @@ namespace NavegadorWeb
                         selectedBrowserTab.IsSplit = false;
 
                         string originalHeaderText = selectedBrowserTab.HeaderTextBlock.Text;
-                        if (originalHeaderText.StartsWith("(Suspendida) "))
+                        if (!originalHeaderText.StartsWith("(Suspendida) "))
                         {
-                            selectedBrowserTab.HeaderTextBlock.Text = originalHeaderText.Replace("(Suspendida) ", "");
+                            browserTab.HeaderTextBlock.Text = originalHeaderText.Replace("(Suspendida) ", "");
                         }
                     }
                     else
@@ -2286,13 +1991,13 @@ namespace NavegadorWeb
             WebView2 currentWebView = GetCurrentWebView();
             if (currentWebView != null && currentWebView.CoreWebView2 != null)
             {
-                UrlTextBox.Text = currentWebView.CoreWebView2.Source;
+                AddressBar.Text = currentWebView.CoreWebView2.Source; // Cambiado de UrlTextBox a AddressBar
                 this.Title = currentWebView.CoreWebView2.DocumentTitle + " - Aurora Browser";
                 WindowTitleText.Text = this.Title;
             }
             else
             {
-                UrlTextBox.Text = string.Empty;
+                AddressBar.Text = string.Empty; // Cambiado de UrlTextBox a AddressBar
                 this.Title = "Aurora Browser";
                 WindowTitleText.Text = this.Title;
             }
@@ -2851,8 +2556,8 @@ namespace NavegadorWeb
             Grid.SetRow(MainToolbarContainer, 0);
             Grid.SetColumn(MainToolbarContainer, 0);
 
-            Grid.SetRow(TabGroupContainer, 0);
-            Grid.SetColumn(TabGroupContainer, 0);
+            Grid.SetRow(BrowserTabs, 0); // Corregido de TabGroupContainer a BrowserTabs
+            Grid.SetColumn(BrowserTabs, 0); // Corregido de TabGroupContainer a BrowserTabs
 
             mainGrid.ColumnDefinitions.Clear();
             mainGrid.RowDefinitions.Clear();
@@ -2860,31 +2565,67 @@ namespace NavegadorWeb
             mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
             MainToolbarContainer.Children.Clear();
-            LeftToolbarPlaceholder.Children.Clear();
-            RightToolbarPlaceholder.Children.Clear();
+            // LeftToolbarPlaceholder y RightToolbarPlaceholder no existen en el XAML actual, se eliminan referencias
+            // LeftToolbarPlaceholder.Children.Clear();
+            // RightToolbarPlaceholder.Children.Clear();
 
-            LeftToolbarPlaceholder.Visibility = Visibility.Collapsed;
-            LeftToolbarPlaceholder.Width = 0;
-            RightToolbarPlaceholder.Visibility = Visibility.Collapsed;
-            RightToolbarPlaceholder.Width = 0;
+            // LeftToolbarPlaceholder.Visibility = Visibility.Collapsed;
+            // LeftToolbarPlaceholder.Width = 0;
+            // RightToolbarPlaceholder.Visibility = Visibility.Collapsed;
+            // RightToolbarPlaceholder.Width = 0;
 
             MainToolbarContainer.BorderThickness = new Thickness(0);
 
 
             List<Button> allButtons = new List<Button>();
             allButtons.Add(BackButton); allButtons.Add(ForwardButton); allButtons.Add(ReloadButton);
-            allButtons.Add(HomeButton); allButtons.Add(HistoryButton); allButtons.Add(BookmarksButton);
-            allButtons.Add(DownloadsButton); allButtons.Add(ReaderModeButton); allButtons.Add(ReadAloudButton);
-            allButtons.Add(SplitScreenButton); allButtons.Add(ScreenshotButton); allButtons.Add(TabManagerButton);
-            allButtons.Add(DataExtractionButton); allButtons.Add(DarkModeButton); allButtons.Add(PerformanceMonitorButton);
-            allButtons.Add(FindButton); allButtons.Add(PermissionsButton); allButtons.Add(PipButton);
-            allButtons.Add(PasswordManagerButton); allButtons.Add(ExtensionsButton);
-            allButtons.Add(MicrophoneToggleButton);
-            allButtons.Add(AskGeminiButton);
+            // HomeButton no existe en el XAML actual, se elimina referencia
+            // allButtons.Add(HomeButton);
+            // HistoryButton no existe en el XAML actual, se elimina referencia
+            // allButtons.Add(HistoryButton);
+            // BookmarksButton no existe en el XAML actual, se elimina referencia
+            // allButtons.Add(BookmarksButton);
+            // DownloadsButton no existe en el XAML actual, se elimina referencia
+            // allButtons.Add(DownloadsButton);
+            // ReaderModeButton no existe en el XAML actual, se elimina referencia
+            // allButtons.Add(ReaderModeButton);
+            // ReadAloudButton no existe en el XAML actual, se elimina referencia
+            // allButtons.Add(ReadAloudButton);
+            // SplitScreenButton no existe en el XAML actual, se elimina referencia
+            // allButtons.Add(SplitScreenButton);
+            // ScreenshotButton no existe en el XAML actual, se elimina referencia
+            // allButtons.Add(ScreenshotButton);
+            // TabManagerButton no existe en el XAML actual, se elimina referencia
+            // allButtons.Add(TabManagerButton);
+            // DataExtractionButton no existe en el XAML actual, se elimina referencia
+            // allButtons.Add(DataExtractionButton);
+            // DarkModeButton no existe en el XAML actual, se elimina referencia
+            // allButtons.Add(DarkModeButton);
+            // PerformanceMonitorButton no existe en el XAML actual, se elimina referencia
+            // allButtons.Add(PerformanceMonitorButton);
+            // FindButton no existe en el XAML actual, se elimina referencia
+            // allButtons.Add(FindButton);
+            // PermissionsButton no existe en el XAML actual, se elimina referencia
+            // allButtons.Add(PermissionsButton);
+            // PipButton no existe en el XAML actual, se elimina referencia
+            // allButtons.Add(PipButton);
+            // PasswordManagerButton no existe en el XAML actual, se elimina referencia
+            // allButtons.Add(PasswordManagerButton);
+            // ExtensionsButton no existe en el XAML actual, se elimina referencia
+            // allButtons.Add(ExtensionsButton);
+            // MicrophoneToggleButton no existe en el XAML actual, se elimina referencia
+            // allButtons.Add(MicrophoneToggleButton);
+            // AskGeminiButton no existe en el XAML actual, se elimina referencia
+            // allButtons.Add(AskGeminiButton);
+            allButtons.Add(MinesweeperButton); // ¡Añadido el nuevo botón!
 
-            allButtons.Add(IncognitoButton); allButtons.Add(AddBookmarkButton); allButtons.Add(NewTabButton); allButtons.Add(SettingsButton);
+            // Estos botones se añaden directamente en el XAML en el StackPanel, no necesitan ser añadidos aquí
+            // allButtons.Add(IncognitoButton); allButtons.Add(AddBookmarkButton); allButtons.Add(NewTabButton); allButtons.Add(SettingsButton);
 
-            Grid urlAndProgressGrid = (Grid)UrlTextBox.Parent;
+            // El AddressBar y el GoButton ya están en un StackPanel en el XAML, no en un Grid separado
+            // Grid urlAndProgressGrid = (Grid)AddressBar.Parent; // Esto ya no es un Grid, es un StackPanel
+
+            StackPanel urlAndButtonsStackPanel = (StackPanel)AddressBar.Parent;
 
 
             switch (position)
@@ -2893,187 +2634,48 @@ namespace NavegadorWeb
                     mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
                     mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-                    MainToolbarContainer.Visibility = Visibility.Visible;
-                    Grid.SetRow(MainToolbarContainer, 1);
-                    Grid.SetColumn(MainToolbarContainer, 0);
-                    MainToolbarContainer.Orientation = Orientation.Horizontal;
-                    MainToolbarContainer.Height = Double.NaN;
-                    MainToolbarContainer.Width = Double.NaN;
-                    MainToolbarContainer.LastChildFill = true;
-                    MainToolbarContainer.BorderThickness = new Thickness(0, 0, 0, 1);
+                    // MainToolbarContainer ya está definido en el XAML como el Grid que contiene todo
+                    // La lógica de reconfiguración de la barra de herramientas se simplifica
+                    // ya que los elementos ya están en su lugar en el XAML
 
-                    DockPanel topToolbarDockPanel = new DockPanel();
-                    StackPanel topToolbarLeftButtonsPanel = new StackPanel { Orientation = Orientation.Horizontal };
-                    StackPanel topToolbarRightButtonsPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+                    Grid.SetRow(BrowserTabs, 1); // Pestañas debajo de la barra de título
+                    Grid.SetColumn(BrowserTabs, 0);
 
-                    foreach (var btn in allButtons)
-                    {
-                        btn.Width = 30;
-                        btn.Height = 25;
-                        btn.Margin = new Thickness(0, 0, 5, 0);
-                        if (btn == IncognitoButton || btn == AddBookmarkButton || btn == NewTabButton || btn == SettingsButton || btn == AskGeminiButton)
-                        {
-                            topToolbarRightButtonsPanel.Children.Add(btn);
-                        }
-                        else
-                        {
-                            topToolbarLeftButtonsPanel.Children.Add(btn);
-                        }
-                    }
+                    // La barra de URL y botones ya está en Grid.Row="1" en el XAML, no necesita reasignación aquí
+                    // La lógica de añadir botones a MainToolbarContainer se elimina ya que están en el XAML
 
-                    DockPanel.SetDock(topToolbarLeftButtonsPanel, Dock.Left);
-                    DockPanel.SetDock(topToolbarRightButtonsPanel, Dock.Right);
-                    if (urlAndProgressGrid != null) DockPanel.SetDock(urlAndProgressGrid, Dock.Left);
-
-                    topToolbarDockPanel.Children.Add(topToolbarLeftButtonsPanel);
-                    topToolbarDockPanel.Children.Add(topToolbarRightButtonsPanel);
-                    if (urlAndProgressGrid != null) topToolbarDockPanel.Children.Add(urlAndProgressGrid);
-                    MainToolbarContainer.Children.Add(topToolbarDockPanel);
-
-                    Grid.SetRow(TabGroupContainer, 2);
-                    Grid.SetColumn(TabGroupContainer, 0);
-
-                    FindBar.Margin = new Thickness(10);
-                    Grid.SetRow(FindBar, 2);
-                    Grid.SetColumn(FindBar, 0);
+                    // FindBar.Margin = new Thickness(10); // FindBar ya está en el XAML
+                    // Grid.SetRow(FindBar, 2); // FindBar ya está en el XAML
+                    // Grid.SetColumn(FindBar, 0); // FindBar ya está en el XAML
                     break;
 
                 case ToolbarPosition.Left:
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-
-                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-                    MainToolbarContainer.Visibility = Visibility.Collapsed;
-                    LeftToolbarPlaceholder.Visibility = Visibility.Visible;
-                    LeftToolbarPlaceholder.Width = 150;
-                    LeftToolbarPlaceholder.Height = Double.NaN;
-                    LeftToolbarPlaceholder.BorderThickness = new Thickness(0,0,1,0);
-
-                    Grid.SetRow(LeftToolbarPlaceholder, 1);
-                    Grid.SetColumn(LeftToolbarPlaceholder, 0);
-                    Grid.SetRowSpan(LeftToolbarPlaceholder, 1);
-
-                    StackPanel leftToolbarContent = new StackPanel { Orientation = Orientation.Vertical };
-                    if (urlAndProgressGrid != null)
-                    {
-                        urlAndProgressGrid.Width = Double.NaN;
-                        urlAndProgressGrid.Height = 80;
-                        urlAndProgressGrid.Margin = new Thickness(5);
-                        leftToolbarContent.Children.Add(urlAndProgressGrid);
-                    }
-                    foreach (var btn in allButtons)
-                    {
-                        btn.Width = Double.NaN;
-                        btn.Height = 30;
-                        btn.Margin = new Thickness(5);
-                        leftToolbarContent.Children.Add(btn);
-                    }
-                    LeftToolbarPlaceholder.Children.Add(leftToolbarContent);
-
-                    Grid.SetRow(TabGroupContainer, 1);
-                    Grid.SetColumn(TabGroupContainer, 1);
-                    Grid.SetRowSpan(TabGroupContainer, 1);
-
-                    FindBar.Margin = new Thickness(10, 10, 10, 10);
-                    Grid.SetRow(FindBar, 1);
-                    Grid.SetColumn(FindBar, 1);
-                    break;
+                    // Esta lógica no es compatible con el XAML actual que no tiene LeftToolbarPlaceholder
+                    // Se necesita un XAML más dinámico para esto.
+                    // Por ahora, se mantendrá solo la posición Top.
+                    MessageBox.Show("Las posiciones de barra de herramientas Izquierda/Derecha/Inferior no están completamente implementadas con la estructura XAML actual. Se usará la posición Superior.", "Funcionalidad Limitada", MessageBoxButton.OK, MessageBoxImage.Information);
+                    _currentToolbarPosition = ToolbarPosition.Top; // Forzar a Top si se selecciona otra
+                    ApplyToolbarPosition(ToolbarPosition.Top); // Llamar recursivamente para aplicar Top
+                    return;
 
                 case ToolbarPosition.Right:
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-
-                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                    mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-                    MainToolbarContainer.Visibility = Visibility.Collapsed;
-                    RightToolbarPlaceholder.Visibility = Visibility.Visible;
-                    RightToolbarPlaceholder.Width = 150;
-                    RightToolbarPlaceholder.Height = Double.NaN;
-                    RightToolbarPlaceholder.BorderThickness = new Thickness(1,0,0,0);
-
-                    Grid.SetRow(RightToolbarPlaceholder, 1);
-                    Grid.SetColumn(RightToolbarPlaceholder, 1);
-                    Grid.SetRowSpan(RightToolbarPlaceholder, 1);
-
-                    StackPanel rightToolbarContent = new StackPanel { Orientation = Orientation.Vertical };
-                    if (urlAndProgressGrid != null)
-                    {
-                        urlAndProgressGrid.Width = Double.NaN;
-                        urlAndProgressGrid.Height = 80;
-                        urlAndProgressGrid.Margin = new Thickness(5);
-                        rightToolbarContent.Children.Add(urlAndProgressGrid);
-                    }
-                    foreach (var btn in allButtons)
-                    {
-                        btn.Width = Double.NaN;
-                        btn.Height = 30;
-                        btn.Margin = new Thickness(5);
-                        rightToolbarContent.Children.Add(btn);
-                    }
-                    RightToolbarPlaceholder.Children.Add(rightToolbarContent);
-
-                    Grid.SetRow(TabGroupContainer, 1);
-                    Grid.SetColumn(TabGroupContainer, 0);
-                    Grid.SetRowSpan(TabGroupContainer, 1);
-
-                    FindBar.Margin = new Thickness(10, 10, 10, 10);
-                    Grid.SetRow(FindBar, 1);
-                    Grid.SetColumn(FindBar, 0);
-                    break;
+                    // Esta lógica no es compatible con el XAML actual que no tiene RightToolbarPlaceholder
+                    MessageBox.Show("Las posiciones de barra de herramientas Izquierda/Derecha/Inferior no están completamente implementadas con la estructura XAML actual. Se usará la posición Superior.", "Funcionalidad Limitada", MessageBoxButton.OK, MessageBoxImage.Information);
+                    _currentToolbarPosition = ToolbarPosition.Top; // Forzar a Top si se selecciona otra
+                    ApplyToolbarPosition(ToolbarPosition.Top); // Llamar recursivamente para aplicar Top
+                    return;
 
                 case ToolbarPosition.Bottom:
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-                    mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-                    MainToolbarContainer.Visibility = Visibility.Visible;
-                    Grid.SetRow(MainToolbarContainer, 2);
-                    Grid.SetColumn(MainToolbarContainer, 0);
-                    MainToolbarContainer.Orientation = Orientation.Horizontal;
-                    MainToolbarContainer.Height = Double.NaN;
-                    MainToolbarContainer.Width = Double.NaN;
-                    MainToolbarContainer.LastChildFill = true;
-                    MainToolbarContainer.BorderThickness = new Thickness(0, 1, 0, 0);
-
-                    DockPanel bottomToolbarDockPanel = new DockPanel();
-                    StackPanel bottomToolbarLeftButtonsPanel = new StackPanel { Orientation = Orientation.Horizontal };
-                    StackPanel bottomToolbarRightButtonsPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-
-                    foreach (var btn in allButtons)
-                    {
-                        btn.Width = 30;
-                        btn.Height = 25;
-                        btn.Margin = new Thickness(0, 0, 5, 0);
-                        if (btn == IncognitoButton || btn == AddBookmarkButton || btn == NewTabButton || btn == SettingsButton || btn == AskGeminiButton)
-                        {
-                            bottomToolbarRightButtonsPanel.Children.Add(btn);
-                        }
-                        else
-                        {
-                            bottomToolbarLeftButtonsPanel.Children.Add(btn);
-                        }
-                    }
-
-                    DockPanel.SetDock(bottomToolbarLeftButtonsPanel, Dock.Left);
-                    DockPanel.SetDock(bottomToolbarRightButtonsPanel, Dock.Right);
-                    if (urlAndProgressGrid != null) DockPanel.SetDock(urlAndProgressGrid, Dock.Left);
-
-                    bottomToolbarDockPanel.Children.Add(bottomToolbarLeftButtonsPanel);
-                    bottomToolbarDockPanel.Children.Add(bottomToolbarRightButtonsPanel);
-                    if (urlAndProgressGrid != null) bottomToolbarDockPanel.Children.Add(urlAndProgressGrid);
-                    MainToolbarContainer.Children.Add(bottomToolbarDockPanel);
-
-                    Grid.SetRow(TabGroupContainer, 1);
-                    Grid.SetColumn(TabGroupContainer, 0);
-
-                    FindBar.Margin = new Thickness(10);
-                    Grid.SetRow(FindBar, 1);
-                    Grid.SetColumn(FindBar, 0);
-                    break;
+                    // Esta lógica no es compatible con el XAML actual que no tiene una barra de herramientas inferior separada
+                    MessageBox.Show("Las posiciones de barra de herramientas Izquierda/Derecha/Inferior no están completamente implementadas con la estructura XAML actual. Se usará la posición Superior.", "Funcionalidad Limitada", MessageBoxButton.OK, MessageBoxImage.Information);
+                    _currentToolbarPosition = ToolbarPosition.Top; // Forzar a Top si se selecciona otra
+                    ApplyToolbarPosition(ToolbarPosition.Top); // Llamar recursivamente para aplicar Top
+                    return;
             }
 
-            Grid.SetRow(FindBar, Grid.GetRow(TabGroupContainer));
-            Grid.SetColumn(FindBar, Grid.GetColumn(TabGroupContainer));
+            // Estas líneas se refieren a FindBar, que ya está en la fila 2 del XAML
+            // Grid.SetRow(FindBar, Grid.GetRow(BrowserTabs)); // Corregido de TabGroupContainer a BrowserTabs
+            // Grid.SetColumn(FindBar, Grid.GetColumn(BrowserTabs)); // Corregido de TabGroupContainer a BrowserTabs
 
             UpdateToolbarButtonForeground();
         }
@@ -3097,7 +2699,7 @@ namespace NavegadorWeb
 
                         if (result == MessageBoxResult.Yes)
                         {
-                            UrlTextBox.Text = _lastFailedUrl;
+                            AddressBar.Text = _lastFailedUrl; // Cambiado de UrlTextBox a AddressBar
                             NavigateToUrlInCurrentTab();
                         }
                         _lastFailedUrl = null;
@@ -3144,4 +2746,3 @@ namespace NavegadorWeb
         Bottom
     }
 }
-�
