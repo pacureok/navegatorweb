@@ -279,7 +279,7 @@
                 <Button Content="📖" Click="ReaderModeButton_Click" ToolTip="Modo Lectura"/>
                 <Button Content="🔊" x:Name="ReadAloudButton" Click="ReadAloudButton_Click" ToolTip="Leer en Voz Alta"/>
                 <Button Content="↔️" x:Name="SplitScreenButton" Click="SplitScreenButton_Click" ToolTip="Pantalla Dividida"/>
-                <Button Content="📸" Click="ScreenshotButton_Click" ToolTip="Capturar Pantalla"/>
+                <Button Content="📸" x:Name="ScreenshotButton" Click="ScreenshotButton_Click" ToolTip="Capturar Pantalla"/>
                 <Button Content="📊" x:Name="PerformanceMonitorButton" Click="PerformanceMonitorButton_Click" ToolTip="Monitor de Rendimiento"/>
                 <Button Content="🔎" x:Name="FindButton" Click="FindButton_Click" ToolTip="Buscar en página"/>
                 <Button Content="🔑" x:Name="PasswordManagerButton" Click="PasswordManagerButton_Click" ToolTip="Gestor de Contraseñas"/>
