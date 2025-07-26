@@ -6,6 +6,7 @@ namespace NavegadorWeb
 {
     public class CustomExtension : INotifyPropertyChanged
     {
+        public string Id { get; set; } // <-- NECESARIO para ExtensionManager
         public string Name { get; set; }
         public string Description { get; set; }
         public string ScriptPath { get; set; }
@@ -24,8 +25,16 @@ namespace NavegadorWeb
             }
         }
 
-        // Implementación explícita del evento PropertyChanged para INotifyPropertyChanged
-        public event PropertyChangedEventHandler? PropertyChanged; // Se añadió '?' para nulabilidad
+        public CustomExtension(string id, string name, string description, string scriptPath)
+        {
+            Id = id;
+            Name = name;
+            Description = description;
+            ScriptPath = scriptPath;
+            IsEnabled = false;
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         protected void OnPropertyChanged(string propertyName)
         {
