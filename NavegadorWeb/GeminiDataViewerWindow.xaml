@@ -1,0 +1,31 @@
+<Window x:Class="NavegadorWeb.GeminiDataViewerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:NavegadorWeb"
+        mc:Ignorable="d"
+        Title="Datos para Gemini" Height="600" Width="400"
+        WindowStartupLocation="Manual" Top="100" Left="100"
+        AllowsTransparency="True" WindowStyle="ToolWindow"
+        Background="Transparent"
+        Topmost="True"> <!-- Para que siempre esté encima de otras ventanas -->
+    <Border Background="#F5F5F5" BorderBrush="#9B59B6" BorderThickness="2" CornerRadius="8" Margin="5">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Orientation="Vertical" Margin="10,10,10,5">
+                <TextBlock Text="Copia estos datos a Gemini:" FontWeight="Bold" FontSize="14" Foreground="#333"/>
+                <TextBlock Text="1. Copia tu pregunta y pégala en Gemini." Margin="0,5,0,0" FontSize="12" Foreground="#555"/>
+                <TextBlock Text="2. Copia las URLs y pégalas en Gemini." Margin="0,2,0,0" FontSize="12" Foreground="#555"/>
+                <TextBlock Text="3. Guarda las capturas de pantalla y súbelas a Gemini." Margin="0,2,0,0" FontSize="12" Foreground="#555"/>
+                <Button Content="Cerrar" Click="CloseButton_Click" HorizontalAlignment="Right" Margin="0,10,0,0" Style="{DynamicResource CustomButtonStyle}"/>
+            </StackPanel>
+
+            <WebView2 x:Name="GeminiWebView" Grid.Row="1" Margin="10" />
+        </Grid>
+    </Border>
+</Window>
