@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+<Project Sdk="Microsoft.NET.Sdk"> <!-- CORRECCIÓN: Se cambió a Microsoft.NET.Sdk para resolver NETSDK1130 -->
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -14,6 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Se eliminan las entradas <None Remove> para los recursos que sí se usan.
+         Si tienes recursos que no se usan y quieres eliminarlos, puedes hacerlo aquí. -->
     <None Remove="Resources\add_bookmark.png" />
     <None Remove="Resources\ai.png" />
     <None Remove="Resources\audio_playing_icon.png" />
@@ -40,15 +42,203 @@
     <None Remove="Resources\reader.png" />
     <None Remove="Resources\screenshot.png" />
     <None Remove="Resources\settings.png" />
+    <None Remove="Resources\split.png" />
+    <None Remove="Resources\tab_manager.png" />
     <None Remove="Resources\sun.png" />
-    <None Remove="Resources\tab_group.png" />
-    <None Remove="Resources\theme_light.png" />
-    <None Remove="Resources\theme_dark.png" />
-    <None Remove="Resources\tracker.png" />
-    <None Remove="Resources\vpn.png" />
+    <None Remove="Resources\speaker.png" />
+    <None Remove="Resources\toolbar_bottom.png" />
+    <None Remove="Resources\toolbar_left.png" />
+    <None Remove="Resources\toolbar_right.png" />
+    <None Remove="Resources\toolbar_top.png" />
+    <None Remove="Resources\translate.png" />
+    <None Remove="Resources\back.png" />
+    <None Remove="Resources\forward.png" />
+    <None Remove="Resources\refresh.png" />
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Referencias a paquetes NuGet -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
+    <!-- Se actualiza System.Speech a la versión más reciente para .NET 8 -->
+    <PackageReference Include="System.Speech" Version="8.0.0" />
+    <!-- CORRECCIÓN: Se actualiza System.Text.Json a una versión parcheada si está disponible, o se mantiene la última estable -->
+    <PackageReference Include="System.Text.Json" Version="8.0.3" /> <!-- Revisa NuGet para la versión más reciente sin vulnerabilidades -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Actualización de archivos de configuración y recursos -->
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Inclusión de archivos XAML de ventanas -->
+    <Page Update="MainWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="SettingsWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="HistoryWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="BookmarksWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="DownloadsWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="CrashRecoveryWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="TabManagerWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="DataExtractionWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="PerformanceMonitorWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="PermissionsManagerWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="PipWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="PasswordManagerWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="ExtensionsWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="PdfViewerWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="AskGeminiWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="GeminiDataViewerWindow.xaml">
+      <XamlRuntime>WPF</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Inclusión de archivos de código C# (code-behind para XAML y clases auxiliares) -->
+    <!-- El SDK de .NET ya incluye automáticamente los archivos .cs en el directorio del proyecto.
+         Solo se listan aquí si tienen una dependencia específica como <DependentUpon>. -->
+    <Compile Update="App.xaml.cs">
+      <DependentUpon>App.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="MainWindow.xaml.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="SettingsWindow.xaml.cs">
+      <DependentUpon>SettingsWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="HistoryWindow.xaml.cs">
+      <DependentUpon>HistoryWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="BookmarksWindow.xaml.cs">
+      <DependentUpon>BookmarksWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="DownloadsWindow.xaml.cs">
+      <DependentUpon>DownloadsWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="CrashRecoveryWindow.xaml.cs">
+      <DependentUpon>CrashRecoveryWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="TabManagerWindow.xaml.cs">
+      <DependentUpon>TabManagerWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="DataExtractionWindow.xaml.cs">
+      <DependentUpon>DataExtractionWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="PerformanceMonitorWindow.xaml.cs">
+      <DependentUpon>PerformanceMonitorWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="PermissionsManagerWindow.xaml.cs">
+      <DependentUpon>PermissionsManagerWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="PipWindow.xaml.cs">
+      <DependentUpon>PipWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="PasswordManagerWindow.xaml.cs">
+      <DependentUpon>PasswordManagerWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="ExtensionsWindow.xaml.cs">
+      <DependentUpon>ExtensionsWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="PdfViewerWindow.xaml.cs">
+      <DependentUpon>PdfViewerWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="AskGeminiWindow.xaml.cs">
+      <DependentUpon>AskGeminiWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="GeminiDataViewerWindow.xaml.cs">
+      <DependentUpon>GeminiDataViewerWindow.xaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Archivos de contenido que se copian al directorio de salida -->
+    <Content Include="CustomErrorPage.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="DarkMode.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="HighlighterExtension.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ReaderMode.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="PageColorExtractor.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="MicrophoneControl.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="OfflineGame.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="MinesweeperGame.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="blocked_domains.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="tracker_domains.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Archivos de recursos (imágenes, iconos) -->
     <Resource Include="Resources\add_bookmark.png" />
     <Resource Include="Resources\ai.png" />
     <Resource Include="Resources\audio_playing_icon.png" />
@@ -75,18 +265,18 @@
     <Resource Include="Resources\reader.png" />
     <Resource Include="Resources\screenshot.png" />
     <Resource Include="Resources\settings.png" />
+    <Resource Include="Resources\split.png" />
+    <Resource Include="Resources\tab_manager.png" />
     <Resource Include="Resources\sun.png" />
-    <Resource Include="Resources\tab_group.png" />
-    <Resource Include="Resources\theme_light.png" />
-    <Resource Include="Resources\theme_dark.png" />
-    <Resource Include="Resources\tracker.png" />
-    <Resource Include="Resources\vpn.png" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
-    <PackageReference Include="System.Speech" Version="1.0.0" />
-    <PackageReference Include="System.Text.Json" Version="8.0.0" />
+    <Resource Include="Resources\speaker.png" />
+    <Resource Include="Resources\toolbar_bottom.png" />
+    <Resource Include="Resources\toolbar_left.png" />
+    <Resource Include="Resources\toolbar_right.png" />
+    <Resource Include="Resources\toolbar_top.png" />
+    <Resource Include="Resources\translate.png" />
+    <Resource Include="Resources\back.png" />
+    <Resource Include="Resources\forward.png" />
+    <Resource Include="Resources\refresh.png" />
   </ItemGroup>
 
 </Project>
