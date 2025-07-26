@@ -1,86 +1,86 @@
-using Microsoft.Web.WebView2.Core;
-using Microsoft.Web.WebView2.Wpf;
-using System;
-using System.Collections.Generic;
-using System.IO;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
-using System.Text.Json;
 using System.Windows;
 
 namespace NavegadorWeb
 {
-    public partial class GeminiDataViewerWindow : Window
+    public partial class GeminiDataViewerWindow : Window, INotifyPropertyChanged
     {
-        private List<AskGeminiWindow.CapturedPageData> _capturedPages;
-        private string _userQuestion;
-        private CoreWebView2Environment _environment;
+        private ObservableCollection<CapturedPageData> _capturedData;
+        public ObservableCollection<CapturedPageData> CapturedData
+        {
+            get => _capturedData;
+            set
+            {
+                if (_capturedData != value)
+                {
+                    _capturedData = value;
+                    OnPropertyChanged(nameof(CapturedData));
+                }
+            }
+        }
 
-        public GeminiDataViewerWindow(List<AskGeminiWindow.CapturedPageData> capturedPages, string userQuestion, CoreWebView2Environment environment)
+        private string _userQuestion;
+        public string UserQuestion
+        {
+            get => _userQuestion;
+            set
+            {
+                if (_userQuestion != value)
+                {
+                    _userQuestion = value;
+                    OnPropertyChanged(nameof(UserQuestion));
+                }
+            }
+        }
+
+        public bool ShouldRestoreSession { get; private set; }
+
+        // Implementación explícita del evento PropertyChanged para INotifyPropertyChanged
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public GeminiDataViewerWindow(ObservableCollection<BrowserTabItem> browserTabs)
         {
             InitializeComponent();
-            _capturedPages = capturedPages;
-            _userQuestion = userQuestion;
-            _environment = environment; // Usar el mismo entorno que el navegador principal
+            this.DataContext = this;
+            CapturedData = new ObservableCollection<CapturedPageData>();
+            UserQuestionTextBox.Text = ""; // Inicializar el TextBox de la pregunta del usuario
 
-            this.Loaded += GeminiDataViewerWindow_Loaded;
+            // Llenar CapturedData con los datos de las pestañas seleccionadas
+            // Esta parte se llenará cuando el usuario seleccione las pestañas en la ventana principal
+            // y haga clic en "Enviar a Gemini"
         }
 
-        private async void GeminiDataViewerWindow_Loaded(object sender, RoutedEventArgs e)
+        public GeminiDataViewerWindow(string userQuestion, ObservableCollection<CapturedPageData> capturedData)
         {
-            try
-            {
-                // Asegurar que WebView2 esté inicializado con el entorno adecuado
-                await GeminiWebView.EnsureCoreWebView2Async(_environment);
-
-                string geminiDisplayPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GeminiIntegrationDisplay.html");
-                if (File.Exists(geminiDisplayPath))
-                {
-                    GeminiWebView.CoreWebView2.Navigate($"file:///{geminiDisplayPath.Replace("\\", "/")}");
-
-                    // Esperar un momento para que el HTML se cargue completamente
-                    await Task.Delay(500);
-
-                    // Preparar los datos para enviar al JavaScript de GeminiIntegrationDisplay.html
-                    var dataToSend = new
-                    {
-                        type = "geminiPageData",
-                        userQuestion = _userQuestion,
-                        capturedPages = _capturedPages.Select(cp => new
-                        {
-                            url = cp.Url,
-                            title = cp.Title,
-                            screenshotBase64 = cp.ScreenshotBase64,
-                            pageText = cp.PageText,
-                            faviconBase64 = cp.FaviconBase64
-                        }).ToList()
-                    };
-
-                    string jsonMessage = JsonSerializer.Serialize(dataToSend);
-                    await GeminiWebView.CoreWebView2.PostWebMessageAsJson(jsonMessage);
-                }
-                else
-                {
-                    MessageBox.Show(this, "Error: El archivo 'GeminiIntegrationDisplay.html' no se encontró.", "Error de Archivo", MessageBoxButton.OK, MessageBoxImage.Error);
-                    this.Close();
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, $"Error al cargar los datos de Gemini: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                this.Close();
-            }
+            InitializeComponent();
+            this.DataContext = this;
+            UserQuestion = userQuestion;
+            CapturedData = capturedData;
+            UserQuestionTextBox.Text = userQuestion; // Mostrar la pregunta del usuario
+            // Asegúrate de que CapturedDataPanel se vincule correctamente a CapturedData en XAML
         }
 
-        private void CloseButton_Click(object sender, RoutedEventArgs e)
+
+        private void SendToGeminiButton_Click(object sender, RoutedEventArgs e)
         {
+            // Aquí se enviaría la información a Gemini.
+            // La lógica para la llamada a la API de Gemini se manejaría en MainWindow.xaml.cs
+            // Esta ventana solo se encarga de mostrar los datos a enviar y obtener la pregunta del usuario.
+            this.DialogResult = true; // Indica que el usuario hizo clic en "Enviar"
             this.Close();
         }
 
-        // Limpiar el WebView2 al cerrar la ventana
-        protected override void OnClosed(EventArgs e)
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
-            base.OnClosed(e);
-            GeminiWebView.Dispose();
+            this.DialogResult = false; // Indica que el usuario hizo clic en "Cancelar"
+            this.Close();
         }
     }
 }
