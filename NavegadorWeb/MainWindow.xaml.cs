@@ -1,4 +1,4 @@
-using Microsoft.Web.WebView2.Core; // ¡ESTA LÍNEA ES LA CLAVE PARA CS0246!
+using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using System;
 using System.Collections.Generic;
@@ -99,8 +99,8 @@ namespace NavegadorWeb
             DependencyProperty.Register("SelectedTabItem", typeof(BrowserTabItem), typeof(MainWindow), new PropertyMetadata(null));
 
 
-        private CoreWebView2Environment? _defaultEnvironment; // Se añadió '?'
-        private CoreWebView2Environment? _incognitoEnvironment; // Se añadió '?'
+        private CoreWebView2Environment? _defaultEnvironment;
+        private CoreWebView2Environment? _incognitoEnvironment;
 
         private string _readerModeScript = string.Empty;
         private string _darkModeScript = string.Empty;
@@ -110,11 +110,11 @@ namespace NavegadorWeb
         private SpeechSynthesizer _speechSynthesizer;
         private bool _isReadingAloud = false;
 
-        private bool _isFindBarVisible = false;
-        private CoreWebView2FindInPage? _findInPage; // Se añadió '?' para nulabilidad
+        // Se eliminó la referencia a CoreWebView2FindInPage
+        // private CoreWebView2FindInPage? _findInPage;
 
-        private string? _lastFailedUrl = null; // Se añadió '?' para nulabilidad
-        private System.Timers.Timer? _connectivityTimer; // Se añadió '?' para nulabilidad
+        private string? _lastFailedUrl = null;
+        private System.Timers.Timer? _connectivityTimer;
         private bool _isOfflineGameActive = false;
 
         private bool _isGeminiModeActive = false;
@@ -130,8 +130,9 @@ namespace NavegadorWeb
         public ICommand OpenHistoryCommand { get; private set; }
         public ICommand OpenBookmarksCommand { get; private set; }
         public ICommand OpenDownloadsCommand { get; private set; }
-        public ICommand ToggleFindBarCommand { get; private set; }
-        public ICommand CloseFindBarCommand { get; private set; }
+        // Se eliminaron los comandos de Find
+        // public ICommand ToggleFindBarCommand { get; private set; }
+        // public ICommand CloseFindBarCommand { get; private set; }
 
         private const int WM_NCHITTEST = 0x0084;
         private const int HTLEFT = 10;
@@ -152,7 +153,7 @@ namespace NavegadorWeb
             this.DataContext = this;
 
             LoadSettings();
-            InitializeEnvironments(); // Aquí se llama el método que ahora incluye la verificación
+            InitializeEnvironments();
             LoadReaderModeScript();
             LoadDarkModeScript();
             LoadPageColorExtractionScript();
@@ -220,8 +221,9 @@ namespace NavegadorWeb
             OpenHistoryCommand = new RelayCommand(HistoryButton_Click);
             OpenBookmarksCommand = new RelayCommand(BookmarksButton_Click);
             OpenDownloadsCommand = new RelayCommand(DownloadsButton_Click);
-            ToggleFindBarCommand = new RelayCommand(FindButton_Click);
-            CloseFindBarCommand = new RelayCommand(CloseFindBarButton_Click);
+            // Se eliminaron las asignaciones de comandos de Find
+            // ToggleFindBarCommand = new RelayCommand(FindButton_Click);
+            // CloseFindBarCommand = new RelayCommand(CloseFindBarButton_Click);
         }
 
         private void ToggleFullscreen(object? parameter)
@@ -252,7 +254,7 @@ namespace NavegadorWeb
         {
             if (SelectedTabItem != null)
             {
-                CloseBrowserTab(SelectedTabItem.Tab!); // Se añadió '!'
+                CloseBrowserTab(SelectedTabItem.Tab!);
             }
         }
 
@@ -449,7 +451,7 @@ namespace NavegadorWeb
                                 {
                                     foreach (var tabItem in group.TabsInGroup.ToList())
                                     {
-                                        CloseBrowserTab(tabItem.Tab!); // Se añadió '!'
+                                        CloseBrowserTab(tabItem.Tab!);
                                     }
                                     if (!group.TabsInGroup.Any() && _tabGroupManager.TabGroups.Count > 1)
                                     {
@@ -601,7 +603,8 @@ namespace NavegadorWeb
             webView1.SourceChanged += WebView_SourceChanged;
             webView1.NavigationCompleted += WebView_NavigationCompleted;
             webView1.CoreWebView2.DocumentTitleChanged += WebView_DocumentTitleChanged;
-            webView1.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted;
+            // Se eliminó la suscripción al evento FindInPageCompleted
+            // webView1.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted;
             webView1.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
             webView1.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
             webView1.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
@@ -647,7 +650,8 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.SourceChanged -= WebView_SourceChanged;
                 currentWebView.CoreWebView2.NavigationCompleted -= WebView_NavigationCompleted;
                 currentWebView.CoreWebView2.NavigationStarting -= WebView_NavigationStarting;
-                currentWebView.CoreWebView2.FindInPageCompleted -= CoreWebView2_FindInPageCompleted;
+                // Se eliminó la desuscripción al evento FindInPageCompleted
+                // currentWebView.CoreWebView2.FindInPageCompleted -= CoreWebView2_FindInPageCompleted;
                 currentWebView.CoreWebView2.PermissionRequested -= CoreWebView2_PermissionRequested;
                 currentWebView.CoreWebView2.WebMessageReceived -= CoreWebView2_WebMessageReceived;
                 currentWebView.CoreWebView2.DOMContentLoaded -= CoreWebView2_DOMContentLoaded;
@@ -670,7 +674,8 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.SourceChanged += WebView_SourceChanged;
                 currentWebView.CoreWebView2.NavigationCompleted += WebView_NavigationCompleted;
                 currentWebView.CoreWebView2.NavigationStarting += WebView_NavigationStarting;
-                currentWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted;
+                // Se eliminó la suscripción al evento FindInPageCompleted
+                // currentWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted;
                 currentWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
                 currentWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
                 currentWebView.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
@@ -1494,11 +1499,11 @@ namespace NavegadorWeb
                     
                     SelectedTabItem.RightWebView!.CoreWebView2!.ExecuteScriptAsync(injectionScript);
 
-                    MessageBox.Show(this, "Las capturas de pantalla, URLs y tu pregunta se han mostrado en el panel de Gemini. Por favor, copia y pega la información relevante en el chat de Gemini.", "Información para Gemini", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(this, "Las capturas de pantalla, URLs y tu pregunta se han mostrado en el panel de Gemini. Por favor, copia y pega la información relevante en el chat de Gemini.", "Información para Gemini", MessageBoxButton.OK, Image.Information);
                 }
                 else
                 {
-                    MessageBox.Show(this, "Para usar esta función, por favor, activa el modo de pantalla dividida en la pestaña actual y asegúrate de que el panel derecho esté visible.", "Modo de Pantalla Dividida Requerido", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(this, "Para usar esta función, por favor, activa el modo de pantalla dividida en la pestaña actual y asegúrate de que el panel derecho esté visible.", "Modo de Pantalla Dividida Requerido", MessageBoxButton.OK, Image.Warning);
                 }
             }
             
@@ -1623,7 +1628,7 @@ namespace NavegadorWeb
                             if (result == MessageBoxResult.Yes)
                             {
                                 PasswordManager.AddOrUpdatePassword(url, username, password);
-                                MessageBox.Show(this, "Contraseña guardada con éxito.", "Contraseña Guardada", MessageBoxButton.OK, MessageBoxImage.Information);
+                                MessageBox.Show(this, "Contraseña guardada con éxito.", "Contraseña Guardada", MessageBoxButton.OK, Image.Information);
                             }
                         }
                     }
@@ -1868,7 +1873,8 @@ namespace NavegadorWeb
                         newWebView.Loaded += WebView_Loaded;
                         CoreWebView2Environment envToUse = selectedBrowserTab.IsIncognito ? _incognitoEnvironment! : _defaultEnvironment!;
                         newWebView.CoreWebView2InitializationCompleted += (s, ev) => ConfigureCoreWebView2(newWebView, ev, envToUse);
-                        newWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted;
+                        // Se eliminó la suscripción al evento FindInPageCompleted
+                        // newWebView.CoreWebView2.FindInPageCompleted += CoreWebView2_FindInPageCompleted;
                         newWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
                         newWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
                         newWebView.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
@@ -1901,7 +1907,7 @@ namespace NavegadorWeb
                 }
             }
             _isFindBarVisible = false;
-            ClearFindResults();
+            // ClearFindResults(); // Se eliminó la llamada a este método
         }
 
         private void UpdateUrlTextBoxFromCurrentTab()
@@ -1948,7 +1954,7 @@ namespace NavegadorWeb
                     $"Tienes {activeTabs} pestañas activas. Para mejorar el rendimiento, ¿te gustaría suspender las pestañas inactivas ahora?",
                     "Sugerencia de Suspensión de Pestañas",
                     MessageBoxButton.YesNo,
-                    MessageBoxImage.Question
+                    Image.Question
                 );
 
                 if (result == MessageBoxResult.Yes)
@@ -1982,7 +1988,7 @@ namespace NavegadorWeb
                 TrackerBlocker.IsEnabled = settingsWindow.IsTrackerProtectionEnabled;
                 _isPdfViewerEnabled = settingsWindow.IsPdfViewerEnabled;
                 SaveSettings();
-                MessageBox.Show(this, "Configuración guardada. Los cambios se aplicarán al abrir nuevas pestañas o al hacer clic en 'Inicio'.", "Configuración Guardada", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(this, "Configuración guardada. Los cambios se aplicarán al abrir nuevas pestañas o al hacer clic en 'Inicio'.", "Configuración Guardada", MessageBoxButton.OK, Image.Information);
             }
 
             settingsWindow.OnClearBrowsingData -= SettingsWindow_OnClearBrowsingData;
@@ -2025,11 +2031,11 @@ namespace NavegadorWeb
                     CoreWebView2BrowserDataKinds.OtherData;
 
                 await _defaultEnvironment.ClearBrowsingDataAsync(dataKinds);
-                MessageBox.Show(this, "Datos de navegación (caché, cookies, etc.) borrados con éxito.", "Limpieza Completa", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(this, "Datos de navegación (caché, cookies, etc.) borrados con éxito.", "Limpieza Completa", MessageBoxButton.OK, Image.Information);
             }
             else
             {
-                MessageBox.Show(this, "No se pudo acceder al motor del navegador para borrar los datos del perfil normal.", "Error de Limpieza", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, "No se pudo acceder al motor del navegador para borrar los datos del perfil normal.", "Error de Limpieza", MessageBoxButton.OK, Image.Error);
             }
         }
 
@@ -2037,7 +2043,7 @@ namespace NavegadorWeb
         {
             if (!_isTabSuspensionEnabled)
             {
-                MessageBox.Show(this, "La suspensión de pestañas no está habilitada en la configuración. Habilítela para usar esta función.", "Suspensión Deshabilitada", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(this, "La suspensión de pestañas no está habilitada en la configuración. Habilítela para usar esta función.", "Suspensión Deshabilitada", MessageBoxButton.OK, Image.Warning);
                 return;
             }
 
@@ -2497,19 +2503,19 @@ namespace NavegadorWeb
                     break;
 
                 case ToolbarPosition.Left:
-                    MessageBox.Show("Las posiciones de barra de herramientas Izquierda/Derecha/Inferior no están completamente implementadas con la estructura XAML actual. Se usará la posición Superior.", "Funcionalidad Limitada", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("Las posiciones de barra de herramientas Izquierda/Derecha/Inferior no están completamente implementadas con la estructura XAML actual. Se usará la posición Superior.", "Funcionalidad Limitada", MessageBoxButton.OK, Image.Information);
                     _currentToolbarPosition = ToolbarPosition.Top;
                     ApplyToolbarPosition(ToolbarPosition.Top);
                     return;
 
                 case ToolbarPosition.Right:
-                    MessageBox.Show("Las posiciones de barra de herramientas Izquierda/Derecha/Inferior no están completamente implementadas con la estructura XAML actual. Se usará la posición Superior.", "Funcionalidad Limitada", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("Las posiciones de barra de herramientas Izquierda/Derecha/Inferior no están completamente implementadas con la estructura XAML actual. Se usará la posición Superior.", "Funcionalidad Limitada", MessageBoxButton.OK, Image.Information);
                     _currentToolbarPosition = ToolbarPosition.Top;
                     ApplyToolbarPosition(ToolbarPosition.Top);
                     return;
 
                 case ToolbarPosition.Bottom:
-                    MessageBox.Show("Las posiciones de barra de herramientas Izquierda/Derecha/Inferior no están completamente implementadas con la estructura XAML actual. Se usará la posición Superior.", "Funcionalidad Limitada", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("Las posiciones de barra de herramientas Izquierda/Derecha/Inferior no están completamente implementadas con la estructura XAML actual. Se usará la posición Superior.", "Funcionalidad Limitada", MessageBoxButton.OK, Image.Information);
                     _currentToolbarPosition = ToolbarPosition.Top;
                     ApplyToolbarPosition(ToolbarPosition.Top);
                     return;
@@ -2532,7 +2538,7 @@ namespace NavegadorWeb
                             $"¡Internet conectado! ¿Deseas recargar la página:\n{_lastFailedUrl}?",
                             "Conexión Restablecida",
                             MessageBoxButton.YesNo,
-                            MessageBoxImage.Information
+                            Image.Information
                         );
 
                         if (result == MessageBoxResult.Yes)
@@ -2547,52 +2553,22 @@ namespace NavegadorWeb
             });
         }
 
-        private void ClearFindResults()
-        {
-            // Este método asume que hay un FindTextBox y FindResultsTextBlock en el XAML.
-            // Si no existen, estas líneas pueden ser comentadas o eliminadas.
-            // if (FindTextBox != null) FindTextBox.Text = string.Empty;
-            // if (FindResultsTextBlock != null) FindResultsTextBlock.Text = string.Empty;
-            // if (_findInPage != null) _findInPage.ClearHighlight();
-        }
+        // Se eliminaron los métodos relacionados con FindInPage
+        // private void ClearFindResults()
+        // {
+        // }
 
-        private void FindButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Este método asume que hay un FindBar en el XAML.
-            // if (FindBar != null)
-            // {
-            //     _isFindBarVisible = !_isFindBarVisible;
-            //     FindBar.Visibility = _isFindBarVisible ? Visibility.Visible : Visibility.Collapsed;
-            //     if (_isFindBarVisible)
-            //     {
-            //         FindTextBox.Focus();
-            //     }
-            //     else
-            //     {
-            //         ClearFindResults();
-            //     }
-            // }
-        }
+        // private void FindButton_Click(object sender, RoutedEventArgs e)
+        // {
+        // }
 
-        private void CloseFindBarButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Este método asume que hay un FindBar en el XAML.
-            // if (FindBar != null)
-            // {
-            //     _isFindBarVisible = false;
-            //     FindBar.Visibility = Visibility.Collapsed;
-            //     ClearFindResults();
-            // }
-        }
+        // private void CloseFindBarButton_Click(object sender, RoutedEventArgs e)
+        // {
+        // }
 
-        private void CoreWebView2_FindInPageCompleted(object? sender, CoreWebView2FindInPageCompletedEventArgs e)
-        {
-            // Este método asume que hay un FindResultsTextBlock en el XAML.
-            // if (FindResultsTextBlock != null)
-            // {
-            //     FindResultsTextBlock.Text = $"{e.Matches} resultados";
-            // }
-        }
+        // private void CoreWebView2_FindInPageCompleted(object? sender, CoreWebView2FindInPageCompletedEventArgs e)
+        // {
+        // }
     }
 
     public class RelayCommand : ICommand
