@@ -605,8 +605,7 @@ namespace NavegadorWeb
             webView1.SourceChanged += WebView_SourceChanged;
             webView1.NavigationCompleted += WebView_NavigationCompleted;
             webView1.CoreWebView2.DocumentTitleChanged += WebView_DocumentTitleChanged;
-            // Cambiado de FindInPageCompleted a FindResultReceived
-            webView1.CoreWebView2.FindResultReceived += CoreWebView2_FindResultReceived;
+            // Eliminado: webView1.CoreWebView2.FindResultReceived += CoreWebView2_FindResultReceived;
             webView1.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
             webView1.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
             webView1.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
@@ -652,15 +651,14 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.SourceChanged -= WebView_SourceChanged;
                 currentWebView.CoreWebView2.NavigationCompleted -= WebView_NavigationCompleted;
                 currentWebView.CoreWebView2.NavigationStarting -= WebView_NavigationStarting;
-                // Cambiado de FindInPageCompleted a FindResultReceived
-                currentWebView.CoreWebView2.FindResultReceived -= CoreWebView2_FindResultReceived;
+                // Eliminado: currentWebView.CoreWebView2.FindResultReceived -= CoreWebView2_FindResultReceived;
                 currentWebView.CoreWebView2.PermissionRequested -= CoreWebView2_PermissionRequested;
                 currentWebView.CoreWebView2.WebMessageReceived -= CoreWebView2_WebMessageReceived;
                 currentWebView.CoreWebView2.DOMContentLoaded -= CoreWebView2_DOMContentLoaded;
                 currentWebView.CoreWebView2.FaviconChanged -= CoreWebView2_FaviconChanged;
                 currentWebView.CoreWebView2.IsAudioPlayingChanged += CoreWebView2_IsAudioPlayingChanged;
-                currentWebView.CoreWebView2.ProcessFailed -= CoreWebView2_ProcessFailed;
-                currentWebView.CoreWebView2.WebResourceResponseReceived -= CoreWebView2_WebResourceResponseReceived;
+                currentWebView.CoreWebView2.ProcessFailed += CoreWebView2_ProcessFailed;
+                currentWebView.CoreWebView2.WebResourceResponseReceived += CoreWebView2_WebResourceResponseReceived;
 
 
                 currentWebView.CoreWebView2.WebResourceRequested += CoreWebView2_WebResourceRequested;
@@ -676,8 +674,7 @@ namespace NavegadorWeb
                 currentWebView.CoreWebView2.SourceChanged += WebView_SourceChanged;
                 currentWebView.CoreWebView2.NavigationCompleted += WebView_NavigationCompleted;
                 currentWebView.CoreWebView2.NavigationStarting += WebView_NavigationStarting;
-                // Cambiado de FindInPageCompleted a FindResultReceived
-                currentWebView.CoreWebView2.FindResultReceived += CoreWebView2_FindResultReceived;
+                // Eliminado: currentWebView.CoreWebView2.FindResultReceived += CoreWebView2_FindResultReceived;
                 currentWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
                 currentWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
                 currentWebView.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
@@ -1875,8 +1872,7 @@ namespace NavegadorWeb
                         newWebView.Loaded += WebView_Loaded;
                         CoreWebView2Environment envToUse = selectedBrowserTab.IsIncognito ? _incognitoEnvironment! : _defaultEnvironment!;
                         newWebView.CoreWebView2InitializationCompleted += (s, ev) => ConfigureCoreWebView2(newWebView, ev, envToUse);
-                        // Cambiado de FindInPageCompleted a FindResultReceived
-                        newWebView.CoreWebView2.FindResultReceived += CoreWebView2_FindResultReceived;
+                        // Eliminado: newWebView.CoreWebView2.FindResultReceived += CoreWebView2_FindResultReceived;
                         newWebView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
                         newWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
                         newWebView.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
@@ -2555,37 +2551,82 @@ namespace NavegadorWeb
             });
         }
 
-        private void ClearFindResults()
+        // Método para buscar y contar coincidencias en la página usando JavaScript
+        private async Task BuscarEnPaginaAsync(string texto, bool buscarHaciaAtras = false)
         {
-            if (FindTextBox != null) FindTextBox.Text = string.Empty;
-            if (FindResultsTextBlock != null) FindResultsTextBlock.Text = string.Empty;
-            // No hay _findInPage.ClearHighlight() directamente. La API Find() maneja el resaltado.
-            // Para limpiar el resaltado, se puede buscar una cadena vacía o una cadena que no exista.
             WebView2? currentWebView = GetCurrentWebView();
-            if (currentWebView != null && currentWebView.CoreWebView2 != null)
+            if (currentWebView != null && currentWebView.CoreWebView2 != null && !string.IsNullOrWhiteSpace(texto))
             {
-                currentWebView.CoreWebView2.Find(string.Empty, CoreWebView2FindMatchOptions.None);
+                // Escapamos comillas simples para evitar errores en el script
+                string escapedText = texto.Replace("'", "\\'").Replace("\n", "\\n").Replace("\r", "\\r");
+
+                // Script que selecciona la primera coincidencia y cuenta todas las apariciones
+                // Para buscar hacia atrás, window.find necesita el tercer parámetro en 'true'.
+                // Los otros parámetros son: caseSensitive, backwards, wrapAround, wholeWord, searchInFrames, showDialog
+                string script = $@"
+                    (function() {{
+                        var text = '{escapedText}';
+                        var matches = 0;
+                        var found = true;
+                        var firstPass = true;
+                        var originalScrollY = window.scrollY; // Guardar posición de scroll inicial
+
+                        // Limpiar selecciones previas antes de iniciar una nueva búsqueda
+                        window.getSelection().removeAllRanges();
+
+                        // Buscar la primera ocurrencia para establecer la selección inicial
+                        // Si es una búsqueda hacia atrás, empezamos al final y buscamos hacia atrás
+                        if ({buscarHaciaAtras.ToString().ToLower()}) {{
+                            // Para buscar hacia atrás desde el final, a veces es útil ir al final de la página
+                            // o simplemente usar window.find con el parámetro 'backwards' en true.
+                            // window.find() busca desde la posición actual del cursor.
+                            // Para asegurar que busque desde el final, podríamos forzar un scroll al final
+                            // o simplemente confiar en que el usuario ya está en la página.
+                            // Para una búsqueda hacia atrás fiable, es mejor usar un script más complejo
+                            // que itere o que sepa dónde está el cursor.
+                            // Sin embargo, para simplificar y usar window.find, simplemente lo llamamos con backwards.
+                            found = window.find(text, false, true); // caseSensitive=false, backwards=true
+                            if (found) matches++; // Contamos la primera que encuentra
+                        }} else {{
+                            found = window.find(text, false, false); // caseSensitive=false, backwards=false
+                            if (found) matches++; // Contamos la primera que encuentra
+                        }}
+                        
+                        // Contar el resto de las coincidencias y resaltarlas (si window.find lo permite)
+                        // window.find solo resalta una a la vez. Para resaltar todas, se necesita un script DOM más complejo.
+                        // Para el conteo, el regex es más simple.
+                        var bodyText = document.body.innerText || '';
+                        matches = (bodyText.match(new RegExp(text, 'gi')) || []).length; // 'gi' para global e insensible a mayúsculas/minúsculas
+
+                        return matches;
+                    }})();
+                ";
+                string result = await currentWebView.CoreWebView2.ExecuteScriptAsync(script);
+                // El resultado viene entre comillas, lo limpiamos
+                if (FindResultsTextBlock != null)
+                {
+                    int total;
+                    if (int.TryParse(result.Replace("\"", ""), out total))
+                        FindResultsTextBlock.Text = $"{total} resultados";
+                    else
+                        FindResultsTextBlock.Text = "0 resultados";
+                }
+            }
+            else
+            {
+                if (FindResultsTextBlock != null)
+                    FindResultsTextBlock.Text = "";
             }
         }
 
-        private void FindButton_Click(object sender, RoutedEventArgs e)
+        // Al presionar Enter en la caja de búsqueda
+        private async void FindTextBox_KeyDown(object sender, KeyEventArgs e)
         {
-            if (FindBar != null)
+            if (e.Key == Key.Enter)
             {
-                _isFindBarVisible = !_isFindBarVisible;
-                FindBar.Visibility = _isFindBarVisible ? Visibility.Visible : Visibility.Collapsed;
-                if (_isFindBarVisible)
+                if (!string.IsNullOrWhiteSpace(FindTextBox.Text) && FindTextBox.Text != "Buscar...")
                 {
-                    FindTextBox.Focus();
-                    // Iniciar una búsqueda con el texto actual si existe
-                    if (!string.IsNullOrWhiteSpace(FindTextBox.Text) && FindTextBox.Text != "Buscar...")
-                    {
-                        WebView2? currentWebView = GetCurrentWebView();
-                        if (currentWebView != null && currentWebView.CoreWebView2 != null)
-                        {
-                            currentWebView.CoreWebView2.Find(FindTextBox.Text, CoreWebView2FindMatchOptions.None);
-                        }
-                    }
+                    await BuscarEnPaginaAsync(FindTextBox.Text);
                 }
                 else
                 {
@@ -2594,158 +2635,80 @@ namespace NavegadorWeb
             }
         }
 
-        private void CloseFindBarButton_Click(object sender, RoutedEventArgs e)
+        // Al hacer clic en el botón "Siguiente"
+        private async void FindNextButton_Click(object sender, RoutedEventArgs e)
+        {
+            WebView2? currentWebView = GetCurrentWebView();
+            if (currentWebView != null && currentWebView.CoreWebView2 != null && !string.IsNullOrWhiteSpace(FindTextBox.Text) && FindTextBox.Text != "Buscar...")
+            {
+                string escapedText = FindTextBox.Text.Replace("'", "\\'").Replace("\n", "\\n").Replace("\r", "\\r");
+                // window.find(string, caseSensitive, backwards, wrapAround, wholeWord, searchInFrames, showDialog)
+                // Buscamos hacia adelante (false en backwards)
+                await currentWebView.CoreWebView2.ExecuteScriptAsync($"window.find('{escapedText}', false, false, true);");
+                // Después de mover la selección, podemos recontar si queremos, o simplemente dejar el contador como está.
+                // Para una experiencia de usuario fluida, quizás solo actualizar el contador al iniciar la búsqueda principal.
+            }
+        }
+
+        // Al hacer clic en el botón "Anterior"
+        private async void FindPreviousButton_Click(object sender, RoutedEventArgs e)
+        {
+            WebView2? currentWebView = GetCurrentWebView();
+            if (currentWebView != null && currentWebView.CoreWebView2 != null && !string.IsNullOrWhiteSpace(FindTextBox.Text) && FindTextBox.Text != "Buscar...")
+            {
+                string escapedText = FindTextBox.Text.Replace("'", "\\'").Replace("\n", "\\n").Replace("\r", "\\r");
+                // window.find(string, caseSensitive, backwards, wrapAround, wholeWord, searchInFrames, showDialog)
+                // Buscamos hacia atrás (true en backwards)
+                await currentWebView.CoreWebView2.ExecuteScriptAsync($"window.find('{escapedText}', false, true, true);");
+                // Similar al FindNext, no recontamos aquí para mantener la fluidez.
+            }
+        }
+
+        // Al cerrar la barra de búsqueda
+        private async void CloseFindBarButton_Click(object sender, RoutedEventArgs e)
         {
             if (FindBar != null)
             {
                 _isFindBarVisible = false;
                 FindBar.Visibility = Visibility.Collapsed;
-                ClearFindResults();
+                // Limpiar resaltados buscando un texto imposible o una cadena vacía
+                await BuscarEnPaginaAsync(""); // Buscar una cadena vacía para limpiar el resaltado
+                if (FindTextBox != null) FindTextBox.Text = "Buscar..."; // Restablecer texto por defecto
+                if (FindResultsTextBlock != null) FindResultsTextBlock.Text = ""; // Limpiar resultados
             }
         }
 
-        // Manejador de evento correcto para la búsqueda en página
-        private void CoreWebView2_FindResultReceived(object? sender, CoreWebView2FindResultReceivedEventArgs e)
+        // Al hacer click en el botón de búsqueda (mostrar barra de búsqueda)
+        private async void FindButton_Click(object sender, RoutedEventArgs e)
         {
-            if (FindResultsTextBlock != null)
+            if (FindBar != null)
             {
-                FindResultsTextBlock.Text = $"{e.Matches} resultados";
-            }
-        }
-
-        // Manejadores de eventos para los botones de búsqueda (Find)
-        private void FindTextBox_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-            {
-                WebView2? currentWebView = GetCurrentWebView();
-                if (currentWebView != null && currentWebView.CoreWebView2 != null && !string.IsNullOrWhiteSpace(FindTextBox.Text) && FindTextBox.Text != "Buscar...")
+                _isFindBarVisible = !_isFindBarVisible;
+                FindBar.Visibility = _isFindBarVisible ? Visibility.Visible : Visibility.Collapsed;
+                if (_isFindBarVisible)
                 {
-                    // Inicia la búsqueda desde el principio
-                    currentWebView.CoreWebView2.Find(FindTextBox.Text, CoreWebView2FindMatchOptions.None);
-                }
-            }
-        }
-
-        private void FindTextBox_GotFocus(object sender, RoutedEventArgs e)
-        {
-            if (FindTextBox.Text == "Buscar...")
-            {
-                FindTextBox.Text = string.Empty;
-            }
-        }
-
-        private void FindTextBox_LostFocus(object sender, RoutedEventArgs e)
-        {
-            if (string.IsNullOrWhiteSpace(FindTextBox.Text))
-            {
-                FindTextBox.Text = "Buscar...";
-            }
-        }
-
-        private void FindNextButton_Click(object sender, RoutedEventArgs e)
-        {
-            WebView2? currentWebView = GetCurrentWebView();
-            if (currentWebView != null && currentWebView.CoreWebView2 != null && !string.IsNullOrWhiteSpace(FindTextBox.Text) && FindTextBox.Text != "Buscar...")
-            {
-                // Busca la siguiente ocurrencia
-                currentWebView.CoreWebView2.Find(FindTextBox.Text, CoreWebView2FindMatchOptions.None);
-            }
-        }
-
-        private void FindPreviousButton_Click(object sender, RoutedEventArgs e)
-        {
-            WebView2? currentWebView = GetCurrentWebView();
-            if (currentWebView != null && currentWebView.CoreWebView2 != null && !string.IsNullOrWhiteSpace(FindTextBox.Text) && FindTextBox.Text != "Buscar...")
-            {
-                // Busca la ocurrencia anterior
-                currentWebView.CoreWebView2.Find(FindTextBox.Text, CoreWebView2FindMatchOptions.None | CoreWebView2FindMatchOptions.Backwards);
-            }
-        }
-
-        // Manejadores de eventos para otros botones que faltaban
-        private void PerformanceMonitorButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Monitor de Rendimiento no implementado aún.", "Información", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        private void PasswordManagerButton_Click(object sender, RoutedEventArgs e)
-        {
-            PasswordManagerWindow passwordManagerWindow = new PasswordManagerWindow();
-            passwordManagerWindow.Owner = this;
-            passwordManagerWindow.ShowDialog();
-        }
-
-        private void ExtensionsButton_Click(object sender, RoutedEventArgs e)
-        {
-            ExtensionWindow extensionWindow = new ExtensionWindow(_extensionManager);
-            extensionWindow.Owner = this;
-            extensionWindow.ShowDialog();
-        }
-
-        private void MicrophoneToggleButton_Click(object sender, RoutedEventArgs e)
-        {
-            WebView2? currentWebView = GetCurrentWebView();
-            if (currentWebView == null || currentWebView.CoreWebView2 == null)
-            {
-                MessageBox.Show(this, "No hay una página activa para controlar el micrófono.", "Error de Micrófono", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            if (!string.IsNullOrEmpty(_microphoneControlScript))
-            {
-                try
-                {
-                    // Este script debería alternar el estado del micrófono o mostrar un mensaje.
-                    // Suponemos que el script MicrophoneControl.js tiene una función para esto.
-                    currentWebView.CoreWebView2.ExecuteScriptAsync(_microphoneControlScript);
-                    MessageBox.Show("Comando de control de micrófono enviado a la página.", "Micrófono", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(this, $"Error al controlar el micrófono: {ex.Message}", "Error de Micrófono", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-            else
-            {
-                MessageBox.Show(this, "Advertencia: El archivo 'MicrophoneControl.js' no se encontró. El control de micrófono de la página no funcionará.", "Archivo Faltante", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-        }
-
-        private async void ScreenshotButton_Click(object sender, RoutedEventArgs e)
-        {
-            WebView2? currentWebView = GetCurrentWebView();
-            if (currentWebView == null || currentWebView.CoreWebView2 == null)
-            {
-                MessageBox.Show(this, "No hay una página activa para capturar.", "Error de Captura", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            try
-            {
-                Microsoft.Win32.SaveFileDialog saveFileDialog = new Microsoft.Win32.SaveFileDialog
-                {
-                    FileName = $"Screenshot_{DateTime.Now:yyyyMMdd_HHmmss}.png",
-                    Filter = "Archivos PNG (*.png)|*.png",
-                    Title = "Guardar captura de pantalla como..."
-                };
-                saveFileDialog.Owner = this;
-
-                if (saveFileDialog.ShowDialog() == true)
-                {
-                    using (var stream = new FileStream(saveFileDialog.FileName, FileMode.Create))
+                    FindTextBox.Focus();
+                    // Si ya hay texto en la caja de búsqueda, iniciar la búsqueda automáticamente
+                    if (!string.IsNullOrWhiteSpace(FindTextBox.Text) && FindTextBox.Text != "Buscar...")
                     {
-                        await currentWebView.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream);
+                        await BuscarEnPaginaAsync(FindTextBox.Text);
                     }
-                    MessageBox.Show(this, $"Captura de pantalla guardada en:\n{saveFileDialog.FileName}", "Captura Exitosa", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, $"Error al guardar la captura de pantalla: {ex.Message}", "Error de Captura", MessageBoxButton.OK, MessageBoxImage.Error);
+                else
+                {
+                    // Limpiar resultados al ocultar la barra
+                    await BuscarEnPaginaAsync(""); // Limpiar el resaltado
+                    FindTextBox.Text = "Buscar...";
+                    FindResultsTextBlock.Text = "";
+                }
             }
         }
 
+        // Eliminado: private void CoreWebView2_FindInPageCompleted(object? sender, CoreWebView2FindInPageCompletedEventArgs e) { ... }
+        // Eliminado: private void CoreWebView2_FindResultReceived(object? sender, CoreWebView2FindResultReceivedEventArgs e) { ... }
+        // Eliminado: private void ClearFindResults() { ... } // Reemplazado por la lógica en CloseFindBarButton_Click y FindButton_Click
+
+        // ... El resto de tu código igual ...
     }
 
     public class RelayCommand : ICommand
