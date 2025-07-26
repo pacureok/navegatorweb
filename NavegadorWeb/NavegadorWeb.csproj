@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk"> <!-- CORRECCIÓN: Se cambió a Microsoft.NET.Sdk para resolver NETSDK1130 -->
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -14,8 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Se eliminan las entradas <None Remove> para los recursos que sí se usan.
-         Si tienes recursos que no se usan y quieres eliminarlos, puedes hacerlo aquí. -->
+    <!-- Los elementos <None Remove> se usan para excluir archivos de la compilación si están en la carpeta del proyecto
+         pero no deben ser tratados como recursos o código. Aquí se mantienen para los recursos de imagen. -->
     <None Remove="Resources\add_bookmark.png" />
     <None Remove="Resources\ai.png" />
     <None Remove="Resources\audio_playing_icon.png" />
@@ -59,10 +59,12 @@
   <ItemGroup>
     <!-- Referencias a paquetes NuGet -->
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
-    <!-- Se actualiza System.Speech a la versión más reciente para .NET 8 -->
     <PackageReference Include="System.Speech" Version="8.0.0" />
-    <!-- CORRECCIÓN: Se actualiza System.Text.Json a una versión parcheada si está disponible, o se mantiene la última estable -->
-    <PackageReference Include="System.Text.Json" Version="8.0.3" /> <!-- Revisa NuGet para la versión más reciente sin vulnerabilidades -->
+    <!-- IMPORTANTE: La advertencia NU1903 indica una vulnerabilidad en 8.0.3.
+         Si hay una versión más reciente disponible que solucione la vulnerabilidad,
+         deberías actualizarla aquí (ej: Version="8.0.4" o superior).
+         Puedes buscar en NuGet Gallery: https://www.nuget.org/packages/System.Text.Json -->
+    <PackageReference Include="System.Text.Json" Version="8.0.3" />
   </ItemGroup>
 
   <ItemGroup>
@@ -79,7 +81,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Inclusión de archivos XAML de ventanas -->
+    <!-- Inclusión de archivos XAML de ventanas como Page -->
     <Page Update="MainWindow.xaml">
       <XamlRuntime>WPF</XamlRuntime>
       <SubType>Designer</SubType>
@@ -147,8 +149,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Inclusión de archivos de código C# (code-behind para XAML y clases auxiliares) -->
-    <!-- El SDK de .NET ya incluye automáticamente los archivos .cs en el directorio del proyecto.
+    <!-- Inclusión de archivos de código C# (code-behind para XAML y clases auxiliares)
+         El SDK de .NET ya incluye automáticamente los archivos .cs en el directorio del proyecto.
          Solo se listan aquí si tienen una dependencia específica como <DependentUpon>. -->
     <Compile Update="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
