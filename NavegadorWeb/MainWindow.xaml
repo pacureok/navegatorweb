@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf" xmlns:local="clr-namespace:NavegadorWeb"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        xmlns:local="clr-namespace:NavegadorWeb"
         mc:Ignorable="d"
         Title="Navegador Web Avanzado" Height="768" Width="1366"
         MinHeight="400" MinWidth="600"
@@ -14,8 +15,10 @@
         StateChanged="MainWindow_StateChanged">
 
     <Window.Resources>
+        <!-- Convertidor para Visibilidad -->
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
 
+        <!-- Estilo para los botones de la barra de título (minimizar, maximizar, cerrar) -->
         <Style x:Key="TitleBarButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -44,6 +47,7 @@
             </Style.Triggers>
         </Style>
 
+        <!-- Estilo para el botón de cerrar de la barra de título (fondo rojo en hover) -->
         <Style x:Key="CloseButtonStyle" TargetType="Button" BasedOn="{StaticResource TitleBarButtonStyle}">
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
@@ -55,6 +59,7 @@
             </Style.Triggers>
         </Style>
 
+        <!-- Estilo para botones de la barra de herramientas (navegación, acciones) -->
         <Style x:Key="ToolbarButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -86,6 +91,7 @@
             </Style.Triggers>
         </Style>
 
+        <!-- Estilo para el TextBlock de la barra de estado -->
         <Style x:Key="StatusTextStyle" TargetType="TextBlock">
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Margin" Value="5,0"/>
@@ -93,6 +99,7 @@
             <Setter Property="FontSize" Value="12"/>
         </Style>
 
+        <!-- Estilo para las cabeceras de las pestañas -->
         <Style TargetType="{x:Type TabItem}">
             <Setter Property="Template">
                 <Setter.Value>
@@ -147,11 +154,17 @@
 
     </Window.Resources>
 
+    <!-- La propiedad CornerRadius se aplica al Border principal que envuelve el Grid -->
     <Border BorderThickness="1" BorderBrush="#333333" CornerRadius="8" Background="#1A1A1A">
         <Grid x:Name="mainGrid">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> <RowDefinition Height="*"/>    <RowDefinition Height="Auto"/> </Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <!-- Barra de Título -->
+                <RowDefinition Height="Auto"/> <!-- Barra de Herramientas y Pestañas -->
+                <RowDefinition Height="*"/>    <!-- Contenido del Navegador (WebView2) -->
+                <RowDefinition Height="Auto"/> <!-- Barra de Estado y Descargas -->
+            </Grid.RowDefinitions>
 
+            <!-- Barra de Título Personalizada -->
             <Grid Grid.Row="0" Height="30" Background="#1a1a1a" MouseLeftButtonDown="Window_Drag">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -169,15 +182,21 @@
                 <Button x:Name="CloseButton" Grid.Column="4" Content="✕" Style="{StaticResource CloseButtonStyle}" Click="CloseButton_Click"/>
             </Grid>
 
+            <!-- Barra de Herramientas y Pestañas -->
             <Grid Grid.Row="1" Background="#282828">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> </Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/> <!-- Pestañas -->
+                    <RowDefinition Height="Auto"/> <!-- Barra de URL y Botones -->
+                </Grid.RowDefinitions>
 
+                <!-- Controles de Pestañas -->
                 <TabControl x:Name="BrowserTabs" Grid.Row="0" Margin="0,2,0,0" SelectionChanged="BrowserTabs_SelectionChanged"
                             BorderThickness="0" Background="Transparent" Foreground="#FFFFFF">
                     <TabControl.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Orientation="Horizontal" ToolTip="{Binding Title}"> <Image x:Name="HttpsIcon" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"
+                            <StackPanel Orientation="Horizontal" ToolTip="{Binding SourceUrl}">
+                                <!-- Icono de candado para HTTPS (se controlará en code-behind) -->
+                                <Image x:Name="HttpsIcon" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"
                                        Visibility="{Binding IsSecure, Converter={StaticResource BoolToVisibilityConverter}}">
                                     <Image.Source>
                                         <BitmapImage UriSource="/NavegadorWeb;component/Resources/lock_icon.png"/>
@@ -190,6 +209,7 @@
                 </TabControl>
 
 
+                <!-- Barra de Navegación (URL, Atrás/Adelante, Recargar, etc.) -->
                 <StackPanel Orientation="Horizontal" Grid.Row="1" Margin="5" VerticalAlignment="Center">
                     <Button x:Name="BackButton" Content="◀" Style="{StaticResource ToolbarButtonStyle}" Click="BackButton_Click" IsEnabled="False" ToolTip="Atrás"/>
                     <Button x:Name="ForwardButton" Content="▶" Style="{StaticResource ToolbarButtonStyle}" Click="ForwardButton_Click" IsEnabled="False" ToolTip="Adelante"/>
@@ -199,15 +219,18 @@
                     <TextBox x:Name="AddressBar" Text="about:blank" VerticalAlignment="Center" Width="Auto"
                              MinWidth="200"
                              Margin="5,0" Padding="5" FontSize="14"
-                             Background="#3A3A3A" Foreground="#E0E0E0" BorderBrush="#555555" BorderThickness="1" CornerRadius="5"
+                             Background="#3A3A3A" Foreground="#E0E0E0" BorderBrush="#555555" BorderThickness="1"
                              KeyUp="AddressBar_KeyUp" ToolTip="Ingresa una URL o término de búsqueda"/>
 
                     <Button x:Name="GoButton" Content="Ir" Style="{StaticResource ToolbarButtonStyle}" Click="GoButton_Click" ToolTip="Ir a la dirección"/>
 
+                    <!-- Botón para añadir nueva pestaña -->
                     <Button x:Name="NewTabButton" Content="➕" Style="{StaticResource ToolbarButtonStyle}" Click="NewTabButton_Click" ToolTip="Abrir Nueva Pestaña"/>
 
+                    <!-- Nuevo botón para Buscaminas sin conexión -->
                     <Button x:Name="MinesweeperButton" Content="💣" Style="{StaticResource ToolbarButtonStyle}" Click="MinesweeperButton_Click" ToolTip="Jugar Buscaminas (requiere conexión)"/>
 
+                    <!-- Menú de herramientas/opciones -->
                     <Menu Background="Transparent" VerticalAlignment="Center" Margin="5,0,0,0">
                         <MenuItem Header="⋮" Foreground="#E0E0E0" FontSize="18" FontWeight="Bold" Background="Transparent">
                             <MenuItem.Style>
@@ -244,7 +267,8 @@
                                 <MenuItem Header="Añadir a Favoritos" Click="AddToFavorites_Click" Background="#3A3A3A" Foreground="#E0E0E0"/>
                                 <Separator/>
                                 <MenuItem x:Name="FavoritesMenu" Background="#3A3A3A" Foreground="#E0E0E0">
-                                    </MenuItem>
+                                    <!-- Los favoritos se añadirán aquí dinámicamente -->
+                                </MenuItem>
                             </MenuItem>
                             <MenuItem Header="Zoom" Background="#3A3A3A" Foreground="#E0E0E0">
                                 <MenuItem Header="Acercar (Ctrl + +)" Click="ZoomIn_Click" Background="#3A3A3A" Foreground="#E0E0E0"/>
@@ -258,9 +282,12 @@
                 </StackPanel>
             </Grid>
 
+            <!-- Contenido del Navegador (Donde se cargan las pestañas) -->
             <Grid Grid.Row="2" Margin="0">
-                </Grid>
+                <!-- El contenido de las pestañas (WebView2) se insertará aquí dinámicamente -->
+            </Grid>
 
+            <!-- Barra de Estado e Información de Descargas -->
             <StatusBar Grid.Row="3" Height="25" Background="#1a1a1a" Foreground="#AAAAAA" BorderThickness="0">
                 <StatusBarItem>
                     <TextBlock x:Name="StatusBarText" Text="Listo." Style="{StaticResource StatusTextStyle}"/>
