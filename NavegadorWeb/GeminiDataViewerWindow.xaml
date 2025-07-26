@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:NavegadorWeb"
-        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf" <!-- ¡ESTA LÍNEA ES LA CLAVE! -->
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf" <!-- ¡Esta línea debe estar limpia! -->
         mc:Ignorable="d"
         Title="Datos para Gemini" Height="600" Width="800"
         WindowStartupLocation="CenterOwner"
@@ -54,11 +54,19 @@
     </Grid>
 </Window>
 ```
-**Cambio:** Se añadió `xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"` a la etiqueta `<Window>`.
+**Cambio clave:** No hay un cambio visible en el código, pero la solución es asegurarse de que la línea `xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"` esté **exactamente como se muestra**, sin ningún carácter adicional o comentario mal formado a su alrededor, especialmente en la columna 38 de la línea 7.
 
 ---
 
-#### **2. `NavegadorWeb\MainWindow.xaml` (Corrección de `MC3072`)**
+#### **2. Contenido de `NavegadorWeb\MainWindow.xaml` (Corrección de `MC3072`)**
+
+El error `MC3072` en la línea 202, posición 114 de `MainWindow.xaml` indica un problema con `CornerRadius`. Revisando el código, la línea 202 es parte del `TextBox` `AddressBar`.
+
+Los `TextBox` en WPF no tienen una propiedad `CornerRadius` directamente. La forma de redondear las esquinas de un `TextBox` es aplicándole un `Border` con `CornerRadius` y luego haciendo que el `TextBox` sea transparente o que su `Background` sea el mismo que el `Border`.
+
+Sin embargo, en tu código actual, `CornerRadius` ya está aplicado directamente al `TextBox` `AddressBar`. Esto es lo que causa el error. Para solucionarlo, debemos eliminar `CornerRadius` del `TextBox` y, si quieres bordes redondeados, envolverlo en un `Border` y aplicar `CornerRadius` a ese `Border`.
+
+Para simplicidad y para resolver el error directamente, **eliminaremos la propiedad `CornerRadius` del `TextBox` `AddressBar`**. Si quieres que siga siendo redondeado, la forma correcta es envolverlo en un `Border` con `CornerRadius`. Por ahora, solo eliminaremos la propiedad para que compile.
 
 **Ruta:** `C:\Users\DELL\Downloads\navegatorweb-main\NavegadorWeb\MainWindow.xaml`
 
@@ -285,8 +293,8 @@
                     <TextBox x:Name="AddressBar" Text="about:blank" VerticalAlignment="Center" Width="Auto"
                              MinWidth="200"
                              Margin="5,0" Padding="5" FontSize="14"
-                             Background="#3A3A3A" Foreground="#E0E0E0" BorderBrush="#555555" BorderThickness="1" CornerRadius="5"
-                             KeyUp="AddressBar_KeyUp" ToolTip="Ingresa una URL o término de búsqueda"/>
+                             Background="#3A3A3A" Foreground="#E0E0E0" BorderBrush="#555555" BorderThickness="1"
+                             KeyUp="AddressBar_KeyUp" ToolTip="Ingresa una URL o término de búsqueda"/> <!-- ¡CornerRadius ELIMINADO de aquí! -->
 
                     <Button x:Name="GoButton" Content="Ir" Style="{StaticResource ToolbarButtonStyle}" Click="GoButton_Click" ToolTip="Ir a la dirección"/>
 
@@ -370,21 +378,3 @@
         </Grid>
     </Border>
 </Window>
-```
-**Cambio:** La propiedad `CornerRadius` se aplica ahora al `Border` que envuelve el `Grid` principal de la ventana. Esto es el uso correcto de `CornerRadius` en WPF.
-
----
-
-### **Pasos Finales para Corregir y Compilar:**
-
-1.  **Cierra Visual Studio completamente.**
-2.  **Abre `NavegadorWeb.csproj`** (ruta: `C:\Users\DELL\Downloads\navegatorweb-main\NavegadorWeb\NavegadorWeb.csproj`) con el Bloc de Notas y **reemplaza todo su contenido** con el código que te di en mi respuesta anterior (el que elimina los `<Compile Include="..." />` duplicados). **Guarda y cierra.**
-3.  **Abre `GeminiDataViewerWindow.xaml`** (ruta: `C:\Users\DELL\Downloads\navegatorweb-main\NavegadorWeb\GeminiDataViewerWindow.xaml`) con el Bloc de Notas y **reemplaza todo su contenido** con el código que te di en la sección 1 de esta respuesta. **Guarda y cierra.**
-4.  **Abre `MainWindow.xaml`** (ruta: `C:\Users\DELL\Downloads\navegatorweb-main\NavegadorWeb\MainWindow.xaml`) con el Bloc de Notas y **reemplaza todo su contenido** con el código que te di en la sección 2 de esta respuesta. **Guarda y cierra.**
-5.  **Abre Visual Studio.**
-6.  Abre tu solución `NavegadorWeb.sln` (ruta: `C:\Users\DELL\Downloads\navegatorweb-main\NavegadorWeb.sln`).
-7.  Una vez que la solución cargue, ve a `Compilar` (Build) > `Recompilar solución` (Rebuild Solution).
-
-Si has seguido todos los pasos correctamente, especialmente la corrección del `.sln` y la reestructuración de carpetas, y ahora estas correcciones en los archivos XAML y `.csproj`, tu proyecto debería compilarse sin errores.
-
-Después de la compilación exitosa, podrás hacer clic en el botón de "Iniciar" (el triángulo verde) para ver tu navegador en funcionamien
