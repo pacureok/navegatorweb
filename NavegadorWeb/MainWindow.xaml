@@ -16,31 +16,22 @@
         StateChanged="MainWindow_StateChanged">
 
     <Window.Resources>
-        <!-- Default browser colors -->
-        <Color x:Key="DefaultBrowserBackgroundColor">#282c34</Color> <!-- Dark bluish gray -->
-        <SolidColorBrush x:Key="DefaultBrowserBackgroundBrush" Color="{StaticResource DefaultBrowserBackgroundColor}"/>
+        <Color x:Key="DefaultBrowserBackgroundColor">#282c34</Color> <SolidColorBrush x:Key="DefaultBrowserBackgroundBrush" Color="{StaticResource DefaultBrowserBackgroundColor}"/>
 
-        <Color x:Key="DefaultBrowserForegroundColor">#abb2bf</Color> <!-- Light text color -->
-        <SolidColorBrush x:Key="DefaultBrowserForegroundBrush" Color="{StaticResource DefaultBrowserForegroundColor}"/>
+        <Color x:Key="DefaultBrowserForegroundColor">#abb2bf</Color> <SolidColorBrush x:Key="DefaultBrowserForegroundBrush" Color="{StaticResource DefaultBrowserForegroundColor}"/>
 
-        <!-- Gemini mode colors -->
-        <Color x:Key="GeminiBackgroundColor">#343a40</Color> <!-- Darker gray for Gemini -->
-        <SolidColorBrush x:Key="GeminiBackgroundBrush" Color="{StaticResource GeminiBackgroundColor}"/>
+        <Color x:Key="GeminiBackgroundColor">#343a40</Color> <SolidColorBrush x:Key="GeminiBackgroundBrush" Color="{StaticResource GeminiBackgroundColor}"/>
 
-        <Color x:Key="GeminiForegroundColor">#61afef</Color> <!-- Vibrant blue for Gemini -->
-        <SolidColorBrush x:Key="GeminiForegroundBrush" Color="{StaticResource GeminiForegroundColor}"/>
+        <Color x:Key="GeminiForegroundColor">#61afef</Color> <SolidColorBrush x:Key="GeminiForegroundBrush" Color="{StaticResource GeminiForegroundColor}"/>
 
-        <!-- Dynamic colors that can be changed at runtime -->
         <Color x:Key="BrowserBackgroundColor" x:Shared="False">#282c34</Color>
         <SolidColorBrush x:Key="BrowserBackgroundBrush" x:Shared="False" Color="{DynamicResource BrowserBackgroundColor}"/>
 
         <Color x:Key="BrowserForegroundColor" x:Shared="False">#abb2bf</Color>
         <SolidColorBrush x:Key="BrowserForegroundBrush" x:Shared="False" Color="{DynamicResource BrowserForegroundColor}"/>
 
-        <!-- Boolean to Visibility Converter -->
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
 
-        <!-- Base style for all buttons -->
         <Style TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
@@ -71,7 +62,6 @@
             </Style.Triggers>
         </Style>
 
-        <!-- Style for window control buttons (Minimize, Maximize, Close) -->
         <Style x:Key="WindowControlButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Width" Value="30"/>
             <Setter Property="Height" Value="30"/>
@@ -93,15 +83,12 @@
             <Setter Property="Background" Value="Transparent"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#E74C3C"/> <!-- Red for close button on hover -->
-                </Trigger>
+                    <Setter Property="Background" Value="#E74C3C"/> </Trigger>
                 <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#C0392B"/> <!-- Darker red on press -->
-                </Trigger>
+                    <Setter Property="Background" Value="#C0392B"/> </Trigger>
             </Style.Triggers>
         </Style>
 
-        <!-- Style for TextBox -->
         <Style TargetType="TextBox">
             <Setter Property="Background" Value="#1a1a1a"/>
             <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
@@ -111,7 +98,6 @@
             <Setter Property="CaretBrush" Value="{DynamicResource BrowserForegroundColor}"/>
         </Style>
 
-        <!-- Style for TabItem -->
         <Style x:Key="TabItemStyle" TargetType="TabItem">
             <Setter Property="Template">
                 <Setter.Value>
@@ -144,7 +130,6 @@
             </Setter>
         </Style>
 
-        <!-- Style for ToggleButton with Switch appearance -->
         <Style x:Key="SwitchToggleButton" TargetType="ToggleButton">
             <Setter Property="Template">
                 <Setter.Value>
@@ -179,7 +164,6 @@
             </Setter>
         </Style>
 
-        <!-- Style for ListBoxItem without blue selection background -->
         <Style TargetType="ListBoxItem">
             <Setter Property="Template">
                 <Setter.Value>
@@ -212,14 +196,12 @@
             </Setter>
         </Style>
 
-        <!-- ContextMenu for the address bar -->
         <ContextMenu x:Key="AddressBarContextMenu">
             <MenuItem Header="Cut" Command="ApplicationCommands.Cut"/>
             <MenuItem Header="Copy" Command="ApplicationCommands.Copy"/>
             <MenuItem Header="Paste" Command="ApplicationCommands.Paste"/>
         </ContextMenu>
 
-        <!-- DataTemplate for the tab header -->
         <DataTemplate x:Key="TabHeaderTemplate">
             <StackPanel Orientation="Horizontal">
                 <Image Source="{Binding Favicon}" Width="16" Height="16" Margin="0,0,5,0"/>
@@ -230,11 +212,9 @@
                         Style="{StaticResource {x:Type Button}}"
                         Background="Transparent" Foreground="White"
                         BorderThickness="0" Padding="0"
-                        Tag="{Binding}"/> <!-- Use Tag to pass TabItemData -->
-            </StackPanel>
+                        Tag="{Binding}"/> </StackPanel>
         </DataTemplate>
 
-        <!-- Custom scrollbar style for WebView2 -->
         <Style x:Key="CustomScrollBarStyle" TargetType="{x:Type ScrollViewer}">
             <Setter Property="Template">
                 <Setter.Value>
@@ -330,7 +310,6 @@
 
     </Window.Resources>
 
-    <!-- Main border to apply CornerRadius to the entire window -->
     <Border x:Name="MainBorder"
             Background="{DynamicResource BrowserBackgroundBrush}"
             CornerRadius="10"
@@ -338,17 +317,11 @@
             BorderThickness="1">
         <Grid x:Name="mainGrid" >
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/> <!-- Custom title bar -->
-                <RowDefinition Height="Auto"/> <!-- Navigation bar (URL, buttons) -->
-                <RowDefinition Height="Auto"/> <!-- Find bar -->
-                <RowDefinition Height="*"/>    <!-- Main browser content (WebView2) -->
-                <RowDefinition Height="Auto"/> <!-- Download progress bar -->
-            </Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> <RowDefinition Height="*"/>    <RowDefinition Height="Auto"/> </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Custom title bar -->
             <Grid Grid.Row="0" x:Name="TitleBarGrid"
                   Background="{DynamicResource BrowserBackgroundBrush}"
                   MouseLeftButtonDown="Window_MouseLeftButtonDown">
@@ -370,7 +343,6 @@
                            Foreground="{DynamicResource BrowserForegroundColor}"
                            FontWeight="Bold"/>
 
-                <!-- Window control buttons -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Grid.Column="4">
                     <Button x:Name="MinimizeButton" Content="—" Click="MinimizeButton_Click"
                             ToolTip="Minimize" Style="{StaticResource WindowControlButton}"/>
@@ -381,7 +353,6 @@
                 </StackPanel>
             </Grid>
 
-            <!-- Navigation bar (URL, buttons) -->
             <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Stretch" Margin="5" x:Name="ToolbarGrid">
                 <Button Command="{x:Static NavigationCommands.BrowseBack}" ToolTip="Back" Margin="0,0,5,0" x:Name="GoBackButton"/>
                 <Button Command="{x:Static NavigationCommands.BrowseForward}" ToolTip="Forward" Margin="0,0,5,0" x:Name="GoForwardButton"/>
@@ -402,8 +373,7 @@
                          HorizontalScrollBarVisibility="Auto">
                     <TextBox.Style>
                         <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-                            <Setter Property="Width" Value="*"/> <!-- To take remaining space -->
-                            <Style.Triggers>
+                            <Setter Property="Width" Value="*"/> <Style.Triggers>
                                 <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=StackPanel}, Path=Orientation}" Value="Horizontal">
                                     <Setter Property="Width" Value="*"/>
                                 </DataTrigger>
@@ -413,7 +383,6 @@
                 </TextBox>
                 <Button Command="{x:Static NavigationCommands.Search}" ToolTip="Go" Margin="5,0,0,0"/>
 
-                <!-- Toolbar buttons -->
                 <Button x:Name="FindButton" Click="FindButton_Click" ToolTip="Find in page" Margin="5,0,0,0">
                     <Image Source="/Icons/find.png" Width="20" Height="20"/>
                 </Button>
@@ -464,7 +433,6 @@
                 </Button>
             </StackPanel>
 
-            <!-- Find Bar -->
             <Border x:Name="FindBar"
                     Grid.Row="2"
                     Visibility="{Binding IsFindBarVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
@@ -500,18 +468,15 @@
                 </StackPanel>
             </Border>
 
-            <!-- Main Browser Content (Tabs) -->
             <TabControl x:Name="BrowserTabs"
                         Grid.Row="3" Grid.Column="0"
                         ItemsSource="{Binding TabGroupManager.SelectedTabGroup.TabsInGroup}"
                         SelectedItem="{Binding SelectedTabItem, Mode=TwoWay}"
                         SelectionChanged="BrowserTabControl_SelectionChanged_Grouped"
                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                        ItemContainerStyle="{StaticResource TabItemStyle}"  <!-- APLICACIÓN DEL ESTILO DE TABITEM -->
-                        ItemTemplate="{StaticResource TabHeaderTemplate}">
+                        ItemContainerStyle="{StaticResource TabItemStyle}"  ItemTemplate="{StaticResource TabHeaderTemplate}">
             </TabControl>
 
-            <!-- Download progress bar -->
             <ProgressBar Grid.Row="4"
                          Height="5"
                          Value="{Binding DownloadProgress}"
