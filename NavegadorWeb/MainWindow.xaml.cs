@@ -23,7 +23,7 @@ namespace NavegadorWeb
             // if (BrowserTabs.Items.Count == 0)
             // {
             //     // Suponiendo que tienes un método para añadir una nueva pestaña
-            //     // AddNewTab("about:blank"); 
+            //     // AddNewTab("about:blank");
             // }
         }
 
