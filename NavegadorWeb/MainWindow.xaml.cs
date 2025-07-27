@@ -23,7 +23,7 @@ using System.Timers;
 
 // Asegúrate de que estas directivas 'using' estén presentes para las clases auxiliares
 using NavegadorWeb.Classes; // Para TabItemData, TabGroup, TabGroupManager, CapturedPageData, RelayCommand, TabGroupState, ToolbarPosition
-using NavegadorWeb.Extensions; // Para CustomExtension, ExtensionManager (si los pones en una subcarpeta Extensions)
+using NavegadorWeb.Extensions; // Para CustomExtension, ExtensionManager
 
 
 namespace NavegadorWeb
@@ -1012,22 +1012,30 @@ namespace NavegadorWeb
                     }
                 );
             }
+            else
+            {
+                // Manejar el caso donde el texto de búsqueda está vacío o no hay WebView2
+                FindResultsTextBlock.Text = "";
+            }
         }
 
         private void HistoryButton_Click(object sender, RoutedEventArgs e)
         {
+            // Asegúrate de que HistoryWindow exista en tu proyecto y sea accesible
             var historyWindow = new HistoryWindow();
             historyWindow.ShowDialog();
         }
 
         private void BookmarksButton_Click(object sender, RoutedEventArgs e)
         {
+            // Asegúrate de que BookmarksWindow exista en tu proyecto y sea accesible
             var bookmarksWindow = new BookmarksWindow();
             bookmarksWindow.ShowDialog();
         }
 
         private void PasswordManagerButton_Click(object sender, RoutedEventArgs e)
         {
+            // Asegúrate de que PasswordManagerWindow exista en tu proyecto y sea accesible
             var passwordManagerWindow = new PasswordManagerWindow();
             passwordManagerWindow.ShowDialog();
         }
@@ -1036,6 +1044,7 @@ namespace NavegadorWeb
         {
             if (SelectedTabItem?.WebViewInstance?.CoreWebView2 != null)
             {
+                // Asegúrate de que DataExtractionWindow exista en tu proyecto y sea accesible
                 var dataExtractionWindow = new DataExtractionWindow(SelectedTabItem.WebViewInstance.CoreWebView2);
                 dataExtractionWindow.Show();
             }
@@ -1047,6 +1056,7 @@ namespace NavegadorWeb
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
+            // Asegúrate de que SettingsWindow exista en tu proyecto y sea accesible
             var settingsWindow = new SettingsWindow();
             settingsWindow.HomePage = _defaultHomePage;
             settingsWindow.IsAdBlockerEnabled = IsAdBlockerEnabled;
@@ -1069,6 +1079,7 @@ namespace NavegadorWeb
 
                 try
                 {
+                    // Asegúrate de que PipWindow exista en tu proyecto y sea accesible
                     var pipWindow = new PipWindow(videoUrl, SelectedTabItem.WebViewInstance.CoreWebView2.Environment);
                     pipWindow.Show();
                 }
@@ -1247,6 +1258,7 @@ namespace NavegadorWeb
 
         private void ManageExtensionsButton_Click(object sender, RoutedEventArgs e)
         {
+            // Asegúrate de que ExtensionsWindow exista en tu proyecto y sea accesible
             var extensionsWindow = new ExtensionsWindow(ExtensionManager);
             extensionsWindow.ShowDialog();
         }
@@ -1284,7 +1296,7 @@ namespace NavegadorWeb
                             case "passwordDetected":
                                 if (doc.RootElement.TryGetProperty("url", out JsonElement urlElement) &&
                                     doc.RootElement.TryGetProperty("username", out JsonElement usernameElement) &&
-                                    doc.RootElement.TryToGetProperty("password", out JsonElement passwordElement)) // Corrected ToGetProperty
+                                    doc.RootElement.TryGetProperty("password", out JsonElement passwordElement)) // Corrected from TryToGetProperty
                                 {
                                     string url = urlElement.GetString() ?? "";
                                     string username = usernameElement.GetString() ?? "";
