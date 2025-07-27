@@ -2,11 +2,11 @@ using System;
 using System.ComponentModel;
 using System.IO;
 
-namespace NavegadorWeb
+namespace NavegadorWeb.Extensions
 {
     public class CustomExtension : INotifyPropertyChanged
     {
-        public string Id { get; set; } // <-- NECESARIO para ExtensionManager
+        public string Id { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public string ScriptPath { get; set; }
