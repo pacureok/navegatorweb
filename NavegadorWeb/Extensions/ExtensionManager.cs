@@ -1,87 +1,56 @@
-using System.Collections.ObjectModel;
-using System.IO;
-using System.Linq;
-using System.Text.Json; // Para serializar/deserializar el estado
-using System.Windows; // Para MessageBox, aunque es mejor evitarlo en clases de lógica
+// This file defines the ExtensionManager class, which manages a collection of CustomExtension instances.
+// It handles loading predefined extensions.
 
-namespace NavegadorWeb
+using System;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.IO;
+using NavegadorWeb.Extensions; // For CustomExtension
+
+namespace NavegadorWeb.Extensions
 {
     /// <summary>
-    /// Gestiona la carga, almacenamiento y estado de las extensiones personalizadas.
+    /// Manages a collection of CustomExtension instances.
+    /// Implements INotifyPropertyChanged to enable data binding for the Extensions collection.
     /// </summary>
-    public class ExtensionManager
+    public class ExtensionManager : INotifyPropertyChanged
     {
-        public ObservableCollection<CustomExtension> Extensions { get; set; }
-        private const string ExtensionsConfigFileName = "extensions_config.json";
+        // ObservableCollection to hold all loaded extensions, for UI binding
+        public ObservableCollection<CustomExtension> Extensions { get; set; } = new ObservableCollection<CustomExtension>();
 
+        /// <summary>
+        /// Initializes a new instance of the ExtensionManager class and loads extensions.
+        /// </summary>
         public ExtensionManager()
         {
-            Extensions = new ObservableCollection<CustomExtension>();
             LoadExtensions();
         }
 
         /// <summary>
-        /// Carga las extensiones predefinidas y su estado guardado.
+        /// Loads predefined extensions into the Extensions collection.
+        /// Assumes extension JavaScript files are in the application's base directory.
         /// </summary>
-        private void LoadExtensions()
+        public void LoadExtensions()
         {
-            // Definir las extensiones disponibles (puedes añadir más aquí)
-            // Asegúrate de que los archivos .js existan en la raíz de tu aplicación
-            string highlighterScriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "HighlighterExtension.js");
-            string exampleExtensionScriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ExampleExtension.js"); // Si creas otra
+            Extensions.Clear(); // Clear existing extensions before loading
 
-            Extensions.Add(new CustomExtension("highlighter", "Resaltador de Texto", "Resalta la palabra 'agua' en las páginas.", highlighterScriptPath));
-            // Extensions.Add(new CustomExtension("example", "Ejemplo de Extensión", "Una extensión de ejemplo.", exampleExtensionScriptPath));
-
-            // Cargar el estado guardado de las extensiones
-            string configFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ExtensionsConfigFileName);
-            if (File.Exists(configFilePath))
-            {
-                try
-                {
-                    string json = File.ReadAllText(configFilePath);
-                    var savedStates = JsonSerializer.Deserialize<Dictionary<string, bool>>(json);
-
-                    foreach (var ext in Extensions)
-                    {
-                        if (savedStates.TryGetValue(ext.Id, out bool isEnabled))
-                        {
-                            ext.IsEnabled = isEnabled;
-                        }
-                    }
-                }
-                catch (JsonException ex)
-                {
-                    MessageBox.Show($"Error al cargar la configuración de extensiones: {ex.Message}", "Error de Configuración", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
+            // Add predefined extensions.
+            // Ensure that the JS files for these extensions exist in the output directory (bin/Debug/...)
+            Extensions.Add(new CustomExtension("text_extraction_extension", "Text Extractor", "Extracts the main text content from the page.", Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TextExtractor.js")));
+            Extensions.Add(new CustomExtension("ad_blocker_extension", "Ad Blocker", "Blocks ads and trackers.", Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AdBlocker.js")));
+            // Add more extensions here as needed
         }
 
-        /// <summary>
-        /// Guarda el estado actual (habilitado/deshabilitado) de las extensiones.
-        /// </summary>
-        public void SaveExtensionsState()
-        {
-            var statesToSave = Extensions.ToDictionary(ext => ext.Id, ext => ext.IsEnabled);
-            string json = JsonSerializer.Serialize(statesToSave, new JsonSerializerOptions { WriteIndented = true });
-            string configFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ExtensionsConfigFileName);
-            File.WriteAllText(configFilePath, json);
-        }
+        // Event for property change notification
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         /// <summary>
-        /// Obtiene una extensión por su ID.
+        /// Raises the PropertyChanged event.
         /// </summary>
-        public CustomExtension GetExtensionById(string id)
+        /// <param name="propertyName">The name of the property that changed.</param>
+        protected void OnPropertyChanged(string propertyName)
         {
-            return Extensions.FirstOrDefault(ext => ext.Id == id);
-        }
-
-        /// <summary>
-        /// Retorna una lista de todas las extensiones habilitadas.
-        /// </summary>
-        public IEnumerable<CustomExtension> GetEnabledExtensions()
-        {
-            return Extensions.Where(ext => ext.IsEnabled);
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }
