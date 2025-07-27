@@ -1,36 +1,38 @@
+// This file contains the code-behind for the ExtensionsWindow.xaml.
+// It manages the display and interaction with the browser extensions.
+
 using System.Windows;
-using System.Windows.Controls;
+using NavegadorWeb.Extensions; // Required to access the ExtensionManager and CustomExtension classes
 
 namespace NavegadorWeb
 {
     /// <summary>
-    /// Lógica de interacción para ExtensionsWindow.xaml
+    /// Interaction logic for ExtensionsWindow.xaml
     /// </summary>
     public partial class ExtensionsWindow : Window
     {
-        private ExtensionManager _extensionManager;
+        // Public property to hold the ExtensionManager instance, allowing data binding in XAML
+        public ExtensionManager ExtensionManager { get; set; }
 
+        /// <summary>
+        /// Initializes a new instance of the ExtensionsWindow class.
+        /// </summary>
+        /// <param name="extensionManager">The instance of ExtensionManager from the main window.</param>
         public ExtensionsWindow(ExtensionManager extensionManager)
         {
-            InitializeComponent();
-            _extensionManager = extensionManager;
-            this.DataContext = _extensionManager; // Enlazar la lista de extensiones
+            InitializeComponent(); // Initializes the UI components defined in ExtensionsWindow.xaml
+            ExtensionManager = extensionManager; // Assigns the passed ExtensionManager instance
+            this.DataContext = this; // Sets the DataContext for data binding to this window's properties
         }
 
-        private void Window_Loaded(object sender, RoutedEventArgs e)
-        {
-            // No hay lógica específica al cargar, el DataContext ya está establecido
-        }
-
+        /// <summary>
+        /// Event handler for the "Close" button click.
+        /// </summary>
+        /// <param name="sender">The object that raised the event.</param>
+        /// <param name="e">The event data.</param>
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            this.Close();
-        }
-
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            // Guardar el estado de las extensiones al cerrar la ventana
-            _extensionManager.SaveExtensionsState();
+            this.Close(); // Closes the Extensions window
         }
     }
 }
