@@ -2,48 +2,46 @@ using System;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Controls; // Necesario para TextChangedEventArgs
 
 namespace NavegadorWeb
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window // 'partial' es crucial para que se combine con el .g.cs
     {
         public MainWindow()
         {
-            InitializeComponent();
+            InitializeComponent(); // Este método es generado automáticamente en MainWindow.g.cs
+                                   // Se encarga de instanciar los controles definidos en XAML
+                                   // y conectarlos a sus nombres y eventos.
         }
 
-        // Ventana cargada
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            // Aquí tu lógica de arranque
+            // Lógica tras cargar la ventana
         }
 
-        // Antes de cerrar la ventana
         private void Window_Closing(object sender, CancelEventArgs e)
         {
             // Guardar estado o confirmar cierre
         }
 
-        // Inicialización tras el handle de la ventana
         private void MainWindow_SourceInitialized(object sender, EventArgs e)
         {
-            // Por ejemplo, ajustar sombras o compatibilidad DPI
+            // Ajustes tras inicializar la ventana (DPI, sombras…)
         }
 
-        // Detecta cambios de minimizado/maximizado
         private void MainWindow_StateChanged(object sender, EventArgs e)
         {
-            // Actualizar icono de maximizar/restaurar
+            // Cambiar icono de maximizar/restaurar
+            // Puedes actualizar el icono del botón MaximizeRestoreButton aquí si es necesario
         }
 
-        // Permitir arrastrar la ventana al hacer clic en la barra de título
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Left)
-                DragMove();
+                DragMove(); // Permite arrastrar la ventana
         }
 
-        // Botones de control de la ventana
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
             => WindowState = WindowState.Minimized;
 
@@ -55,81 +53,70 @@ namespace NavegadorWeb
         private void CloseButton_Click(object sender, RoutedEventArgs e)
             => Close();
 
-        // Barra de direcciones
         private void AddressBar_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
-                // Navegar a la URL de AddressBar.Text
+                // Navegar a la dirección de AddressBar.Text
+                // Ejemplo: string url = AddressBar.Text;
+                // Lógica de navegación iría aquí
             }
         }
 
-        // Find in page
-        private void FindButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Mostrar FindBar
-        }
+        private void FindButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void FindTextBox_KeyDown(object sender, KeyEventArgs e) { /* ... */ }
+        private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e) { /* ... */ }
+        private void FindPreviousButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void FindNextButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void CloseFindBarButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
 
-        private void FindTextBox_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-            {
-                // Buscar texto
-            }
-        }
+        private void GeminiButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void PipButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void ReadAloudButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void ReaderModeButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void IncognitoButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void HistoryButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void BookmarksButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void PasswordManagerButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void DataExtractionButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
 
-        private void FindTextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
-        {
-            // Actualizar conteo de resultados
-        }
-
-        private void FindPreviousButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Buscar hacia arriba
-        }
-
-        private void FindNextButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Buscar hacia abajo
-        }
-
-        private void CloseFindBarButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Ocultar FindBar
-        }
-
-        // Otras funcionalidades (Gemini, PIP, lector, incognito…)
-        private void GeminiButton_Click(object sender, RoutedEventArgs e) { /* … */ }
-        private void PipButton_Click(object sender, RoutedEventArgs e) { /* … */ }
-        private void ReadAloudButton_Click(object sender, RoutedEventArgs e) { /* … */ }
-        private void ReaderModeButton_Click(object sender, RoutedEventArgs e) { /* … */ }
-        private void IncognitoButton_Click(object sender, RoutedEventArgs e) { /* … */ }
-        private void HistoryButton_Click(object sender, RoutedEventArgs e) { /* … */ }
-        private void BookmarksButton_Click(object sender, RoutedEventArgs e) { /* … */ }
-        private void PasswordManagerButton_Click(object sender, RoutedEventArgs e) { /* … */ }
-        private void DataExtractionButton_Click(object sender, RoutedEventArgs e) { /* … */ }
-
-        // Extensiones
         private void ExtensionMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            // Habilitar/deshabilitar extensión
+            // Lógica para manejar el clic en un elemento de extensión
+            // Puedes acceder al Tag del MenuItem para obtener el objeto de la extensión si lo pasaste
+            // MenuItem menuItem = sender as MenuItem;
+            // if (menuItem != null && menuItem.Tag is ExtensionData extension)
+            // {
+            //     extension.IsEnabled = menuItem.IsChecked; // Actualiza el estado de la extensión
+            // }
         }
 
         private void ManageExtensionsButton_Click(object sender, RoutedEventArgs e)
         {
-            // Mostrar ventana de gestión de extensiones
+            // Lógica para abrir la ventana de gestión de extensiones
         }
 
-        // Ajustes
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
-            new SettingsWindow().ShowDialog();
+            // Asegúrate de que SettingsWindow exista en tu proyecto
+            // new SettingsWindow().ShowDialog();
         }
 
-        // Cambio de pestaña
-        private void BrowserTabControl_SelectionChanged_Grouped(object sender, RoutedEventArgs e)
+        private void BrowserTabControl_SelectionChanged_Grouped(object sender, SelectionChangedEventArgs e) // Cambiado a SelectionChangedEventArgs
         {
-            // Actualizar barra de direcciones y botones
+            // Actualizar URL / estado de botones
+            // e.AddedItems y e.RemovedItems contendrán los TabItem seleccionados/deseleccionados
+        }
+
+        private void CloseTabButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para cerrar la pestaña.
+            // El Tag del botón de cerrar tab contiene el objeto de datos de la pestaña (TabItemData).
+            // Button closeButton = sender as Button;
+            // if (closeButton != null && closeButton.Tag is TabItemData tabToClose)
+            // {
+            //     // Lógica para remover tabToClose de tu colección de pestañas
+            // }
         }
     }
 }
