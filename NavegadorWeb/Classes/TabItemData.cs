@@ -1,14 +1,29 @@
+// This file defines the TabItemData class, which represents a single browser tab.
+// It holds data related to the tab's state, such as URL, title, favicon, and its associated WebView2 instance.
+
 using Microsoft.Web.WebView2.Wpf;
 using System;
 using System.ComponentModel;
-using System.Windows.Media.Imaging; // Necesario para BitmapImage
-using NavegadorWeb.Classes; // Para CapturedPageData
+using System.Windows.Media.Imaging; // Required for BitmapImage
+using NavegadorWeb.Classes; // For CapturedPageData
 
 namespace NavegadorWeb.Classes
 {
+    /// <summary>
+    /// Represents the data and state for a single browser tab.
+    /// Implements INotifyPropertyChanged to enable data binding in the UI.
+    /// </summary>
     public class TabItemData : INotifyPropertyChanged
     {
-        private string _title = "Nueva Pestaña";
+        // Private fields for tab properties
+        private string _title = "New Tab";
+        private string _url = "about:blank";
+        private BitmapImage? _favicon;
+        private bool _isLoading;
+        private bool _isReaderMode;
+        private bool _isSuspended;
+
+        // Public properties with change notification
         public string Title
         {
             get => _title;
@@ -22,7 +37,6 @@ namespace NavegadorWeb.Classes
             }
         }
 
-        private string _url = "about:blank";
         public string Url
         {
             get => _url;
@@ -36,7 +50,6 @@ namespace NavegadorWeb.Classes
             }
         }
 
-        private BitmapImage? _favicon;
         public BitmapImage? Favicon
         {
             get => _favicon;
@@ -50,7 +63,6 @@ namespace NavegadorWeb.Classes
             }
         }
 
-        private bool _isLoading;
         public bool IsLoading
         {
             get => _isLoading;
@@ -64,7 +76,6 @@ namespace NavegadorWeb.Classes
             }
         }
 
-        private bool _isReaderMode;
         public bool IsReaderMode
         {
             get => _isReaderMode;
@@ -78,7 +89,6 @@ namespace NavegadorWeb.Classes
             }
         }
 
-        private bool _isSuspended;
         public bool IsSuspended
         {
             get => _isSuspended;
@@ -92,20 +102,29 @@ namespace NavegadorWeb.Classes
             }
         }
 
-        public string? LastSuspendedUrl { get; set; }
+        public string? LastSuspendedUrl { get; set; } // Stores URL when tab is suspended
 
-        public WebView2 WebViewInstance { get; }
+        public WebView2 WebViewInstance { get; } // The actual WebView2 control for this tab
 
-        public CapturedPageData CapturedData { get; set; }
+        public CapturedPageData CapturedData { get; set; } // Data captured from the page for AI features
 
+        /// <summary>
+        /// Initializes a new instance of the TabItemData class.
+        /// </summary>
+        /// <param name="webView">The WebView2 instance associated with this tab.</param>
         public TabItemData(WebView2 webView)
         {
             WebViewInstance = webView;
-            CapturedData = new CapturedPageData();
+            CapturedData = new CapturedPageData(); // Initialize captured data
         }
 
+        // Event for property change notification
         public event PropertyChangedEventHandler? PropertyChanged;
 
+        /// <summary>
+        /// Raises the PropertyChanged event.
+        /// </summary>
+        /// <param name="propertyName">The name of the property that changed.</param>
         protected void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
