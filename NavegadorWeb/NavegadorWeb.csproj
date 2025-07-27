@@ -3,282 +3,46 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UseWPF>true</UseWPF>
-    <ApplicationIcon>icono.ico</ApplicationIcon>
+    <!-- Icono principal de la aplicación -->
+    <ApplicationIcon>app.ico</ApplicationIcon>
   </PropertyGroup>
 
+  <!-- Incluir el icono en la compilación -->
   <ItemGroup>
-    <Content Include="icono.ico" />
+    <Content Include="app.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
+  <!-- Evitar duplicar recursos gráficos -->
   <ItemGroup>
-    <!-- Los elementos <None Remove> se usan para excluir archivos de la compilación si están en la carpeta del proyecto
-         pero no deben ser tratados como recursos o código. Aquí se mantienen para los recursos de imagen. -->
-    <None Remove="Resources\add_bookmark.png" />
-    <None Remove="Resources\ai.png" />
-    <None Remove="Resources\audio_playing_icon.png" />
-    <None Remove="Resources\blocked_icon.png" />
-    <None Remove="Resources\bookmarks.png" />
-    <None Remove="Resources\data_extraction.png" />
-    <None Remove="Resources\download.png" />
-    <None Remove="Resources\extensions.png" />
-    <None Remove="Resources\extension_icon.png" />
-    <None Remove="Resources\find.png" />
-    <None Remove="Resources\gemini_icon.ico" />
-    <None Remove="Resources\globe_icon.png" />
-    <None Remove="Resources\history.png" />
-    <None Remove="Resources\home.png" />
-    <None Remove="Resources\incognito.png" />
-    <None Remove="Resources\microphone.png" />
-    <None Remove="Resources\moon.png" />
-    <None Remove="Resources\new_tab.png" />
-    <None Remove="Resources\password.png" />
-    <None Remove="Resources\performance.png" />
-    <None Remove="Resources\permissions.png" />
-    <None Remove="Resources\pip.png" />
-    <None Remove="Resources\read_aloud.png" />
-    <None Remove="Resources\reader.png" />
-    <None Remove="Resources\screenshot.png" />
-    <None Remove="Resources\settings.png" />
-    <None Remove="Resources\split.png" />
-    <None Remove="Resources\tab_manager.png" />
-    <None Remove="Resources\sun.png" />
-    <None Remove="Resources\speaker.png" />
-    <None Remove="Resources\toolbar_bottom.png" />
-    <None Remove="Resources\toolbar_left.png" />
-    <None Remove="Resources\toolbar_right.png" />
-    <None Remove="Resources\toolbar_top.png" />
-    <None Remove="Resources\translate.png" />
-    <None Remove="Resources\back.png" />
-    <None Remove="Resources\forward.png" />
-    <None Remove="Resources\refresh.png" />
+    <None Remove="Resources\*.png" />
+    <None Remove="Resources\*.ico" />
   </ItemGroup>
 
+  <!-- Dependencias NuGet -->
   <ItemGroup>
-    <!-- Referencias a paquetes NuGet -->
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
     <PackageReference Include="System.Speech" Version="8.0.0" />
-    <!-- IMPORTANTE: La advertencia NU1903 indica una vulnerabilidad en 8.0.3.
-         Si hay una versión más reciente disponible que solucione la vulnerabilidad,
-         deberías actualizarla aquí (ej: Version="8.0.4" o superior).
-         Puedes buscar en NuGet Gallery: https://www.nuget.org/packages/System.Text.Json -->
-    <PackageReference Include="System.Text.Json" Version="8.0.3" />
+    <PackageReference Include="System.Text.Json" Version="8.0.6" />
   </ItemGroup>
 
+  <!-- Generar los .g.cs de todos los XAML -->
   <ItemGroup>
-    <!-- Actualización de archivos de configuración y recursos -->
-    <Compile Update="Properties\Settings.Designer.cs">
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-    </Compile>
-    <None Update="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
+    <Page Include="**\*.xaml" />
   </ItemGroup>
 
+  <!-- Copiar PNG/ICO de Resources al directorio de salida -->
   <ItemGroup>
-    <!-- Inclusión de archivos XAML de ventanas como Page -->
-    <Page Update="MainWindow.xaml">
-      <XamlRuntime>WPF</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="SettingsWindow.xaml">
-      <XamlRuntime>WPF</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="HistoryWindow.xaml">
-      <XamlRuntime>WPF</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="BookmarksWindow.xaml">
-      <XamlRuntime>WPF</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="DownloadsWindow.xaml">
-      <XamlRuntime>WPF</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="CrashRecoveryWindow.xaml">
-      <XamlRuntime>WPF</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="TabManagerWindow.xaml">
-      <XamlRuntime>WPF</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="DataExtractionWindow.xaml">
-      <XamlRuntime>WPF</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="PerformanceMonitorWindow.xaml">
-      <XamlRuntime>WPF</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="PermissionsManagerWindow.xaml">
-      <XamlRuntime>WPF</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="PipWindow.xaml">
-      <XamlRuntime>WPF</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="PasswordManagerWindow.xaml">
-      <XamlRuntime>WPF</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="ExtensionsWindow.xaml">
-      <XamlRuntime>WPF</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="PdfViewerWindow.xaml">
-      <XamlRuntime>WPF</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="AskGeminiWindow.xaml">
-      <XamlRuntime>WPF</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="GeminiDataViewerWindow.xaml">
-      <XamlRuntime>WPF</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- Inclusión de archivos de código C# (code-behind para XAML y clases auxiliares)
-         El SDK de .NET ya incluye automáticamente los archivos .cs en el directorio del proyecto.
-         Solo se listan aquí si tienen una dependencia específica como <DependentUpon>. -->
-    <Compile Update="App.xaml.cs">
-      <DependentUpon>App.xaml</DependentUpon>
-    </Compile>
-    <Compile Update="MainWindow.xaml.cs">
-      <DependentUpon>MainWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Update="SettingsWindow.xaml.cs">
-      <DependentUpon>SettingsWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Update="HistoryWindow.xaml.cs">
-      <DependentUpon>HistoryWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Update="BookmarksWindow.xaml.cs">
-      <DependentUpon>BookmarksWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Update="DownloadsWindow.xaml.cs">
-      <DependentUpon>DownloadsWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Update="CrashRecoveryWindow.xaml.cs">
-      <DependentUpon>CrashRecoveryWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Update="TabManagerWindow.xaml.cs">
-      <DependentUpon>TabManager.xaml</DependentUpon>
-    </Compile>
-    <Compile Update="DataExtractionWindow.xaml.cs">
-      <DependentUpon>DataExtractionWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Update="PerformanceMonitorWindow.xaml.cs">
-      <DependentUpon>PerformanceMonitorWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Update="PermissionsManagerWindow.xaml.cs">
-      <DependentUpon>PermissionsManagerWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Update="PipWindow.xaml.cs">
-      <DependentUpon>PipWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Update="PasswordManagerWindow.xaml.cs">
-      <DependentUpon>PasswordManagerWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Update="ExtensionsWindow.xaml.cs">
-      <DependentUpon>ExtensionsWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Update="PdfViewerWindow.xaml.cs">
-      <DependentUpon>PdfViewerWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Update="AskGeminiWindow.xaml.cs">
-      <DependentUpon>AskGeminiWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Update="GeminiDataViewerWindow.xaml.cs">
-      <DependentUpon>GeminiDataViewerWindow.xaml</DependentUpon>
-    </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- Archivos de contenido que se copian al directorio de salida -->
-    <Content Include="CustomErrorPage.html">
+    <Content Include="Resources\*.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="DarkMode.js">
+    <Content Include="Resources\*.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="HighlighterExtension.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="ReaderMode.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="PageColorExtractor.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="MicrophoneControl.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="OfflineGame.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="MinesweeperGame.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="blocked_domains.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="tracker_domains.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- Archivos de recursos (imágenes, iconos) -->
-    <Resource Include="Resources\add_bookmark.png" />
-    <Resource Include="Resources\ai.png" />
-    <Resource Include="Resources\audio_playing_icon.png" />
-    <Resource Include="Resources\blocked_icon.png" />
-    <Resource Include="Resources\bookmarks.png" />
-    <Resource Include="Resources\data_extraction.png" />
-    <Resource Include="Resources\download.png" />
-    <Resource Include="Resources\extensions.png" />
-    <Resource Include="Resources\extension_icon.png" />
-    <Resource Include="Resources\find.png" />
-    <Resource Include="Resources\gemini_icon.ico" />
-    <Resource Include="Resources\globe_icon.png" />
-    <Resource Include="Resources\history.png" />
-    <Resource Include="Resources\home.png" />
-    <Resource Include="Resources\incognito.png" />
-    <Resource Include="Resources\microphone.png" />
-    <Resource Include="Resources\moon.png" />
-    <Resource Include="Resources\new_tab.png" />
-    <Resource Include="Resources\password.png" />
-    <Resource Include="Resources\performance.png" />
-    <Resource Include="Resources\permissions.png" />
-    <Resource Include="Resources\pip.png" />
-    <Resource Include="Resources\read_aloud.png" />
-    <Resource Include="Resources\reader.png" />
-    <Resource Include="Resources\screenshot.png" />
-    <Resource Include="Resources\settings.png" />
-    <Resource Include="Resources\split.png" />
-    <Resource Include="Resources\tab_manager.png" />
-    <Resource Include="Resources\sun.png" />
-    <Resource Include="Resources\speaker.png" />
-    <Resource Include="Resources\toolbar_bottom.png" />
-    <Resource Include="Resources\toolbar_left.png" />
-    <Resource Include="Resources\toolbar_right.png" />
-    <Resource Include="Resources\toolbar_top.png" />
-    <Resource Include="Resources\translate.png" />
-    <Resource Include="Resources\back.png" />
-    <Resource Include="Resources\forward.png" />
-    <Resource Include="Resources\refresh.png" />
   </ItemGroup>
 
 </Project>
