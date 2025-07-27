@@ -6,14 +6,15 @@ using System.Windows.Controls; // Necesario para TextChangedEventArgs y Selectio
 
 namespace NavegadorWeb
 {
-    public partial class MainWindow : Window // 'partial' es crucial para combinar con el código generado
+    public partial class MainWindow : Window // 'partial' es crucial. No lo elimines.
     {
         public MainWindow()
         {
-            InitializeComponent(); // Única llamada. El método y sus funcionalidades son generados automáticamente.
-                                   // NO declares aquí campos de UI (como 'public Border MainBorder;')
-                                   // NO implementes InitializeComponent() manualmente.
-                                   // NO implementes IComponentConnector.Connect o IStyleConnector.Connect manualmente.
+            InitializeComponent(); // ESTO ES FUNDAMENTAL Y DEBE LLAMARSE SOLO UNA VEZ AQUÍ.
+                                   // NO implementes este método manualmente.
+                                   // NO declares campos de UI aquí (ej. 'public Border MainBorder;', 'public Button CloseButton;')
+                                   // que ya tienen x:Name en el XAML.
+                                   // NO implementes IComponentConnector.Connect ni IStyleConnector.Connect manualmente.
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -77,33 +78,33 @@ namespace NavegadorWeb
             }
         }
 
-        private void FindButton_Click(object sender, RoutedEventArgs e) { /* … */ }
-        private void FindTextBox_KeyDown(object sender, KeyEventArgs e) { /* … */ }
-        private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e) { /* … */ }
-        private void FindPreviousButton_Click(object sender, RoutedEventArgs e) { /* … */ }
-        private void FindNextButton_Click(object sender, RoutedEventArgs e) { /* … */ }
-        private void CloseFindBarButton_Click(object sender, RoutedEventArgs e) { /* … */ }
+        private void FindButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void FindTextBox_KeyDown(object sender, KeyEventArgs e) { /* ... */ }
+        private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e) { /* ... */ }
+        private void FindPreviousButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void FindNextButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void CloseFindBarButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
 
-        private void GeminiButton_Click(object sender, RoutedEventArgs e) { /* … */ }
-        private void PipButton_Click(object sender, RoutedEventArgs e) { /* … */ }
-        private void ReadAloudButton_Click(object sender, RoutedEventArgs e) { /* … */ }
-        private void ReaderModeButton_Click(object sender, RoutedEventArgs e) { /* … */ }
-        private void IncognitoButton_Click(object sender, RoutedEventArgs e) { /* … */ }
-        private void HistoryButton_Click(object sender, RoutedEventArgs e) { /* … */ }
-        private void BookmarksButton_Click(object sender, RoutedEventArgs e) { /* … */ }
-        private void PasswordManagerButton_Click(object sender, RoutedEventArgs e) { /* … */ }
-        private void DataExtractionButton_Click(object sender, RoutedEventArgs e) { /* … */ }
+        private void GeminiButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void PipButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void ReadAloudButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void ReaderModeButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void IncognitoButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void HistoryButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void BookmarksButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void PasswordManagerButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void DataExtractionButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
 
-        private void ExtensionMenuItem_Click(object sender, RoutedEventArgs e) { /* … */ }
-        private void ManageExtensionsButton_Click(object sender, RoutedEventArgs e) { /* … */ }
+        private void ExtensionMenuItem_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void ManageExtensionsButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
-            // Asegúrate de que SettingsWindow exista en tu proyecto
+            // Asegúrate de que SettingsWindow exista en tu proyecto.
             // new SettingsWindow().ShowDialog();
         }
 
-        // CORRECCIÓN: La firma del evento debe ser SelectionChangedEventArgs
+        // CORRECCIÓN: La firma del evento debe ser SelectionChangedEventArgs, no RoutedEventArgs.
         private void BrowserTabControl_SelectionChanged_Grouped(object sender, SelectionChangedEventArgs e)
         {
             // Lógica para manejar el cambio de selección de pestaña.
