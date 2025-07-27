@@ -2,44 +2,54 @@ using System;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Controls; // Necesario para TextChangedEventArgs
+using System.Windows.Controls; // Se agregó para TextChangedEventArgs y SelectionChangedEventArgs
 
 namespace NavegadorWeb
 {
-    public partial class MainWindow : Window // 'partial' es crucial para que se combine con el .g.cs
+    public partial class MainWindow : Window // 'partial' es esencial para combinar con MainWindow.g.cs
     {
         public MainWindow()
         {
-            InitializeComponent(); // Este método es generado automáticamente en MainWindow.g.cs
-                                   // Se encarga de instanciar los controles definidos en XAML
-                                   // y conectarlos a sus nombres y eventos.
+            InitializeComponent(); // Única llamada. WPF lo genera en MainWindow.g.cs
+                                   // NO declares aquí campos como 'public Border MainBorder;'
+                                   // NO implementes aquí InitializeComponent()
+                                   // NO implementes aquí IComponentConnector o IStyleConnector
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             // Lógica tras cargar la ventana
+            // Por ejemplo: WebView.CoreWebView2.Settings.IsZoomControlEnabled = false;
         }
 
         private void Window_Closing(object sender, CancelEventArgs e)
         {
-            // Guardar estado o confirmar cierre
+            // Lógica para guardar estado o confirmar cierre
         }
 
         private void MainWindow_SourceInitialized(object sender, EventArgs e)
         {
-            // Ajustes tras inicializar la ventana (DPI, sombras…)
+            // Ajustes tras inicializar la ventana (DPI, sombras, etc.)
         }
 
         private void MainWindow_StateChanged(object sender, EventArgs e)
         {
-            // Cambiar icono de maximizar/restaurar
-            // Puedes actualizar el icono del botón MaximizeRestoreButton aquí si es necesario
+            // Cambiar icono de maximizar/restaurar si es necesario
+            // Por ejemplo, si tienes un botón para esto:
+            // if (WindowState == WindowState.Maximized)
+            // {
+            //     MaximizeRestoreButton.Content = "🗗"; // Icono de restaurar
+            // }
+            // else
+            // {
+            //     MaximizeRestoreButton.Content = "🗖"; // Icono de maximizar
+            // }
         }
 
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Left)
-                DragMove(); // Permite arrastrar la ventana
+                DragMove(); // Permite arrastrar la ventana desde cualquier parte
         }
 
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
@@ -57,18 +67,22 @@ namespace NavegadorWeb
         {
             if (e.Key == Key.Enter)
             {
-                // Navegar a la dirección de AddressBar.Text
-                // Ejemplo: string url = AddressBar.Text;
-                // Lógica de navegación iría aquí
+                // Ejemplo de navegación, asumiendo que tienes un WebView2 llamado 'browserView'
+                // var uri = AddressBar.Text;
+                // if (!uri.StartsWith("http://") && !uri.StartsWith("https://"))
+                // {
+                //     uri = "https://" + uri; // O buscar en un motor de búsqueda por defecto
+                // }
+                // browserView.Source = new Uri(uri);
             }
         }
 
-        private void FindButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
-        private void FindTextBox_KeyDown(object sender, KeyEventArgs e) { /* ... */ }
-        private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e) { /* ... */ }
-        private void FindPreviousButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
-        private void FindNextButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
-        private void CloseFindBarButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
+        private void FindButton_Click(object sender, RoutedEventArgs e) { /* Lógica para mostrar la barra de búsqueda */ }
+        private void FindTextBox_KeyDown(object sender, KeyEventArgs e) { /* Lógica para búsqueda al presionar Enter */ }
+        private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e) { /* Lógica para búsqueda en tiempo real */ }
+        private void FindPreviousButton_Click(object sender, RoutedEventArgs e) { /* Lógica para buscar anterior */ }
+        private void FindNextButton_Click(object sender, RoutedEventArgs e) { /* Lógica para buscar siguiente */ }
+        private void CloseFindBarButton_Click(object sender, RoutedEventArgs e) { /* Lógica para cerrar la barra de búsqueda */ }
 
         private void GeminiButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
         private void PipButton_Click(object sender, RoutedEventArgs e) { /* ... */ }
@@ -83,17 +97,17 @@ namespace NavegadorWeb
         private void ExtensionMenuItem_Click(object sender, RoutedEventArgs e)
         {
             // Lógica para manejar el clic en un elemento de extensión
-            // Puedes acceder al Tag del MenuItem para obtener el objeto de la extensión si lo pasaste
             // MenuItem menuItem = sender as MenuItem;
             // if (menuItem != null && menuItem.Tag is ExtensionData extension)
             // {
-            //     extension.IsEnabled = menuItem.IsChecked; // Actualiza el estado de la extensión
+            //     extension.IsEnabled = menuItem.IsChecked;
             // }
         }
 
         private void ManageExtensionsButton_Click(object sender, RoutedEventArgs e)
         {
             // Lógica para abrir la ventana de gestión de extensiones
+            // new SettingsWindow().ShowDialog(); // O una ventana específica de extensiones
         }
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
@@ -102,20 +116,29 @@ namespace NavegadorWeb
             // new SettingsWindow().ShowDialog();
         }
 
-        private void BrowserTabControl_SelectionChanged_Grouped(object sender, SelectionChangedEventArgs e) // Cambiado a SelectionChangedEventArgs
+        private void BrowserTabControl_SelectionChanged_Grouped(object sender, SelectionChangedEventArgs e) // ¡Cambiado a SelectionChangedEventArgs!
         {
-            // Actualizar URL / estado de botones
+            // Actualizar URL / estado de botones basado en la pestaña seleccionada
             // e.AddedItems y e.RemovedItems contendrán los TabItem seleccionados/deseleccionados
+            // Por ejemplo:
+            // if (e.AddedItems.Count > 0 && e.AddedItems[0] is TabItem selectedTab)
+            // {
+            //     // Suponiendo que cada TabItem tiene un WebView2 en su contenido
+            //     if (selectedTab.Content is wv2.WebView2 webView)
+            //     {
+            //         AddressBar.Text = webView.Source?.ToString() ?? "";
+            //     }
+            // }
         }
 
         private void CloseTabButton_Click(object sender, RoutedEventArgs e)
         {
             // Lógica para cerrar la pestaña.
-            // El Tag del botón de cerrar tab contiene el objeto de datos de la pestaña (TabItemData).
+            // El Tag del botón de cerrar tab en el XAML se ha configurado para pasar el TabItemData.
             // Button closeButton = sender as Button;
-            // if (closeButton != null && closeButton.Tag is TabItemData tabToClose)
+            // if (closeButton != null && closeButton.Tag is TabItemData tabToClose) // Asume que tienes una clase TabItemData
             // {
-            //     // Lógica para remover tabToClose de tu colección de pestañas
+            //     // Lógica para remover tabToClose de tu colección de pestañas, que está binded a BrowserTabs.ItemsSource
             // }
         }
     }
