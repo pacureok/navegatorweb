@@ -6,10 +6,8 @@
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <ApplicationIcon>icono.ico</ApplicationIcon> <!-- Asegúrate de que 'icono.ico' esté en la raíz del proyecto -->
-  </PropertyGroup>
+    <ApplicationIcon>icono.ico</ApplicationIcon> </PropertyGroup>
 
-  <!-- Recursos estáticos: Incluye el icono principal de la aplicación y los iconos de la carpeta 'Icons' -->
   <ItemGroup>
     <Content Include="icono.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -22,17 +20,10 @@
     </Content>
   </ItemGroup>
 
-  <!-- Paquetes NuGet -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
     <PackageReference Include="System.Speech" Version="8.0.0" />
     <PackageReference Include="System.Text.Json" Version="8.0.6" />
   </ItemGroup>
 
-  <!--
-  IMPORTANTE: No se incluyen explícitamente MainWindow.xaml, MainWindow.xaml.cs, App.xaml ni App.xaml.cs aquí.
-  El SDK de .NET (Microsoft.NET.Sdk.WindowsDesktop) los incluye automáticamente por defecto.
-  Esto resuelve los errores NETSDK1022, MC1003 y BG1003.
-  -->
-
-</Project>
+  </Project>
