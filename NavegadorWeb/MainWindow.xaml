@@ -474,7 +474,8 @@
                         SelectedItem="{Binding SelectedTabItem, Mode=TwoWay}"
                         SelectionChanged="BrowserTabControl_SelectionChanged_Grouped"
                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                        ItemContainerStyle="{StaticResource TabItemStyle}"  ItemTemplate="{StaticResource TabHeaderTemplate}">
+                        ItemContainerStyle="{StaticResource TabItemStyle}"
+                        ItemTemplate="{StaticResource TabHeaderTemplate}">
             </TabControl>
 
             <ProgressBar Grid.Row="4"
