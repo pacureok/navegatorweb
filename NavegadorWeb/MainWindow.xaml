@@ -302,7 +302,7 @@
                                                 </Track.Thumb>
                                                 <Track.IncreaseRepeatButton>
                                                     <RepeatButton Command="{x:Static ScrollBar.PageRightCommand}" Opacity="0"/>
-                                                </RepeatButton>
+                                                </Track.IncreaseRepeatButton>
                                             </Track>
                                         </Grid>
                                     </ControlTemplate>
