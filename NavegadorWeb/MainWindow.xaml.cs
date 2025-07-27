@@ -2,15 +2,18 @@ using System;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Controls; // Necesario para SelectionChangedEventArgs
+using System.Windows.Controls; // Necesario para TextChangedEventArgs y SelectionChangedEventArgs
 
 namespace NavegadorWeb
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window // 'partial' es crucial para combinar con el código generado
     {
         public MainWindow()
         {
-            InitializeComponent();
+            InitializeComponent(); // Única llamada. El método y sus funcionalidades son generados automáticamente.
+                                   // NO declares aquí campos como 'public Border MainBorder;'
+                                   // NO implementes aquí InitializeComponent()
+                                   // NO implementes aquí IComponentConnector o IStyleConnector
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -60,7 +63,7 @@ namespace NavegadorWeb
 
         private void FindButton_Click(object sender, RoutedEventArgs e) { /* … */ }
         private void FindTextBox_KeyDown(object sender, KeyEventArgs e) { /* … */ }
-        private void FindTextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e) { /* … */ }
+        private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e) { /* … */ }
         private void FindPreviousButton_Click(object sender, RoutedEventArgs e) { /* … */ }
         private void FindNextButton_Click(object sender, RoutedEventArgs e) { /* … */ }
         private void CloseFindBarButton_Click(object sender, RoutedEventArgs e) { /* … */ }
@@ -80,13 +83,25 @@ namespace NavegadorWeb
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
+            // Asegúrate de que SettingsWindow exista en tu proyecto
             new SettingsWindow().ShowDialog();
         }
 
-        // Firma del evento corregida a SelectionChangedEventArgs
+        // CORRECCIÓN: Cambiado de RoutedEventArgs a SelectionChangedEventArgs
         private void BrowserTabControl_SelectionChanged_Grouped(object sender, SelectionChangedEventArgs e)
         {
             // Actualizar URL / estado de botones
+        }
+
+        private void CloseTabButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para cerrar la pestaña.
+            // El Tag del botón de cerrar tab en el XAML se ha configurado para pasar el TabItemData.
+            // Button closeButton = sender as Button;
+            // if (closeButton != null && closeButton.Tag is TabItemData tabToClose) // Asume que tienes una clase TabItemData
+            // {
+            //     // Lógica para remover tabToClose de tu colección de pestañas, que está binded a BrowserTabs.ItemsSource
+            // }
         }
     }
 }
