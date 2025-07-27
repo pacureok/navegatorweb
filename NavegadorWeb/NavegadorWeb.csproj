@@ -6,16 +6,18 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <ApplicationIcon>icono.ico</ApplicationIcon>
+    <ApplicationIcon>icono.ico</ApplicationIcon> <!-- Asegúrate de que 'icono.ico' esté en la raíz del proyecto -->
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Asegúrate de que icono.ico esté en la raíz del proyecto o ajusta la ruta -->
-    <Content Include="icono.ico" />
+    <!-- Incluye el icono principal de la aplicación -->
+    <Content Include="icono.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Excluimos los PNG/ICO de Resources como None (para no duplicarlos) -->
+    <!-- Excluimos los PNG/ICO de Resources como None (para no duplicarlos si ya están en Content) -->
     <!-- Estas líneas son para evitar que VS los trate como recursos incrustados si ya están en Content -->
     <None Remove="Icons\add_bookmark.png" />
     <None Remove="Icons\ai.png" />
@@ -61,8 +63,8 @@
     <!-- Paquetes NuGet -->
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
     <PackageReference Include="System.Speech" Version="8.0.0" />
-    <!-- Versión segura de System.Text.Json (actualizada para evitar vulnerabilidades) -->
-    <PackageReference Include="System.Text.Json" Version="9.0.0" /> <!-- ¡ACTUALIZADO! -->
+    <!-- Versión segura de System.Text.Json (actualizada según tu ejemplo) -->
+    <PackageReference Include="System.Text.Json" Version="8.0.6" />
   </ItemGroup>
 
   <!-- Copiar todos los PNG/ICO de la carpeta 'Icons' al directorio de salida -->
