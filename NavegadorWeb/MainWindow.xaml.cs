@@ -19,11 +19,27 @@ namespace NavegadorWeb
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             // Lógica tras cargar la ventana
+            // Por ejemplo:
+            // if (BrowserTabs.Items.Count == 0)
+            // {
+            //     // Suponiendo que tienes un método para añadir una nueva pestaña
+            //     // AddNewTab("about:blank"); 
+            // }
         }
 
         private void Window_Closing(object sender, CancelEventArgs e)
         {
             // Guardar estado o confirmar cierre
+            // Por ejemplo:
+            // MessageBoxResult result = MessageBox.Show("¿Quieres cerrar todas las pestañas y salir?", "Cerrar Navegador", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            // if (result == MessageBoxResult.No)
+            // {
+            //     e.Cancel = true; // Cancela el cierre de la ventana
+            // }
+            // else
+            // {
+            //     // Lógica para guardar la sesión o liberar recursos
+            // }
         }
 
         private void MainWindow_SourceInitialized(object sender, EventArgs e)
@@ -84,13 +100,14 @@ namespace NavegadorWeb
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
             // Asegúrate de que SettingsWindow exista en tu proyecto
-            new SettingsWindow().ShowDialog();
+            // new SettingsWindow().ShowDialog();
         }
 
-        // CORRECCIÓN: Cambiado de RoutedEventArgs a SelectionChangedEventArgs
+        // CORRECCIÓN: La firma del evento debe ser SelectionChangedEventArgs
         private void BrowserTabControl_SelectionChanged_Grouped(object sender, SelectionChangedEventArgs e)
         {
-            // Actualizar URL / estado de botones
+            // Lógica para manejar el cambio de selección de pestaña.
+            // Esto actualizaría la barra de direcciones y el estado de los botones.
         }
 
         private void CloseTabButton_Click(object sender, RoutedEventArgs e)
