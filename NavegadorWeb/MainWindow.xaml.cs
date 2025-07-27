@@ -6,14 +6,14 @@ using System.Windows.Controls; // Necesario para TextChangedEventArgs y Selectio
 
 namespace NavegadorWeb
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window // 'partial' es crucial para combinar con el código generado
     {
         public MainWindow()
         {
-            InitializeComponent(); // ESTO ES FUNDAMENTAL Y DEBE LLAMARSE SOLO UNA VEZ AQUÍ.
-                                   // NO lo implementes manualmente.
-                                   // NO declares campos de UI aquí (como 'public Border MainBorder;')
-                                   // NO implementes IComponentConnector.Connect manualmente.
+            InitializeComponent(); // Única llamada. El método y sus funcionalidades son generados automáticamente.
+                                   // NO declares aquí campos de UI (como 'public Border MainBorder;')
+                                   // NO implementes InitializeComponent() manualmente.
+                                   // NO implementes IComponentConnector.Connect o IStyleConnector.Connect manualmente.
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
