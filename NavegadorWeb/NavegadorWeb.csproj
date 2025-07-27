@@ -6,36 +6,17 @@
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- Icono principal de la aplicación -->
     <ApplicationIcon>app.ico</ApplicationIcon>
   </PropertyGroup>
 
-  <!-- Incluir el icono en la compilación -->
+  <!-- Icono de la aplicación -->
   <ItemGroup>
     <Content Include="app.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 
-  <!-- Evitar duplicar recursos gráficos -->
-  <ItemGroup>
-    <None Remove="Resources\*.png" />
-    <None Remove="Resources\*.ico" />
-  </ItemGroup>
-
-  <!-- Dependencias NuGet -->
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
-    <PackageReference Include="System.Speech" Version="8.0.0" />
-    <PackageReference Include="System.Text.Json" Version="8.0.6" />
-  </ItemGroup>
-
-  <!-- Generar los .g.cs de todos los XAML -->
-  <ItemGroup>
-    <Page Include="**\*.xaml" />
-  </ItemGroup>
-
-  <!-- Copiar PNG/ICO de Resources al directorio de salida -->
+  <!-- Recursos gráficos: PNG/ICO -->
   <ItemGroup>
     <Content Include="Resources\*.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -43,6 +24,13 @@
     <Content Include="Resources\*.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <!-- Paquetes NuGet -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
+    <PackageReference Include="System.Speech" Version="8.0.0" />
+    <PackageReference Include="System.Text.Json" Version="8.0.6" />
   </ItemGroup>
 
 </Project>
