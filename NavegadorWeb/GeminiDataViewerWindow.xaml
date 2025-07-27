@@ -11,7 +11,7 @@
         AllowsTransparency="True"
         WindowStyle="None"
         Background="Transparent">
-    <!-- El Border principal para el CornerRadius de la ventana -->
+    <!-- The main Border for CornerRadius of the window -->
     <Border Background="#F0F0F0" CornerRadius="10" BorderBrush="#CCCCCC" BorderThickness="1">
         <Grid>
             <Grid.RowDefinitions>
@@ -21,23 +21,23 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <TextBlock Grid.Row="0" Text="Información Capturada para Gemini" FontSize="20" FontWeight="Bold" Margin="10" HorizontalAlignment="Center" Foreground="#333"/>
+            <TextBlock Grid.Row="0" Text="Captured Information for Gemini" FontSize="20" FontWeight="Bold" Margin="10" HorizontalAlignment="Center" Foreground="#333"/>
 
             <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
-                <TextBlock Text="Pregunta del Usuario:" FontWeight="SemiBold" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                <!-- TextBox envuelto en un Border para CornerRadius -->
+                <TextBlock Text="User Question:" FontWeight="SemiBold" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                <!-- TextBox wrapped in a Border for CornerRadius -->
                 <Border CornerRadius="3" BorderBrush="#ccc" BorderThickness="1" Background="White">
                     <TextBox x:Name="UserQuestionTextBox"
                              Width="400" Height="30" Padding="5"
                              Text="{Binding UserQuestion, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              VerticalContentAlignment="Center"
                              Background="Transparent"
-                             BorderThickness="0"/> <!-- BorderThickness en 0 para que el Border externo maneje el borde -->
+                             BorderThickness="0"/> <!-- BorderThickness 0 so the outer Border handles the border -->
                 </Border>
             </StackPanel>
 
             <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="10,0">
-                <!-- StackPanel envuelto en un Border para CornerRadius -->
+                <!-- StackPanel wrapped in a Border for CornerRadius -->
                 <Border CornerRadius="5" BorderBrush="#ddd" BorderThickness="1" Background="White" Padding="10">
                     <StackPanel x:Name="CapturedDataPanel" Orientation="Vertical"
                                 DataContext="{Binding}">
@@ -48,13 +48,13 @@
                                         <StackPanel>
                                             <TextBlock Text="URL:" FontWeight="Bold"/>
                                             <TextBlock Text="{Binding Url}" TextWrapping="Wrap" Margin="0,0,0,5" Foreground="#555"/>
-                                            <TextBlock Text="Título:" FontWeight="Bold"/>
+                                            <TextBlock Text="Title:" FontWeight="Bold"/>
                                             <TextBlock Text="{Binding Title}" TextWrapping="Wrap" Margin="0,0,0,5" Foreground="#555"/>
-                                            <TextBlock Text="Texto Extraído:" FontWeight="Bold" Margin="0,5,0,0"/>
+                                            <TextBlock Text="Extracted Text:" FontWeight="Bold" Margin="0,5,0,0"/>
                                             <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="100">
                                                 <TextBlock Text="{Binding ExtractedText}" TextWrapping="Wrap" Margin="0,0,0,5"/>
                                             </ScrollViewer>
-                                            <TextBlock Text="Captura de Pantalla:" FontWeight="Bold" Margin="0,5,0,0"/>
+                                            <TextBlock Text="Screenshot:" FontWeight="Bold" Margin="0,5,0,0"/>
                                             <Image Source="{Binding ScreenshotBase64}" MaxHeight="200" Stretch="Uniform" Margin="0,0,0,5"/>
                                             <TextBlock Text="Favicon:" FontWeight="Bold" Margin="0,5,0,0"/>
                                             <Image Source="{Binding FaviconBase64}" Width="24" Height="24" HorizontalAlignment="Left"/>
@@ -68,8 +68,8 @@
             </ScrollViewer>
 
             <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10">
-                <Button x:Name="SendToGeminiButton" Content="Enviar a Gemini" Padding="10,5" Margin="0,0,10,0" Background="#9B59B6" Foreground="White" FontWeight="Bold" BorderBrush="#8E44AD" BorderThickness="1" Click="SendToGeminiButton_Click"/>
-                <Button x:Name="CancelButton" Content="Cancelar" Padding="10,5" Background="#E74C3C" Foreground="White" FontWeight="Bold" BorderBrush="#C0392B" BorderThickness="1" Click="CancelButton_Click"/>
+                <Button x:Name="SendToGeminiButton" Content="Send to Gemini" Padding="10,5" Margin="0,0,10,0" Background="#9B59B6" Foreground="White" FontWeight="Bold" BorderBrush="#8E44AD" BorderThickness="1" Click="SendToGeminiButton_Click"/>
+                <Button x:Name="CancelButton" Content="Cancel" Padding="10,5" Background="#E74C3C" Foreground="White" FontWeight="Bold" BorderBrush="#C0392B" BorderThickness="1" Click="CancelButton_Click"/>
             </StackPanel>
         </Grid>
     </Border>
