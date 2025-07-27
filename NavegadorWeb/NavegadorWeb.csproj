@@ -1,68 +1,19 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UseWPF>true</UseWPF>
-    <ApplicationIcon>icono.ico</ApplicationIcon>
+    <ApplicationIcon>icono.ico</ApplicationIcon> <!-- Asegúrate de que 'icono.ico' esté en la raíz del proyecto -->
   </PropertyGroup>
 
+  <!-- Recursos estáticos: Incluye el icono principal de la aplicación y los iconos de la carpeta 'Icons' -->
   <ItemGroup>
     <Content Include="icono.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="Icons\add_bookmark.png" />
-    <None Remove="Icons\ai.png" />
-    <None Remove="Icons\audio_playing_icon.png" />
-    <None Remove="Icons\blocked_icon.png" />
-    <None Remove="Icons\bookmarks.png" />
-    <None Remove="Icons\data_extraction.png" />
-    <None Remove="Icons\download.png" />
-    <None Remove="Icons\extensions.png" />
-    <None Remove="Icons\extension_icon.png" />
-    <None Remove="Icons\find.png" />
-    <None Remove="Icons\gemini_icon.ico" />
-    <None Remove="Icons\globe_icon.png" />
-    <None Remove="Icons\history.png" />
-    <None Remove="Icons\home.png" />
-    <None Remove="Icons\incognito.png" />
-    <None Remove="Icons\microphone.png" />
-    <None Remove="Icons\moon.png" />
-    <None Remove="Icons\new_tab.png" />
-    <None Remove="Icons\password.png" />
-    <None Remove="Icons\performance.png" />
-    <None Remove="Icons\permissions.png" />
-    <None Remove="Icons\pip.png" />
-    <None Remove="Icons\read_aloud.png" />
-    <None Remove="Icons\reader.png" />
-    <None Remove="Icons\screenshot.png" />
-    <None Remove="Icons\settings.png" />
-    <None Remove="Icons\split.png" />
-    <None Remove="Icons\tab_manager.png" />
-    <None Remove="Icons\sun.png" />
-    <None Remove="Icons\speaker.png" />
-    <None Remove="Icons\toolbar_bottom.png" />
-    <None Remove="Icons\toolbar_left.png" />
-    <None Remove="Icons\toolbar_right.png" />
-    <None Remove="Icons\toolbar_top.png" />
-    <None Remove="Icons\translate.png" />
-    <None Remove="Icons\back.png" />
-    <None Remove="Icons\forward.png" />
-    <None Remove="Icons\refresh.png" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
-    <PackageReference Include="System.Speech" Version="8.0.0" />
-    <PackageReference Include="System.Text.Json" Version="8.0.6" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Content Include="Icons\*.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -71,26 +22,17 @@
     </Content>
   </ItemGroup>
 
+  <!-- Paquetes NuGet -->
   <ItemGroup>
-    <ApplicationDefinition Include="App.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </ApplicationDefinition>
-    <Page Include="MainWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
+    <PackageReference Include="System.Speech" Version="8.0.0" />
+    <PackageReference Include="System.Text.Json" Version="8.0.6" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="App.xaml.cs">
-      <DependentUpon>App.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="MainWindow.xaml.cs">
-      <DependentUpon>MainWindow.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-  </ItemGroup>
+  <!--
+  IMPORTANTE: No se incluyen explícitamente MainWindow.xaml, MainWindow.xaml.cs, App.xaml ni App.xaml.cs aquí.
+  El SDK de .NET (Microsoft.NET.Sdk.WindowsDesktop) los incluye automáticamente por defecto.
+  Esto resuelve los errores NETSDK1022, MC1003 y BG1003.
+  -->
 
 </Project>
