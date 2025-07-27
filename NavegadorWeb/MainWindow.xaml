@@ -475,13 +475,7 @@
                         SelectionChanged="BrowserTabControl_SelectionChanged_Grouped"
                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                         ItemContainerStyle="{StaticResource TabItemStyle}"  ItemTemplate="{StaticResource TabHeaderTemplate}">
-                <TabControl.Resources>
-                    <Style TargetType="TabPanel">
-                        <Setter Property="HorizontalAlignment" Value="Left"/>
-                    </Style>
-                </TabControl.Resources>
-                </TabControl>
-
+            </TabControl>
 
             <ProgressBar Grid.Row="4"
                          Height="5"
