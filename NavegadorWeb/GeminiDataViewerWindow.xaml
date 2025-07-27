@@ -20,26 +20,32 @@
         <TextBlock Grid.Row="0" Text="Información Capturada para Gemini" FontSize="20" FontWeight="Bold" Margin="10" HorizontalAlignment="Center" Foreground="#333"/>
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
-            <TextBlock Text="Pregunta del Usuario:" FontWeight="SemiBold" Margin="0,0,5,0"/>
-            <TextBox x:Name="UserQuestionTextBox" Width="400" Text="{Binding UserQuestion, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                     VerticalContentAlignment="Center" HorizontalAlignment="Center" />
+            <TextBlock Text="Pregunta del Usuario:" FontWeight="SemiBold" Margin="0,0,5,0" VerticalAlignment="Center"/>
+            <TextBox x:Name="UserQuestionTextBox"
+                     Width="400" Height="30" Padding="5"
+                     Text="{Binding UserQuestion, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     VerticalContentAlignment="Center"
+                     BorderBrush="#ccc" BorderThickness="1" CornerRadius="3"
+                     Background="White"/>
         </StackPanel>
 
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="10,0">
-            <StackPanel x:Name="CapturedDataPanel" Orientation="Vertical" HorizontalAlignment="Stretch" DataContext="{Binding}">
+            <StackPanel x:Name="CapturedDataPanel" Orientation="Vertical"
+                        DataContext="{Binding}"
+                        Background="White"
+                        Padding="10"
+                        BorderBrush="#ddd" BorderThickness="1" CornerRadius="5">
                 <ItemsControl ItemsSource="{Binding CapturedData}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border BorderBrush="#CCCCCC" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,5">
+                            <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="5" Margin="0,5,0,5" Padding="10" Background="#F8F8F8">
                                 <StackPanel>
-                                    <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="16" TextWrapping="Wrap" Margin="0,0,0,5"/>
-                                    <TextBlock Text="{Binding Url}" FontStyle="Italic" TextWrapping="Wrap" Margin="0,0,0,5"/>
+                                    <TextBlock Text="URL:" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding Url}" TextWrapping="Wrap" Margin="0,0,0,5" Foreground="#555"/>
+                                    <TextBlock Text="Título:" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding Title}" TextWrapping="Wrap" Margin="0,0,0,5" Foreground="#555"/>
                                     <TextBlock Text="Texto Extraído:" FontWeight="Bold" Margin="0,5,0,0"/>
-                                    <!-- CORRECCIÓN: Se envuelve el TextBlock en un ScrollViewer para VerticalScrollBarVisibility -->
-                                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="100">
-                                        <TextBlock Text="{Binding ExtractedText}" TextWrapping="Wrap" Margin="0,0,0,5"/>
-                                    </ScrollViewer>
-                                    <!-- FIN DE LA CORRECCIÓN -->
+                                    <TextBlock Text="{Binding ExtractedText}" TextWrapping="Wrap" MaxHeight="100" VerticalScrollBarVisibility="Auto" Margin="0,0,0,5"/>
                                     <TextBlock Text="Captura de Pantalla:" FontWeight="Bold" Margin="0,5,0,0"/>
                                     <Image Source="{Binding ScreenshotBase64}" MaxHeight="200" Stretch="Uniform" Margin="0,0,0,5"/>
                                     <TextBlock Text="Favicon:" FontWeight="Bold" Margin="0,5,0,0"/>
