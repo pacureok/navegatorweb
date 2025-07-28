@@ -6,25 +6,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <ApplicationIcon>Icons\app.ico</ApplicationIcon> 
-
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <EnableDefaultPageItems>false</EnableDefaultPageItems>
-  </PropertyGroup>
+    <ApplicationIcon>Icons\app.ico</ApplicationIcon>
+    </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="App.xaml.cs" />
-    <Compile Include="MainWindow.xaml.cs" />
-    <Compile Include="Services\**\*.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Page Include="App.xaml" />
-    <Page Include="MainWindow.xaml" />
-    <Page Include="Windows\SettingsWindow.xaml" /> </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="Icons\app.ico"> 
+    <Content Include="Icons\app.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Icons\*.png">
@@ -33,42 +19,6 @@
     <Content Include="Icons\*.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="Icons\add_bookmark.png" />
-    <None Remove="Icons\ai.png" />
-    <None Remove="Icons\audio_playing_icon.png" />
-    <None Remove="Icons\blocked_icon.png" />
-    <None Remove="Icons\bookmarks.png" />
-    <None Remove="Icons\data_extraction.png" />
-    <None Remove="Icons\download.png" />
-    <None Remove="Icons\extensions.png" />
-    <None Remove="Icons\extension_icon.png" />
-    <None Remove="Icons\find.png" />
-    <None Remove="Icons\gemini_icon.ico" />
-    <None Remove="Icons\globe_icon.png" />
-    <None Remove="Icons\history.png" />
-    <None Remove="Icons\home.png" />
-    <None Remove="Icons\incognito.png" />
-    <None Remove="Icons\password.png" />
-    <None Remove="Icons\pip.png" />
-    <None Remove="Icons\read_aloud.png" />
-    <None Remove="Icons\reader.png" />
-    <None Remove="Icons\screenshot.png" />
-    <None Remove="Icons\settings.png" />
-    <None Remove="Icons\split.png" />
-    <None Remove="Icons\tab_manager.png" />
-    <None Remove="Icons\sun.png" />
-    <None Remove="Icons\speaker.png" />
-    <None Remove="Icons\toolbar_bottom.png" />
-    <None Remove="Icons\toolbar_left.png" />
-    <None Remove="Icons\toolbar_right.png" />
-    <None Remove="Icons\toolbar_top.png" />
-    <None Remove="Icons\translate.png" />
-    <None Remove="Icons\back.png" />
-    <None Remove="Icons\forward.png" />
-    <None Remove="Icons\refresh.png" />
   </ItemGroup>
 
   <ItemGroup>
