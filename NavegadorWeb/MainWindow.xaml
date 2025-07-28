@@ -176,7 +176,7 @@
                                 SnapsToDevicePixels="true">
                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
-                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                                              VerticalAlignment="{TemplateTemplateBinding VerticalContentAlignment}"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
@@ -190,7 +190,7 @@
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
                             </Trigger>
-                        </ControlTemplate.Triggers>
+                        </ControlTemplate.1. Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
