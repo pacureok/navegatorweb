@@ -6,13 +6,35 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <!-- Ruta del icono de la aplicación. Asegúrate de que esta ruta sea correcta. -->
     <ApplicationIcon>Icons\app.ico</ApplicationIcon>
-    </PropertyGroup>
+    <!--
+    ¡¡MUY IMPORTANTE!!
+    Estas líneas NO DEBEN ESTAR PRESENTES (ni activadas ni comentadas).
+    Si están, el SDK NO incluirá automáticamente los archivos.
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultPageItems>false</EnableDefaultPageItems>
+    -->
+  </PropertyGroup>
 
   <ItemGroup>
-    </ItemGroup>
+    <!--
+    Los archivos .cs y .xaml en la raíz del proyecto y en subcarpetas comunes (como 'Services', 'Models', 'Views', 'ViewModels')
+    son incluidos automáticamente por el SDK. NO NECESITAS listarlos aquí manualmente.
+
+    Solo si tuvieras archivos en subcarpetas con nombres NO CONVENCIONALES
+    o con tipos de archivos que el SDK no incluye por defecto (ej. un .txt que quieres compilar como recurso),
+    necesitarías ItemGroups adicionales.
+
+    Por ejemplo, si tuvieras archivos .cs directamente en la carpeta 'Services' y no se detectaran:
+    <Compile Include="Services\**\*.cs" />
+    PERO, el SDK ya suele incluir **/*.cs por defecto, así que esto es a menudo redundante.
+    -->
+  </ItemGroup>
 
   <ItemGroup>
+    <!-- Los archivos de contenido, como los iconos, deben listarse explícitamente
+         para que se copien al directorio de salida al compilar. -->
     <Content Include="Icons\app.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -24,10 +46,28 @@
     </Content>
   </ItemGroup>
 
+  <!--
+  Si tenías secciones <None Remove="Resources\..."/> para los iconos,
+  estas ya no son necesarias si los incluyes como <Content> directamente.
+  -->
+
   <ItemGroup>
+    <!-- Referencias a los paquetes NuGet necesarios para tu proyecto. -->
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
     <PackageReference Include="System.Speech" Version="8.0.0" />
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <!--
+    Si tenías System.Configuration.ConfigurationManager, asegúrate de que lo necesitas.
+    Si no, puedes omitirlo.
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
+    -->
   </ItemGroup>
+
+  <!--
+  Las secciones <Compile Update="..."> y <Page Update="..."> que tenías
+  (ej. para Settings.Designer.cs, MainWindow.xaml, SettingsWindow.xaml, etc.)
+  NO SON NECESARIAS con el modelo de SDK implícito.
+  El SDK las maneja automáticamente. ELIMÍNALAS si las tenías.
+  -->
 
 </Project>
