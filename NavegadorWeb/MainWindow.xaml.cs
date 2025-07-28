@@ -65,7 +65,7 @@ namespace NavegadorWeb
             // Lógica después de que la ventana se ha inicializado
         }
 
-        private void MainWindow_StateChanged(object sender, EventArgs e)
+        private void Window_StateChanged(object sender, EventArgs e)
         {
             // Lógica cuando el estado de la ventana cambia (Minimizar/Maximizar/Normal)
         }
