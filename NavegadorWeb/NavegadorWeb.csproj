@@ -6,10 +6,29 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <!-- Ruta del icono de la aplicación -->
     <ApplicationIcon>Icons\app.ico</ApplicationIcon>
-    </PropertyGroup>
+    <!--
+    El SDK de .NET incluye automáticamente los archivos .cs y .xaml en la raíz del proyecto
+    y en las subcarpetas comunes. Por lo tanto, no necesitamos las propiedades
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems> ni <EnableDefaultPageItems>false</EnableDefaultPageItems>.
+    -->
+  </PropertyGroup>
 
   <ItemGroup>
+    <!--
+    Los archivos .cs en subcarpetas como 'Services' se incluyen automáticamente por el SDK.
+    Solo si tuvieras una estructura muy particular o quisieras excluir algo por defecto,
+    necesitarías una línea <Compile Include="Services\**\*.cs" /> o propiedades de exclusión.
+    Para la mayoría de los casos, esta sección puede estar vacía si confías en el SDK.
+    -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+    Los archivos de contenido, como los iconos, deben listarse explícitamente
+    para que se copien al directorio de salida al compilar.
+    -->
     <Content Include="Icons\app.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -22,6 +41,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Referencias a los paquetes NuGet necesarios para tu proyecto. -->
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
     <PackageReference Include="System.Speech" Version="8.0.0" />
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
