@@ -1,19 +1,25 @@
-<Project Sdk="Microsoft.NET.Sdk">  <PropertyGroup>
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
-    <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <ApplicationIcon>icono.ico</ApplicationIcon> </PropertyGroup>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>icono.ico</ApplicationIcon>
+  </PropertyGroup>
 
   <ItemGroup>
     <Content Include="icono.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Icons\**\*.png">
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Icons\*.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Icons\**\*.ico">
+    <Content Include="Icons\*.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
