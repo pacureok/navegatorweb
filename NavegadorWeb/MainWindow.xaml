@@ -14,58 +14,38 @@
         Closing="Window_Closing"
         SourceInitialized="MainWindow_SourceInitialized"
         StateChanged="Window_StateChanged">
-    <Window.MouseLeftButtonDown="Window_MouseLeftButtonDown">
 
     <Window.Resources>
-        <Color x:Key="DefaultBrowserBackgroundColor">#282c34</Color>
-        <SolidColorBrush x:Key="DefaultBrowserBackgroundBrush" Color="{StaticResource DefaultBrowserBackgroundColor}"/>
+        <Color x:Key="DefaultBrowserBackgroundColor">#282c34</Color> <SolidColorBrush x:Key="DefaultBrowserBackgroundBrush" Color="{StaticResource DefaultBrowserBackgroundColor}"/>
 
-        <Color x:Key="DefaultBrowserForegroundColor">#abb2bf</Color>
-        <SolidColorBrush x:Key="DefaultBrowserForegroundBrush" Color="{StaticResource DefaultBrowserForegroundColor}"/>
+        <Color x:Key="DefaultBrowserForegroundColor">#abb2bf</Color> <SolidColorBrush x:Key="DefaultBrowserForegroundBrush" Color="{StaticResource DefaultBrowserForegroundColor}"/>
 
-        <Color x:Key="GeminiBackgroundColor">#343a40</Color>
-        <SolidColorBrush x:Key="GeminiBackgroundBrush" Color="{StaticResource GeminiBackgroundColor}"/>
+        <Color x:Key="GeminiBackgroundColor">#343a40</Color> <SolidColorBrush x:Key="GeminiBackgroundBrush" Color="{StaticResource GeminiBackgroundColor}"/>
 
-        <Style x:Key="TabItemStyle" TargetType="TabItem">
-            <Setter Property="HeaderTemplate">
-                <Setter.Value>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Header}"/>
-                            <Button Content="✖"
-                                    Margin="5,0,0,0"
-                                    Command="{Binding CloseTabCommand}"
-                                    </StackPanel>
-                    </DataTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        <Color x:Key="GeminiForegroundColor">#61afef</Color> <SolidColorBrush x:Key="GeminiForegroundBrush" Color="{StaticResource GeminiForegroundColor}"/>
 
-        <DataTemplate x:Key="TabHeaderTemplate">
-            <StackPanel Orientation="Horizontal" ToolTip="{Binding Url}">
-                <Image Source="{Binding FaviconSource}" Width="16" Height="16" Margin="0,0,5,0"/>
-                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" MaxWidth="150" TextTrimming="CharacterEllipsis"/>
-                <Button Content="✖"
-                        Margin="5,0,0,0"
-                        Style="{StaticResource TabCloseButtonStyle}"
-                        Click="CloseTabButton_Click"
-                        Tag="{Binding}" /> </StackPanel>
-        </DataTemplate>
+        <Color x:Key="BrowserBackgroundColor" x:Shared="False">#282c34</Color>
+        <SolidColorBrush x:Key="BrowserBackgroundBrush" x:Shared="False" Color="{DynamicResource BrowserBackgroundColor}"/>
 
-        <Style x:Key="TabCloseButtonStyle" TargetType="Button">
+        <Color x:Key="BrowserForegroundColor" x:Shared="False">#abb2bf</Color>
+        <SolidColorBrush x:Key="BrowserForegroundBrush" x:Shared="False" Color="{DynamicResource BrowserForegroundColor}"/>
+
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
+        <Style TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource DefaultBrowserForegroundColor}"/>
-            <Setter Property="FontSize" Value="10"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Padding" Value="2,0"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}">
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="3">
                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
                         </Border>
@@ -74,16 +54,402 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#555"/>
-                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Background" Value="#3a3e47"/>
                 </Trigger>
                 <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#777"/>
-                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Background" Value="#1f2227"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
+        <Style x:Key="WindowControlButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#444a54"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#1f2227"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="WindowCloseButton" TargetType="Button" BasedOn="{StaticResource WindowControlButton}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E74C3C"/> </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#C0392B"/> </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#1a1a1a"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
+            <Setter Property="BorderBrush" Value="#333333"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource BrowserForegroundColor}"/>
+        </Style>
+
+        <Style x:Key="TabItemStyle" TargetType="TabItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Grid>
+                            <Border Name="Border"
+                                    Margin="0,0,2,0"
+                                    Background="{DynamicResource BrowserBackgroundBrush}"
+                                    BorderBrush="{DynamicResource BrowserBackgroundBrush}"
+                                    BorderThickness="1,1,1,0"
+                                    CornerRadius="5,5,0,0">
+                                <ContentPresenter x:Name="ContentSite"
+                                        VerticalAlignment="Center"
+                                        HorizontalAlignment="Center"
+                                        ContentSource="Header"
+                                        Margin="12,2,12,2"/>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource BrowserBackgroundColor}"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource BrowserForegroundColor}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#444a54"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SwitchToggleButton" TargetType="ToggleButton">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Grid VerticalAlignment="Center" HorizontalAlignment="Left">
+                            <Border x:Name="OuterBorder"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="10"
+                                    Width="40"
+                                    Height="20"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="1"/>
+                            <Ellipse x:Name="ToggleThumb"
+                                     Fill="{TemplateBinding Foreground}"
+                                    Width="16" Height="16"
+                                    HorizontalAlignment="Left"
+                                    Margin="2,0,0,0"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="OuterBorder" Property="Background" Value="#28a745"/>
+                                <Setter TargetName="ToggleThumb" Property="HorizontalAlignment" Value="Right"/>
+                                <Setter TargetName="ToggleThumb" Property="Margin" Value="0,0,2,0"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="False">
+                                <Setter TargetName="OuterBorder" Property="Background" Value="#dc3545"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="true">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#3a3e47"/>
+                                <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#444a54"/>
+                                <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <ContextMenu x:Key="AddressBarContextMenu">
+            <MenuItem Header="Cut" Command="ApplicationCommands.Cut"/>
+            <MenuItem Header="Copy" Command="ApplicationCommands.Copy"/>
+            <MenuItem Header="Paste" Command="ApplicationCommands.Paste"/>
+        </ContextMenu>
+
+        <DataTemplate x:Key="TabHeaderTemplate">
+            <StackPanel Orientation="Horizontal">
+                <Image Source="{Binding Favicon}" Width="16" Height="16" Margin="0,0,5,0"/>
+                <TextBlock Text="{Binding Title}" ToolTip="{Binding Url}" VerticalAlignment="Center"/>
+                <Button Content="✕" Click="CloseTabButton_Click" Margin="5,0,0,0" Width="20" Height="20"
+                        Style="{StaticResource {x:Type Button}}" Background="Transparent" Foreground="White"
+                        BorderThickness="0" Padding="0" Tag="{Binding}"/> </StackPanel>
+        </DataTemplate>
+
+        <Style x:Key="CustomScrollBarStyle" TargetType="{x:Type ScrollViewer}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ScrollViewer}">
+                        <Grid x:Name="Grid" Background="{TemplateBinding Background}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <ScrollContentPresenter x:Name="PART_ScrollContentPresenter"
+                                                    CanContentScroll="{TemplateBinding CanContentScroll}"
+                                                    CanHorizontallyScroll="False"
+                                                    CanVerticallyScroll="False"
+                                                    ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                    Content="{TemplateBinding Content}"
+                                                    Grid.Column="0"
+                                                    Grid.Row="0"/>
+
+                            <ScrollBar x:Name="PART_VerticalScrollBar"
+                                       AutomationProperties.AutomationId="VerticalScrollBar"
+                                       Cursor="Arrow"
+                                       Grid.Column="1"
+                                       Maximum="{TemplateBinding ScrollableHeight}"
+                                       Minimum="0"
+                                       Grid.Row="0"
+                                       ViewportSize="{TemplateBinding ViewportHeight}"
+                                       Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"
+                                       Value="{Binding Path=VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ScrollBar.Template>
+                                    <ControlTemplate TargetType="{x:Type ScrollBar}">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Track x:Name="PART_Track"
+                                                   IsDirectionReversed="true"
+                                                   Grid.Row="1">
+                                                <Track.DecreaseRepeatButton>
+                                                    <RepeatButton Command="ScrollBar.PageUpCommand"
+                                                                  Opacity="0"/>
+                                                </Track.DecreaseRepeatButton>
+                                                <Track.IncreaseRepeatButton>
+                                                    <RepeatButton Command="ScrollBar.PageDownCommand"
+                                                                  Opacity="0"/>
+                                                </Track.IncreaseRepeatButton>
+                                                <Track.Thumb>
+                                                    <Thumb Style="{StaticResource ScrollBarThumbStyle}"/>
+                                                </Track.Thumb>
+                                            </Track>
+                                        </Grid>
+                                    </ControlTemplate>
+                                </ScrollBar.Template>
+                                <ScrollBar.Background>
+                                    <SolidColorBrush Color="#282c34"/>
+                                </ScrollBar.Background>
+                                <ScrollBar.BorderBrush>
+                                    <SolidColorBrush Color="#282c34"/>
+                                </ScrollBar.BorderBrush>
+                            </ScrollBar>
+
+                            <ScrollBar x:Name="PART_HorizontalScrollBar"
+                                       AutomationProperties.AutomationId="HorizontalScrollBar"
+                                       Cursor="Arrow"
+                                       Grid.Column="0"
+                                       Maximum="{TemplateBinding ScrollableWidth}"
+                                       Minimum="0"
+                                       Orientation="Horizontal"
+                                       Grid.Row="1"
+                                       ViewportSize="{TemplateBinding ViewportWidth}"
+                                       Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}"
+                                       Value="{Binding Path=HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ScrollBar.Template>
+                                    <ControlTemplate TargetType="{x:Type ScrollBar}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Track x:Name="PART_Track"
+                                                   Grid.Column="1">
+                                                <Track.DecreaseRepeatButton>
+                                                    <RepeatButton Command="ScrollBar.PageLeftCommand"
+                                                                  Opacity="0"/>
+                                                </Track.DecreaseRepeatButton>
+                                                <Track.IncreaseRepeatButton>
+                                                    <RepeatButton Command="ScrollBar.PageRightCommand"
+                                                                  Opacity="0"/>
+                                                </Track.IncreaseRepeatButton>
+                                                <Track.Thumb>
+                                                    <Thumb Style="{StaticResource ScrollBarThumbStyle}"/>
+                                                </Track.Thumb>
+                                            </Track>
+                                        </Grid>
+                                    </ControlTemplate>
+                                </ScrollBar.Template>
+                                <ScrollBar.Background>
+                                    <SolidColorBrush Color="#282c34"/>
+                                </ScrollBar.Background>
+                                <ScrollBar.BorderBrush>
+                                    <SolidColorBrush Color="#282c34"/>
+                                </ScrollBar.BorderBrush>
+                            </ScrollBar>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ScrollBarThumbStyle" TargetType="{x:Type Thumb}">
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="OverridesDefaultStyle" Value="true"/>
+            <Setter Property="IsTabStop" Value="False"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Thumb}">
+                        <Border CornerRadius="3"
+                                Background="#666"
+                                BorderBrush="#666"
+                                BorderThickness="1"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
-    </Window>
+    <Border BorderBrush="{DynamicResource BrowserForegroundColor}" BorderThickness="0" CornerRadius="8"
+            Background="{DynamicResource BrowserBackgroundBrush}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Row="0" Grid.Column="0" Height="30" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="10,0,0,0">
+                    <Image x:Name="WindowIcon" Source="Icons/app.ico" Width="16" Height="16" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <TextBlock Text="{Binding Title}" Foreground="{DynamicResource BrowserForegroundColor}" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="MinimizeButton" Content="—" Style="{StaticResource WindowControlButton}" Click="MinimizeButton_Click" ToolTip="Minimize"/>
+                    <Button x:Name="MaximizeRestoreButton" Content="⬜" Style="{StaticResource WindowControlButton}" Click="MaximizeRestoreButton_Click" ToolTip="Maximize / Restore"/>
+                    <Button x:Name="CloseButton" Content="✕" Style="{StaticResource WindowCloseButton}" Click="CloseButton_Click" ToolTip="Close"/>
+                </StackPanel>
+            </Grid>
+
+            <Grid Grid.Row="1" Grid.Column="0" Margin="5,0,5,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Button x:Name="BackButton" Grid.Column="0" Content="◀" Click="BackButton_Click" ToolTip="Go back"/>
+                <Button x:Name="ForwardButton" Grid.Column="1" Content="▶" Click="ForwardButton_Click" ToolTip="Go forward"/>
+                <Button x:Name="RefreshButton" Grid.Column="2" Content="↻" Click="RefreshButton_Click" ToolTip="Refresh"/>
+
+                <TextBox x:Name="AddressBar"
+                         Grid.Column="3"
+                         Text="{Binding AddressBarText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         KeyDown="AddressBar_KeyDown"
+                         ContextMenu="{StaticResource AddressBarContextMenu}"
+                         VerticalContentAlignment="Center"
+                         HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                         Margin="5,0"/>
+
+                <Button x:Name="HomeButton" Grid.Column="4" Content="🏠" Click="HomeButton_Click" ToolTip="Go to homepage"/>
+                <Button x:Name="NewTabButton" Grid.Column="5" Content="➕" Click="NewTabButton_Click" ToolTip="Open new tab"/>
+                <Button x:Name="SettingsButton" Grid.Column="6" Content="⚙️" Click="SettingsButton_Click" ToolTip="Settings"/>
+            </Grid>
+
+            <Border x:Name="FindBar"
+                    Grid.Row="2" Grid.Column="0"
+                    Visibility="Collapsed"
+                    Background="{DynamicResource BrowserBackgroundBrush}"
+                    BorderBrush="{DynamicResource BrowserForegroundColor}"
+                    BorderThickness="0,1,0,0"
+                    Padding="5" Margin="0,5,0,0">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <TextBox x:Name="FindTextBox"
+                             Width="200"
+                             Margin="0,0,5,0"
+                             VerticalContentAlignment="Center"
+                             KeyDown="FindTextBox_KeyDown"
+                             TextChanged="FindTextBox_TextChanged"/>
+                    <TextBlock x:Name="FindResultsTextBlock"
+                               Foreground="{DynamicResource BrowserForegroundColor}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"/>
+                    <Button Content="▲"
+                            Click="FindPreviousButton_Click"
+                            Margin="0,0,5,0"
+                            ToolTip="Find previous"/>
+                    <Button Content="▼"
+                            Click="FindNextButton_Click"
+                            Margin="0,0,5,0"
+                            ToolTip="Find next"/>
+                    <Button Content="✖"
+                            Click="CloseFindBarButton_Click"
+                            ToolTip="Close search"/>
+                </StackPanel>
+            </Border>
+
+            <TabControl x:Name="BrowserTabs"
+                        Grid.Row="3" Grid.Column="0"
+                        ItemsSource="{Binding TabGroupManager.SelectedTabGroup.TabsInGroup}"
+                        SelectedItem="{Binding SelectedTabItem, Mode=TwoWay}"
+                        SelectionChanged="BrowserTabControl_SelectionChanged_Grouped"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                        ItemContainerStyle="{StaticResource TabItemStyle}"
+                        ItemTemplate="{StaticResource TabHeaderTemplate}">
+            </TabControl>
+
+            <ProgressBar Grid.Row="4"
+                         Height="5"
+                         Value="{Binding DownloadProgress}"
+                         Visibility="{Binding DownloadProgressBarVisibility}"
+                         Background="#333" Foreground="#007bff"
+                         BorderThickness="0"
+                         Margin="0,0,0,0"
+                         VerticalAlignment="Bottom"/>
+        </Grid>
+    </Border>
+</Window>
+[cite_start]``` [cite: 1, 2, 3, 4, 5, 6]
