@@ -14,9 +14,6 @@
         Closing="Window_Closing"
         SourceInitialized="MainWindow_SourceInitialized"
         StateChanged="Window_StateChanged">
-    <Window.InputBindings>
-        <MouseBinding MouseAction="LeftClick" Command="{Binding DragWindowCommand}" />
-    </Window.InputBindings>
     <Window.MouseLeftButtonDown="Window_MouseLeftButtonDown">
 
     <Window.Resources>
@@ -38,9 +35,7 @@
                             <Button Content="✖"
                                     Margin="5,0,0,0"
                                     Command="{Binding CloseTabCommand}"
-                                    // O si lo manejas en code-behind:
-                                    // Click="CloseTabButton_Click"
-                                    // Tag="{Binding}" /> </StackPanel>
+                                    </StackPanel>
                     </DataTemplate>
                 </Setter.Value>
             </Setter>
@@ -91,116 +86,4 @@
 
     </Window.Resources>
 
-    <Border x:Name="MainBorder" BorderThickness="1" CornerRadius="8" Background="{StaticResource DefaultBrowserBackgroundBrush}">
-        <Border.BorderBrush>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#007bff" Offset="0.0"/>
-                <GradientStop Color="#6610f2" Offset="0.5"/>
-                <GradientStop Color="#fd7e14" Offset="1.0"/>
-            </LinearGradientBrush>
-        </Border.BorderBrush>
-
-        <Grid x:Name="MainGrid">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="30"/>   <RowDefinition Height="40"/>   <RowDefinition Height="Auto"/> <RowDefinition Height="*"/>    <RowDefinition Height="Auto"/> </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-
-            <Grid x:Name="TitleBarGrid" Grid.Row="0" Grid.Column="0" Background="{StaticResource DefaultBrowserBackgroundBrush}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
-                <Image x:Name="WindowIcon" Source="/Icons/app.ico" Width="16" Height="16" Margin="5,0,0,0" Grid.Column="0"/>
-                <TextBlock Text="{Binding Title}" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{StaticResource DefaultBrowserForegroundColor}"/>
-
-                <Button x:Name="MinimizeButton" Content="—" Grid.Column="2" Width="30" Height="30" Background="Transparent" Foreground="{StaticResource DefaultBrowserForegroundColor}" Click="MinimizeButton_Click"/>
-                <Button x:Name="MaximizeRestoreButton" Content="◻" Grid.Column="3" Width="30" Height="30" Background="Transparent" Foreground="{StaticResource DefaultBrowserForegroundColor}" Click="MaximizeRestoreButton_Click"/>
-                <Button x:Name="CloseButton" Content="✕" Grid.Column="4" Width="30" Height="30" Background="Transparent" Foreground="{StaticResource DefaultBrowserForegroundColor}" Click="CloseButton_Click"/>
-            </Grid>
-
-            <Grid Grid.Row="1" Grid.Column="0" Background="{StaticResource DefaultBrowserBackgroundBrush}" Margin="0,5,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="*"/>    <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="Auto"/> </Grid.ColumnDefinitions>
-
-                <Button x:Name="BackButton" Content="◀" Grid.Column="0" Margin="5,0" Width="30" Height="30" Background="Transparent" Foreground="{StaticResource DefaultBrowserForegroundColor}" ToolTip="Go back"/>
-                <Button x:Name="ForwardButton" Content="▶" Grid.Column="1" Margin="0,0,5,0" Width="30" Height="30" Background="Transparent" Foreground="{StaticResource DefaultBrowserForegroundColor}" ToolTip="Go forward"/>
-                <Button x:Name="RefreshButton" Content="↻" Grid.Column="2" Margin="0,0,5,0" Width="30" Height="30" Background="Transparent" Foreground="{StaticResource DefaultBrowserForegroundColor}" ToolTip="Refresh page"/>
-
-                <Border Grid.Column="3" Background="#3a3e46" CornerRadius="5" Padding="5,0" Margin="0,0,5,0">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBox x:Name="AddressBar"
-                                 Grid.Column="0"
-                                 Text="https://www.google.com"
-                                 Background="Transparent"
-                                 BorderBrush="Transparent"
-                                 Foreground="{StaticResource DefaultBrowserForegroundColor}"
-                                 VerticalAlignment="Center"
-                                 KeyDown="AddressBar_KeyDown"/>
-                        <Button x:Name="GeminiButton" Content="AI" Grid.Column="1" ToolTip="Ask Gemini" Click="GeminiButton_Click" Background="Transparent" Foreground="{StaticResource DefaultBrowserForegroundColor}" BorderThickness="0"/>
-                        <Button x:Name="PipButton" Content="PiP" Grid.Column="2" ToolTip="Picture-in-Picture" Click="PipButton_Click" Background="Transparent" Foreground="{StaticResource DefaultBrowserForegroundColor}" BorderThickness="0"/>
-                        <Button x:Name="ReadAloudButton" Content="🔊" Grid.Column="3" ToolTip="Read Aloud" Click="ReadAloudButton_Click" Background="Transparent" Foreground="{StaticResource DefaultBrowserForegroundColor}" BorderThickness="0"/>
-                    </Grid>
-                </Border>
-
-                <Button x:Name="NewTabButton" Content="+" Grid.Column="4" Margin="0,0,5,0" Width="30" Height="30" Background="Transparent" Foreground="{StaticResource DefaultBrowserForegroundColor}" ToolTip="New tab"/>
-                <Button x:Name="FindButton" Content="🔎" Grid.Column="5" Margin="0,0,5,0" Width="30" Height="30" Background="Transparent" Foreground="{StaticResource DefaultBrowserForegroundColor}" ToolTip="Find in page" Click="FindButton_Click"/>
-                <Button x:Name="SettingsButton" Content="⚙" Grid.Column="6" Width="30" Height="30" Background="Transparent" Foreground="{StaticResource DefaultBrowserForegroundColor}" ToolTip="Settings" Click="SettingsButton_Click"/>
-            </Grid>
-
-            <Border x:Name="FindBar" Grid.Row="2" Grid.Column="0"
-                    Visibility="Collapsed" Background="#3a3e46"
-                    Margin="0,5,0,0" Padding="5">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <TextBlock Text="Find:" VerticalAlignment="Center" Foreground="{StaticResource DefaultBrowserForegroundColor}" Margin="0,0,5,0"/>
-                    <TextBox x:Name="FindTextBox" Width="200"
-                             Background="#4a4f59" Foreground="{StaticResource DefaultBrowserForegroundColor}"
-                             BorderBrush="Transparent" VerticalAlignment="Center"
-                             KeyDown="FindTextBox_KeyDown"
-                             TextChanged="FindTextBox_TextChanged"/>
-                    <Button Content="▲"
-                            Click="FindPreviousButton_Click"
-                            Margin="5,0,0,0"
-                            ToolTip="Find previous"/>
-                    <Button Content="▼"
-                            Click="FindNextButton_Click"
-                            Margin="0,0,5,0"
-                            ToolTip="Find next"/>
-                    <Button Content="✖"
-                            Click="CloseFindBarButton_Click"
-                            ToolTip="Close search"/>
-                </StackPanel>
-            </Border>
-
-            <TabControl x:Name="BrowserTabs"
-                        Grid.Row="3" Grid.Column="0"
-                        ItemsSource="{Binding TabGroupManager.SelectedTabGroup.TabsInGroup}"
-                        SelectedItem="{Binding SelectedTabItem, Mode=TwoWay}"
-                        SelectionChanged="BrowserTabControl_SelectionChanged_Grouped"
-                        HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                        ItemContainerStyle="{StaticResource TabItemStyle}"
-                        ItemTemplate="{StaticResource TabHeaderTemplate}">
-            </TabControl>
-
-            <ProgressBar Grid.Row="4"
-                         Height="5"
-                         Value="{Binding DownloadProgress}"
-                         Visibility="{Binding DownloadProgressBarVisibility}"
-                         Background="#333" Foreground="#007bff"
-                         BorderThickness="0"
-                         Margin="0,0,0,0"
-                         VerticalAlignment="Bottom"/>
-        </Grid>
-    </Border>
-</Window>
+    </Window>
