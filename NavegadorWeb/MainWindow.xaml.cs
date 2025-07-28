@@ -16,7 +16,7 @@ namespace NavegadorWeb
             InitializeComponent();
 
             // ******************************************************************************
-            // * ¡¡¡ VERIFICA Y ELIMINA ESTO !!!                          *
+            // * ¡¡¡ VERIFICA Y ELIMINA ESTO DE TU CÓDIGO ACTUAL SI LO TIENES !!!          *
             // ******************************************************************************
             // Si tienes CUALQUIER declaración de campos para los elementos de UI
             // que tienen un 'x:Name' en tu MainWindow.xaml, ELIMÍNALAS.
@@ -26,11 +26,11 @@ namespace NavegadorWeb
             // public Button MinimizeButton;
             // public TextBox AddressBar;
             // public TabControl BrowserTabs;
-            // public Image WindowIcon; // si la declaras con x:Name en XAML
+            // public Image WindowIcon;
             // etc.
 
             // ******************************************************************************
-            // * ¡¡¡ VERIFICA Y ELIMINA ESTO !!!                          *
+            // * ¡¡¡ VERIFICA Y ELIMINA ESTO DE TU CÓDIGO ACTUAL SI LO TIENES !!!          *
             // ******************************************************************************
             // NO DEBES IMPLEMENTAR MANUALMENTE estos métodos. Son generados por WPF.
             /*
