@@ -1,543 +1,211 @@
-<Window x:Class="NavegadorWeb.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:NavegadorWeb"
-        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
-        mc:Ignorable="d"
-        Title="Aurora Browser" Height="768" Width="1024"
-        WindowStyle="None"
-        AllowsTransparency="True"
-        Background="Transparent"
-        Loaded="Window_Loaded"
-        Closing="Window_Closing"
-        SourceInitialized="MainWindow_SourceInitialized"
-        StateChanged="Window_StateChanged">
+using System;
+using System.ComponentModel;
+using System.Windows;
+using System.Windows.Input;
+using System.Windows.Controls; // Necesario para TextChangedEventArgs y SelectionChangedEventArgs
+using NavegadorWeb.Windows; // Asegúrate de que esta ruta sea correcta si SettingsWindow está en una subcarpeta 'Windows'
+using Microsoft.Web.WebView2.Wpf; // Asegúrate de tener este using para WebView2 si lo necesitas directamente
 
-    <Window.Resources>
-        <!-- Default browser colors -->
-        <Color x:Key="DefaultBrowserBackgroundColor">#282c34</Color> <!-- Dark bluish gray -->
-        <SolidColorBrush x:Key="DefaultBrowserBackgroundBrush" Color="{StaticResource DefaultBrowserBackgroundColor}"/>
+namespace NavegadorWeb
+{
+    // 'partial' es CLAVE. Significa que hay otra parte de esta clase (generada por WPF a partir del XAML).
+    public partial class MainWindow : Window
+    {
+        public MainWindow()
+        {
+            // ESTA ES LA ÚNICA LÍNEA InitializeComponent() que debe existir.
+            // NO definas el cuerpo de este método aquí. WPF lo genera automáticamente.
+            InitializeComponent();
 
-        <Color x:Key="DefaultBrowserForegroundColor">#abb2bf</Color> <!-- Light text color -->
-        <SolidColorBrush x:Key="DefaultBrowserForegroundBrush" Color="{StaticResource DefaultBrowserForegroundColor}"/>
+            // Aquí puedes establecer el DataContext para tu ViewModel si usas MVVM.
+            // Por ejemplo: this.DataContext = new MainViewModel();
 
-        <!-- Gemini mode colors -->
-        <Color x:Key="GeminiBackgroundColor">#343a40</Color> <!-- Darker gray for Gemini -->
-        <SolidColorBrush x:Key="GeminiBackgroundBrush" Color="{StaticResource GeminiBackgroundColor}"/>
+            // Lógica de inicialización adicional después de InitializeComponent()
+            // Puedes acceder a los controles con x:Name directamente aquí, por ejemplo:
+            // AddressBar.Text = "https://www.google.com";
+        }
 
-        <Color x:Key="GeminiForegroundColor">#61afef</Color> <!-- Vibrant blue for Gemini -->
-        <SolidColorBrush x:Key="GeminiForegroundBrush" Color="{StaticResource GeminiForegroundColor}"/>
+        // --- MANEJADORES DE EVENTOS DE LA VENTANA ---
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            // Lógica que se ejecuta una vez que la ventana y su contenido han sido cargados.
+            // Por ejemplo, cargar una página de inicio en la primera pestaña.
+        }
 
-        <!-- Dynamic colors that can be changed at runtime -->
-        <Color x:Key="BrowserBackgroundColor" x:Shared="False">#282c34</Color>
-        <SolidColorBrush x:Key="BrowserBackgroundBrush" x:Shared="False" Color="{DynamicResource BrowserBackgroundColor}"/>
+        private void Window_Closing(object sender, CancelEventArgs e)
+        {
+            // Lógica para manejar el cierre de la ventana.
+            // Aquí podrías guardar el estado de la sesión, confirmar con el usuario, etc.
+        }
 
-        <Color x:Key="BrowserForegroundColor" x:Shared="False">#abb2bf</Color>
-        <SolidColorBrush x:Key="BrowserForegroundBrush" x:Shared="False" Color="{DynamicResource BrowserForegroundColor}"/>
+        private void MainWindow_SourceInitialized(object sender, EventArgs e)
+        {
+            // Ajustes que se realizan después de que la ventana ha sido inicializada,
+            // útil para operaciones relacionadas con la ventana nativa (manejo de esquinas, sombras, etc.).
+        }
 
-        <!-- Boolean to Visibility Converter -->
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        private void Window_StateChanged(object sender, EventArgs e)
+        {
+            // Lógica para responder a cambios en el estado de la ventana (Minimizado, Maximizado, Normal).
+            // Por ejemplo, para cambiar el icono del botón de maximizar/restaurar.
+            // if (WindowState == WindowState.Maximized) { MaximizeRestoreButton.Content = "❐"; }
+            // else { MaximizeRestoreButton.Content = "⬜"; }
+        }
 
-        <!-- Base style for all buttons -->
-        <Style TargetType="Button">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="5"/>
-            <Setter Property="Margin" Value="2"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="3">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#3a3e47"/>
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#1f2227"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
+        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // Permite arrastrar la ventana desde la barra de título personalizada.
+            if (e.ChangedButton == MouseButton.Left)
+                DragMove();
+        }
 
-        <!-- Style for window control buttons (Minimize, Maximize, Close) -->
-        <Style x:Key="WindowControlButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Width" Value="30"/>
-            <Setter Property="Height" Value="30"/>
-            <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Margin" Value="0"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#444a54"/>
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#1f2227"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
+        // --- MANEJADORES DE EVENTOS DE LA BARRA DE TÍTULO / CONTROLES DE LA VENTANA ---
+        private void MinimizeButton_Click(object sender, RoutedEventArgs e)
+            => WindowState = WindowState.Minimized;
 
-        <Style x:Key="WindowCloseButton" TargetType="Button" BasedOn="{StaticResource WindowControlButton}">
-            <Setter Property="Background" Value="Transparent"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#E74C3C"/> <!-- Red for close button on hover -->
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#C0392B"/> <!-- Darker red on press -->
-                </Trigger>
-            </Style.Triggers>
-        </Style>
+        private void MaximizeRestoreButton_Click(object sender, RoutedEventArgs e)
+            => WindowState = (WindowState == WindowState.Maximized)
+                ? WindowState.Normal
+                : WindowState.Maximized;
 
-        <!-- Style for TextBox -->
-        <Style TargetType="TextBox">
-            <Setter Property="Background" Value="#1a1a1a"/>
-            <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
-            <Setter Property="BorderBrush" Value="#333333"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="5"/>
-            <Setter Property="CaretBrush" Value="{DynamicResource BrowserForegroundColor}"/>
-        </Style>
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
+            => Close(); // Cierra la ventana.
 
-        <!-- Style for TabItem -->
-        <Style x:Key="TabItemStyle" TargetType="TabItem">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TabItem">
-                        <Grid>
-                            <Border Name="Border"
-                                    Margin="0,0,2,0"
-                                    Background="{DynamicResource BrowserBackgroundBrush}"
-                                    BorderBrush="{DynamicResource BrowserBackgroundBrush}"
-                                    BorderThickness="1,1,1,0"
-                                    CornerRadius="5,5,0,0">
-                                <ContentPresenter x:Name="ContentSite"
-                                        VerticalAlignment="Center"
-                                        HorizontalAlignment="Center"
-                                        ContentSource="Header"
-                                        Margin="12,2,12,2"/>
-                            </Border>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource BrowserBackgroundColor}"/>
-                                <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource BrowserForegroundColor}"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="#444a54"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        // --- MANEJADORES DE EVENTOS DE LA BARRA DE DIRECCIONES Y NAVEGACIÓN ---
+        private void AddressBar_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                // Lógica para navegar a la URL en AddressBar.Text
+                // Ejemplo: if (BrowserTabs.SelectedItem is BrowserTabItem selectedTab) { selectedTab.Url = AddressBar.Text; }
+            }
+        }
 
-        <!-- Style for ToggleButton with Switch appearance -->
-        <Style x:Key="SwitchToggleButton" TargetType="ToggleButton">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ToggleButton">
-                        <Grid VerticalAlignment="Center" HorizontalAlignment="Left">
-                            <Border x:Name="OuterBorder"
-                                    Background="{TemplateBinding Background}"
-                                    CornerRadius="10"
-                                    Width="40"
-                                    Height="20"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="1"/>
-                            <Ellipse x:Name="ToggleThumb"
-                                     Fill="{TemplateBinding Foreground}"
-                                     Width="16"
-                                     Height="16"
-                                     HorizontalAlignment="Left"
-                                     Margin="2,0,0,0"/>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="OuterBorder" Property="Background" Value="#28a745"/>
-                                <Setter TargetName="ToggleThumb" Property="HorizontalAlignment" Value="Right"/>
-                                <Setter TargetName="ToggleThumb" Property="Margin" Value="0,0,2,0"/>
-                            </Trigger>
-                            <Trigger Property="IsChecked" Value="False">
-                                <Setter TargetName="OuterBorder" Property="Background" Value="#dc3545"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        // --- MANEJADORES DE EVENTOS DE LA BARRA DE BÚSQUEDA (FindBar) ---
+        private void FindButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Toggle la visibilidad de la barra de búsqueda
+            FindBar.Visibility = (FindBar.Visibility == Visibility.Visible) ? Visibility.Collapsed : Visibility.Visible;
+            if (FindBar.Visibility == Visibility.Visible)
+            {
+                FindTextBox.Focus();
+                FindTextBox.SelectAll();
+            }
+        }
 
-        <!-- Style for ListBoxItem without blue selection background -->
-        <Style TargetType="ListBoxItem">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type ListBoxItem}">
-                        <Border x:Name="border"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                Padding="{TemplateBinding Padding}"
-                                SnapsToDevicePixels="true">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
-                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#3a3e47"/>
-                                <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#444a54"/>
-                                <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        private void FindTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                // Lógica para iniciar la búsqueda en la página
+                // Ejemplo: (BrowserTabs.SelectedItem as BrowserTabItem)?.WebView.FindNext(FindTextBox.Text, false);
+            }
+        }
 
-        <!-- ContextMenu for the address bar -->
-        <ContextMenu x:Key="AddressBarContextMenu">
-            <MenuItem Header="Cut" Command="ApplicationCommands.Cut"/>
-            <MenuItem Header="Copy" Command="ApplicationCommands.Copy"/>
-            <MenuItem Header="Paste" Command="ApplicationCommands.Paste"/>
-        </ContextMenu>
+        private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            // Lógica para actualizar la búsqueda en tiempo real o preparar la siguiente búsqueda
+            // Ejemplo: (BrowserTabs.SelectedItem as BrowserTabItem)?.WebView.Find(FindTextBox.Text);
+        }
 
-        <!-- DataTemplate for the tab header -->
-        <DataTemplate x:Key="TabHeaderTemplate">
-            <StackPanel Orientation="Horizontal">
-                <Image Source="{Binding Favicon}" Width="16" Height="16" Margin="0,0,5,0"/>
-                <TextBlock Text="{Binding Title}" ToolTip="{Binding Url}" VerticalAlignment="Center"/>
-                <Button Content="✕" Click="CloseTabButton_Click"
-                        Margin="5,0,0,0"
-                        Width="20" Height="20"
-                        Style="{StaticResource {x:Type Button}}"
-                        Background="Transparent" Foreground="White"
-                        BorderThickness="0" Padding="0"
-                        Tag="{Binding}"/> <!-- Use Tag to pass TabItemData -->
-            </StackPanel>
-        </DataTemplate>
+        private void FindPreviousButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para buscar la ocurrencia anterior
+            // Ejemplo: (BrowserTabs.SelectedItem as BrowserTabItem)?.WebView.FindNext(FindTextBox.Text, true);
+        }
 
-        <!-- Custom scrollbar style for WebView2 -->
-        <Style x:Key="CustomScrollBarStyle" TargetType="{x:Type ScrollViewer}">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type ScrollViewer}">
-                        <Grid SnapsToDevicePixels="True" Background="{TemplateBinding Background}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <ScrollContentPresenter CanContentScroll="{TemplateBinding CanContentScroll}"
-                                                    CanHorizontallyScroll="False"
-                                                    CanVerticallyScroll="False"
-                                                    ContentTemplate="{TemplateBinding ContentTemplate}"
-                                                    Content="{TemplateBinding Content}"
-                                                    Grid.Column="0" Grid.Row="0"/>
-                            <ScrollBar x:Name="PART_VerticalScrollBar"
-                                       AutomationProperties.AutomationId="VerticalScrollBar"
-                                       Cursor="Arrow"
-                                       Grid.Column="1" Grid.Row="0"
-                                       Maximum="{TemplateBinding ScrollableHeight}"
-                                       Orientation="Vertical"
-                                       ViewportSize="{TemplateBinding ViewportHeight}"
-                                       Value="{TemplateBinding VerticalOffset}"
-                                       Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}">
-                                <ScrollBar.Template>
-                                    <ControlTemplate TargetType="{x:Type ScrollBar}">
-                                        <Grid x:Name="Bg" SnapsToDevicePixels="True" Background="{DynamicResource BrowserBackgroundColor}">
-                                            <Track x:Name="PART_Track" IsDirectionReversed="True" IsEnabled="{TemplateBinding IsMouseOver}" Margin="0,2,0,2">
-                                                <Track.DecreaseRepeatButton>
-                                                    <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" Opacity="0"/>
-                                                </Track.DecreaseRepeatButton>
-                                                <Track.Thumb>
-                                                    <Thumb Background="{DynamicResource BrowserForegroundColor}" Style="{StaticResource ScrollBarThumbStyle}"/>
-                                                </Track.Thumb>
-                                                <Track.IncreaseRepeatButton>
-                                                    <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" Opacity="0"/>
-                                                </Track.IncreaseRepeatButton>
-                                            </Track>
-                                        </Grid>
-                                    </ControlTemplate>
-                                </ScrollBar.Template>
-                            </ScrollBar>
-                            <ScrollBar x:Name="PART_HorizontalScrollBar"
-                                       AutomationProperties.AutomationId="HorizontalScrollBar"
-                                       Cursor="Arrow"
-                                       Grid.Column="0" Grid.Row="1"
-                                       Maximum="{TemplateBinding ScrollableWidth}"
-                                       Orientation="Horizontal"
-                                       ViewportSize="{TemplateBinding ViewportWidth}"
-                                       Value="{TemplateBinding HorizontalOffset}"
-                                       Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}">
-                                <ScrollBar.Template>
-                                    <ControlTemplate TargetType="{x:Type ScrollBar}">
-                                        <Grid x:Name="Bg" SnapsToDevicePixels="True" Background="{DynamicResource BrowserBackgroundColor}">
-                                            <Track x:Name="PART_Track" IsEnabled="{TemplateBinding IsMouseOver}" Margin="2,0,2,0">
-                                                <Track.DecreaseRepeatButton>
-                                                    <RepeatButton Command="{x:Static ScrollBar.PageLeftCommand}" Opacity="0"/>
-                                                </Track.DecreaseRepeatButton>
-                                                <Track.Thumb>
-                                                    <Thumb Background="{DynamicResource BrowserForegroundColor}" Style="{StaticResource ScrollBarThumbStyle}"/>
-                                                </Track.Thumb>
-                                                <Track.IncreaseRepeatButton>
-                                                    <RepeatButton Command="{x:Static ScrollBar.PageRightCommand}" Opacity="0"/>
-                                                </Track.IncreaseRepeatButton>
-                                            </Track>
-                                        </Grid>
-                                    </ControlTemplate>
-                                </ScrollBar.Template>
-                            </ScrollBar>
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        private void FindNextButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para buscar la ocurrencia siguiente
+            // Ejemplo: (BrowserTabs.SelectedItem as BrowserTabItem)?.WebView.FindNext(FindTextBox.Text, false);
+        }
 
-        <Style x:Key="ScrollBarThumbStyle" TargetType="{x:Type Thumb}">
-            <Setter Property="SnapsToDevicePixels" Value="True"/>
-            <Setter Property="OverridesDefaultStyle" Value="True"/>
-            <Setter Property="Height" Value="10"/>
-            <Setter Property="Width" Value="10"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type Thumb}">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="5"/>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        private void CloseFindBarButton_Click(object sender, RoutedEventArgs e)
+        {
+            FindBar.Visibility = Visibility.Collapsed;
+            FindTextBox.Clear();
+            // También detener la búsqueda activa en WebView2
+            // Ejemplo: (BrowserTabs.SelectedItem as BrowserTabItem)?.WebView.StopFind(WebView2.Core.WebView2.Core.CoreWebView2StopFindAction.ClearSelection);
+        }
 
-    </Window.Resources>
+        // --- MANEJADORES DE EVENTOS DE CARACTERÍSTICAS ADICIONALES ---
+        private void GeminiButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para abrir la ventana de interacción con Gemini
+            // new AskGeminiWindow().ShowDialog();
+        }
 
-    <!-- Main border to apply CornerRadius to the entire window -->
-    <Border x:Name="MainBorder"
-            Background="{DynamicResource BrowserBackgroundBrush}"
-            CornerRadius="10"
-            BorderBrush="{DynamicResource BrowserForegroundColor}"
-            BorderThickness="1">
-        <Grid x:Name="mainGrid" >
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/> <!-- Custom title bar -->
-                <RowDefinition Height="Auto"/> <!-- Navigation bar (URL, buttons) -->
-                <RowDefinition Height="Auto"/> <!-- Find bar -->
-                <RowDefinition Height="*"/>    <!-- Main browser content (WebView2) -->
-                <RowDefinition Height="Auto"/> <!-- Download progress bar -->
-            </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+        private void PipButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para Picture-in-Picture
+            // new PipWindow().Show();
+        }
 
-            <!-- Custom title bar -->
-            <Grid Grid.Row="0" x:Name="TitleBarGrid"
-                  Background="{DynamicResource BrowserBackgroundBrush}"
-                  MouseLeftButtonDown="Window_MouseLeftButtonDown">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+        private void ReadAloudButton_Click(object sender, RoutedEventArgs e) { /* Lógica para lectura en voz alta */ }
+        private void ReaderModeButton_Click(object sender, RoutedEventArgs e) { /* Lógica para modo lectura */ }
+        private void IncognitoButton_Click(object sender, RoutedEventArgs e) { /* Lógica para modo incógnito */ }
+        private void HistoryButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para abrir la ventana de historial
+            // new HistoryWindow().ShowDialog();
+        }
+        private void BookmarksButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para abrir la ventana de marcadores
+            // new BookmarksWindow().ShowDialog();
+        }
+        private void PasswordManagerButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para gestor de contraseñas
+            // new PasswordManagerWindow().ShowDialog();
+        }
+        private void DataExtractionButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para extracción de datos
+            // new DataExtractionWindow().ShowDialog();
+        }
 
-                <Image Source="/Icons/app.ico" Width="16" Height="16" Margin="5,0,0,0" VerticalAlignment="Center" Grid.Column="0"/>
-                <TextBlock x:Name="WindowTitleText"
-                           Text="Aurora Browser"
-                           Grid.Column="1"
-                           VerticalAlignment="Center"
-                           HorizontalAlignment="Left"
-                           Margin="5,0,0,0"
-                           Foreground="{DynamicResource BrowserForegroundColor}"
-                           FontWeight="Bold"/>
+        private void ExtensionMenuItem_Click(object sender, RoutedEventArgs e) { /* Lógica para habilitar/deshabilitar extensión */ }
+        private void ManageExtensionsButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para abrir gestor de extensiones
+            // new ExtensionsWindow().ShowDialog();
+        }
 
-                <!-- Window control buttons -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Grid.Column="4">
-                    <Button x:Name="MinimizeButton" Content="—" Click="MinimizeButton_Click"
-                            ToolTip="Minimize" Style="{StaticResource WindowControlButton}"/>
-                    <Button x:Name="MaximizeRestoreButton" Content="🗖" Click="MaximizeRestoreButton_Click"
-                            ToolTip="Maximize / Restore" Style="{StaticResource WindowControlButton}"/>
-                    <Button x:Name="CloseButton" Content="✕" Click="CloseButton_Click"
-                            ToolTip="Close" Style="{StaticResource WindowCloseButton}"/>
-                </StackPanel>
-            </Grid>
+        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para abrir la ventana de configuración.
+            // Asegúrate de que 'SettingsWindow' exista como una clase en tu proyecto.
+            // new SettingsWindow().ShowDialog();
+        }
 
-            <!-- Navigation bar (URL, buttons) - AHORA ES UN GRID PARA STAR SIZING -->
-            <Grid Grid.Row="1" Margin="5" x:Name="ToolbarGrid">
-                <Grid.ColumnDefinitions>
-                    <!-- Columnas Auto para los botones de navegación -->
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <!-- Columna para la barra de direcciones que tomará el espacio restante -->
-                    <ColumnDefinition Width="*"/>
-                    <!-- Columnas Auto para los botones de la derecha -->
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+        // --- MANEJADORES DE EVENTOS DE PESTAÑAS ---
+        // CORRECCIÓN IMPORTANTE: El tipo de evento para SelectionChanged es SelectionChangedEventArgs
+        private void BrowserTabControl_SelectionChanged_Grouped(object sender, SelectionChangedEventArgs e)
+        {
+            // Lógica para manejar el cambio de selección de pestaña.
+            // Esto debería actualizar la barra de direcciones y otros elementos de UI
+            // para reflejar la pestaña seleccionada actualmente.
+            // Puedes acceder a la pestaña seleccionada a través de BrowserTabs.SelectedItem
+            // o de las propiedades e.AddedItems y e.RemovedItems.
+            // Ejemplo: if (BrowserTabs.SelectedItem is BrowserTabItem selectedTab) { AddressBar.Text = selectedTab.Url; }
+        }
 
-                <!-- Botones de navegación izquierda -->
-                <Button Grid.Column="0" Command="{x:Static NavigationCommands.BrowseBack}" ToolTip="Back" Margin="0,0,5,0" x:Name="GoBackButton"/>
-                <Button Grid.Column="1" Command="{x:Static NavigationCommands.BrowseForward}" ToolTip="Forward" Margin="0,0,5,0" x:Name="GoForwardButton"/>
-                <Button Grid.Column="2" Command="{x:Static NavigationCommands.Refresh}" ToolTip="Reload" Margin="0,0,5,0"/>
-                <Button Grid.Column="3" Command="{x:Static NavigationCommands.GoToPage}" ToolTip="Home" Margin="0,0,5,0"/>
-
-                <!-- Barra de direcciones (ahora en columna con Width="*") -->
-                <TextBox x:Name="AddressBar"
-                         Grid.Column="4"
-                         Text="{Binding SelectedTabItem.Url, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         KeyDown="AddressBar_KeyDown"
-                         VerticalContentAlignment="Center"
-                         HorizontalAlignment="Stretch"
-                         Margin="5,0"
-                         ContextMenu="{StaticResource AddressBarContextMenu}"
-                         TextWrapping="Wrap"
-                         AcceptsReturn="False"
-                         ScrollViewer.CanContentScroll="True"
-                         VerticalScrollBarVisibility="Auto"
-                         HorizontalScrollBarVisibility="Auto"/>
-                         <!-- Eliminado el Style que intentaba usar Width="*" -->
-
-                <!-- Botón Go (al lado de la barra de direcciones) -->
-                <Button Grid.Column="5" Command="{x:Static NavigationCommands.Search}" ToolTip="Go" Margin="5,0,0,0"/>
-
-                <!-- Botones de la derecha (Toolbar buttons) -->
-                <Button Grid.Column="6" x:Name="FindButton" Click="FindButton_Click" ToolTip="Find in page" Margin="5,0,0,0">
-                    <Image Source="/Icons/find.png" Width="20" Height="20"/>
-                </Button>
-                <Button Grid.Column="7" x:Name="GeminiButton" Click="GeminiButton_Click" ToolTip="Ask Gemini" Margin="5,0,0,0">
-                    <Image Source="/Icons/ai.png" Width="20" Height="20"/>
-                </Button>
-                <Button Grid.Column="8" x:Name="PipButton" Click="PipButton_Click" ToolTip="Picture-in-Picture" Margin="5,0,0,0">
-                    <Image Source="/Icons/pip.png" Width="20" Height="20"/>
-                </Button>
-                <Button Grid.Column="9" x:Name="ReadAloudButton" Click="ReadAloudButton_Click" ToolTip="Read aloud" Margin="5,0,0,0">
-                    <Image Source="/Icons/read_aloud.png" Width="20" Height="20"/>
-                </Button>
-                <Button Grid.Column="10" x:Name="ReaderModeButton" Click="ReaderModeButton_Click" ToolTip="Reader mode" Margin="5,0,0,0">
-                    <Image Source="/Icons/reader.png" Width="20" Height="20"/>
-                </Button>
-                <Button Grid.Column="11" x:Name="IncognitoButton" Click="IncognitoButton_Click" ToolTip="Incognito mode" Margin="5,0,0,0">
-                    <Image Source="/Icons/incognito.png" Width="20" Height="20"/>
-                </Button>
-                <Button Grid.Column="12" x:Name="HistoryButton" Click="HistoryButton_Click" ToolTip="History" Margin="5,0,0,0">
-                    <Image Source="/Icons/history.png" Width="20" Height="20"/>
-                </Button>
-                <Button Grid.Column="13" x:Name="BookmarksButton" Click="BookmarksButton_Click" ToolTip="Bookmarks" Margin="5,0,0,0">
-                    <Image Source="/Icons/bookmarks.png" Width="20" Height="20"/>
-                </Button>
-                <Button Grid.Column="14" x:Name="PasswordManagerButton" Click="PasswordManagerButton_Click" ToolTip="Passwords" Margin="5,0,0,0">
-                    <Image Source="/Icons/password.png" Width="20" Height="20"/>
-                </Button>
-                <Button Grid.Column="15" x:Name="DataExtractionButton" Click="DataExtractionButton_Click" ToolTip="Data Extraction" Margin="5,0,0,0">
-                    <Image Source="/Icons/data_extraction.png" Width="20" Height="20"/>
-                </Button>
-                <Button Grid.Column="16" x:Name="ExtensionsButton" ToolTip="Extensions" Margin="5,0,0,0" >
-                    <Button.Content>
-                        <Image Source="/Icons/extensions.png" Width="20" Height="20"/>
-                    </Button.Content>
-                    <Button.ContextMenu>
-                        <ContextMenu x:Name="ExtensionsMenuItem" ItemsSource="{Binding ExtensionManager.Extensions}">
-                            <ContextMenu.ItemTemplate>
-                                <DataTemplate>
-                                    <MenuItem Header="{Binding Name}" IsCheckable="True" IsChecked="{Binding IsEnabled}" Click="ExtensionMenuItem_Click" Tag="{Binding}"/>
-                                </DataTemplate>
-                            </ContextMenu.ItemTemplate>
-                            <MenuItem Header="Manage Extensions..." Click="ManageExtensionsButton_Click"/>
-                        </ContextMenu>
-                    </Button.ContextMenu>
-                </Button>
-                <Button Grid.Column="17" x:Name="SettingsButton" Click="SettingsButton_Click" ToolTip="Settings" Margin="5,0,0,0">
-                    <Image Source="/Icons/settings.png" Width="20" Height="20"/>
-                </Button>
-            </Grid>
-
-            <!-- Find Bar -->
-            <Border x:Name="FindBar"
-                    Grid.Row="2"
-                    Visibility="{Binding IsFindBarVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
-                    Background="{DynamicResource BrowserBackgroundBrush}"
-                    BorderBrush="{DynamicResource BrowserForegroundColor}"
-                    BorderThickness="0,1,0,1"
-                    Margin="0,0,0,5"
-                    Padding="5">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <TextBlock Text="Find:" VerticalAlignment="Center" Margin="0,0,5,0"
-                               Foreground="{DynamicResource BrowserForegroundColor}"/>
-                    <TextBox x:Name="FindTextBox"
-                             Width="200"
-                             VerticalContentAlignment="Center"
-                             KeyDown="FindTextBox_KeyDown"
-                             TextChanged="FindTextBox_TextChanged"
-                             Margin="0,0,5,0"/>
-                    <TextBlock x:Name="FindResultsTextBlock"
-                               VerticalAlignment="Center"
-                               Margin="0,0,10,0"
-                               Foreground="{DynamicResource BrowserForegroundColor}"/>
-                    <Button Content="▲"
-                            Click="FindPreviousButton_Click"
-                            Margin="0,0,2,0"
-                            ToolTip="Find previous"/>
-                    <Button Content="▼"
-                            Click="FindNextButton_Click"
-                            Margin="0,0,5,0"
-                            ToolTip="Find next"/>
-                    <Button Content="✖"
-                            Click="CloseFindBarButton_Click"
-                            ToolTip="Close search"/>
-                </StackPanel>
-            </Border>
-
-            <!-- Main Browser Content (Tabs) -->
-            <TabControl x:Name="BrowserTabs"
-                        Grid.Row="3" Grid.Column="0"
-                        ItemsSource="{Binding TabGroupManager.SelectedTabGroup.TabsInGroup}"
-                        SelectedItem="{Binding SelectedTabItem, Mode=TwoWay}"
-                        SelectionChanged="BrowserTabControl_SelectionChanged_Grouped"
-                        HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                        ItemContainerStyle="{StaticResource TabItemStyle}"
-                        ItemTemplate="{StaticResource TabHeaderTemplate}">
-            </TabControl>
-
-            <!-- Download progress bar -->
-            <ProgressBar Grid.Row="4"
-                         Height="5"
-                         Value="{Binding DownloadProgress}"
-                         Visibility="{Binding DownloadProgressBarVisibility}"
-                         Background="#333" Foreground="#007bff"
-                         BorderThickness="0"
-                         Margin="0,0,0,0"
-                         VerticalAlignment="Bottom"/>
-        </Grid>
-    </Border>
-</Window>
+        private void CloseTabButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para cerrar una pestaña específica.
+            // El 'Tag' del botón en XAML está configurado para pasar el objeto de la pestaña que se está cerrando.
+            Button closeButton = sender as Button;
+            if (closeButton != null && closeButton.Tag != null) // Usar 'object' genérico o el tipo de tu pestaña (ej. 'BrowserTabItem')
+            {
+                // Ejemplo:
+                // if (closeButton.Tag is BrowserTabItem tabToClose)
+                // {
+                //     // Aquí debes tener la lógica para remover 'tabToClose' de la colección
+                //     // a la que está enlazado 'BrowserTabs.ItemsSource' (ej. TabGroupManager.SelectedTabGroup.TabsInGroup).
+                //     // (this.DataContext as MainViewModel)?.TabGroupManager.SelectedTabGroup.TabsInGroup.Remove(tabToClose);
+                // }
+            }
+        }
+    }
+}
