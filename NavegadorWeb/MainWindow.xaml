@@ -353,13 +353,34 @@
                 </StackPanel>
             </Grid>
 
-            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Stretch" Margin="5" x:Name="ToolbarGrid">
-                <Button Command="{x:Static NavigationCommands.BrowseBack}" ToolTip="Back" Margin="0,0,5,0" x:Name="GoBackButton"/>
-                <Button Command="{x:Static NavigationCommands.BrowseForward}" ToolTip="Forward" Margin="0,0,5,0" x:Name="GoForwardButton"/>
-                <Button Command="{x:Static NavigationCommands.Refresh}" ToolTip="Reload" Margin="0,0,5,0"/>
-                <Button Command="{x:Static NavigationCommands.GoToPage}" ToolTip="Home" Margin="0,0,5,0"/>
+            <Grid Grid.Row="1" Margin="5" x:Name="ToolbarGrid">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="0" Command="{x:Static NavigationCommands.BrowseBack}" ToolTip="Back" Margin="0,0,5,0" x:Name="GoBackButton"/>
+                <Button Grid.Column="1" Command="{x:Static NavigationCommands.BrowseForward}" ToolTip="Forward" Margin="0,0,5,0" x:Name="GoForwardButton"/>
+                <Button Grid.Column="2" Command="{x:Static NavigationCommands.Refresh}" ToolTip="Reload" Margin="0,0,5,0"/>
+                <Button Grid.Column="3" Command="{x:Static NavigationCommands.GoToPage}" ToolTip="Home" Margin="0,0,5,0"/>
 
                 <TextBox x:Name="AddressBar"
+                         Grid.Column="4"
                          Text="{Binding SelectedTabItem.Url, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          KeyDown="AddressBar_KeyDown"
                          VerticalContentAlignment="Center"
@@ -370,50 +391,40 @@
                          AcceptsReturn="False"
                          ScrollViewer.CanContentScroll="True"
                          VerticalScrollBarVisibility="Auto"
-                         HorizontalScrollBarVisibility="Auto">
-                    <TextBox.Style>
-                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-                            <Setter Property="Width" Value="*"/> <Style.Triggers>
-                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=StackPanel}, Path=Orientation}" Value="Horizontal">
-                                    <Setter Property="Width" Value="*"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBox.Style>
-                </TextBox>
-                <Button Command="{x:Static NavigationCommands.Search}" ToolTip="Go" Margin="5,0,0,0"/>
+                         HorizontalScrollBarVisibility="Auto"/>
+                         <Button Grid.Column="5" Command="{x:Static NavigationCommands.Search}" ToolTip="Go" Margin="5,0,0,0"/>
 
-                <Button x:Name="FindButton" Click="FindButton_Click" ToolTip="Find in page" Margin="5,0,0,0">
+                <Button Grid.Column="6" x:Name="FindButton" Click="FindButton_Click" ToolTip="Find in page" Margin="5,0,0,0">
                     <Image Source="/Icons/find.png" Width="20" Height="20"/>
                 </Button>
-                <Button x:Name="GeminiButton" Click="GeminiButton_Click" ToolTip="Ask Gemini" Margin="5,0,0,0">
+                <Button Grid.Column="7" x:Name="GeminiButton" Click="GeminiButton_Click" ToolTip="Ask Gemini" Margin="5,0,0,0">
                     <Image Source="/Icons/ai.png" Width="20" Height="20"/>
                 </Button>
-                <Button x:Name="PipButton" Click="PipButton_Click" ToolTip="Picture-in-Picture" Margin="5,0,0,0">
+                <Button Grid.Column="8" x:Name="PipButton" Click="PipButton_Click" ToolTip="Picture-in-Picture" Margin="5,0,0,0">
                     <Image Source="/Icons/pip.png" Width="20" Height="20"/>
                 </Button>
-                <Button x:Name="ReadAloudButton" Click="ReadAloudButton_Click" ToolTip="Read aloud" Margin="5,0,0,0">
+                <Button Grid.Column="9" x:Name="ReadAloudButton" Click="ReadAloudButton_Click" ToolTip="Read aloud" Margin="5,0,0,0">
                     <Image Source="/Icons/read_aloud.png" Width="20" Height="20"/>
                 </Button>
-                <Button x:Name="ReaderModeButton" Click="ReaderModeButton_Click" ToolTip="Reader mode" Margin="5,0,0,0">
+                <Button Grid.Column="10" x:Name="ReaderModeButton" Click="ReaderModeButton_Click" ToolTip="Reader mode" Margin="5,0,0,0">
                     <Image Source="/Icons/reader.png" Width="20" Height="20"/>
                 </Button>
-                <Button x:Name="IncognitoButton" Click="IncognitoButton_Click" ToolTip="Incognito mode" Margin="5,0,0,0">
+                <Button Grid.Column="11" x:Name="IncognitoButton" Click="IncognitoButton_Click" ToolTip="Incognito mode" Margin="5,0,0,0">
                     <Image Source="/Icons/incognito.png" Width="20" Height="20"/>
                 </Button>
-                <Button x:Name="HistoryButton" Click="HistoryButton_Click" ToolTip="History" Margin="5,0,0,0">
+                <Button Grid.Column="12" x:Name="HistoryButton" Click="HistoryButton_Click" ToolTip="History" Margin="5,0,0,0">
                     <Image Source="/Icons/history.png" Width="20" Height="20"/>
                 </Button>
-                <Button x:Name="BookmarksButton" Click="BookmarksButton_Click" ToolTip="Bookmarks" Margin="5,0,0,0">
+                <Button Grid.Column="13" x:Name="BookmarksButton" Click="BookmarksButton_Click" ToolTip="Bookmarks" Margin="5,0,0,0">
                     <Image Source="/Icons/bookmarks.png" Width="20" Height="20"/>
                 </Button>
-                <Button x:Name="PasswordManagerButton" Click="PasswordManagerButton_Click" ToolTip="Passwords" Margin="5,0,0,0">
+                <Button Grid.Column="14" x:Name="PasswordManagerButton" Click="PasswordManagerButton_Click" ToolTip="Passwords" Margin="5,0,0,0">
                     <Image Source="/Icons/password.png" Width="20" Height="20"/>
                 </Button>
-                <Button x:Name="DataExtractionButton" Click="DataExtractionButton_Click" ToolTip="Data Extraction" Margin="5,0,0,0">
+                <Button Grid.Column="15" x:Name="DataExtractionButton" Click="DataExtractionButton_Click" ToolTip="Data Extraction" Margin="5,0,0,0">
                     <Image Source="/Icons/data_extraction.png" Width="20" Height="20"/>
                 </Button>
-                <Button x:Name="ExtensionsButton" ToolTip="Extensions" Margin="5,0,0,0" >
+                <Button Grid.Column="16" x:Name="ExtensionsButton" ToolTip="Extensions" Margin="5,0,0,0" >
                     <Button.Content>
                         <Image Source="/Icons/extensions.png" Width="20" Height="20"/>
                     </Button.Content>
@@ -428,10 +439,10 @@
                         </ContextMenu>
                     </Button.ContextMenu>
                 </Button>
-                <Button x:Name="SettingsButton" Click="SettingsButton_Click" ToolTip="Settings" Margin="5,0,0,0">
+                <Button Grid.Column="17" x:Name="SettingsButton" Click="SettingsButton_Click" ToolTip="Settings" Margin="5,0,0,0">
                     <Image Source="/Icons/settings.png" Width="20" Height="20"/>
                 </Button>
-            </StackPanel>
+            </Grid>
 
             <Border x:Name="FindBar"
                     Grid.Row="2"
