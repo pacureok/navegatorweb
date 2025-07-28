@@ -3,17 +3,13 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Controls; // Necesario para TextChangedEventArgs y SelectionChangedEventArgs
+using NavegadorWeb.Windows; // Asegúrate de que este using esté si tienes SettingsWindow en la carpeta Windows
 
 namespace NavegadorWeb
 {
     // 'partial' es CLAVE. Significa que hay otra parte de esta clase (generada por WPF a partir del XAML).
     public partial class MainWindow : Window
     {
-        // NO declares aquí campos para los elementos de UI que tienen un 'x:Name' en tu XAML.
-        // WPF los genera automáticamente como miembros protegidos si la Acción de Compilación es 'Page'.
-        // Por ejemplo, NO hagas esto: public TextBox AddressBar;
-        // Simplemente usa directamente el nombre (ej. AddressBar.Text = ...).
-
         public MainWindow()
         {
             // ESTA ES LA ÚNICA LÍNEA InitializeComponent() que debe existir.
@@ -106,8 +102,10 @@ namespace NavegadorWeb
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
             // Lógica para abrir la ventana de configuración.
-            // Asegúrate de que 'SettingsWindow' exista como una clase en tu proyecto.
-            new Windows.SettingsWindow().ShowDialog(); // Asumiendo que SettingsWindow está en la carpeta Windows
+            // Asegúrate de que 'SettingsWindow' exista como una clase en tu proyecto
+            // y que su namespace sea NavegadorWeb.Windows.
+            // Si no tienes esta ventana, comenta o elimina esta línea.
+            new SettingsWindow().ShowDialog();
         }
 
         // CORRECCIÓN IMPORTANTE: El tipo de evento para SelectionChanged es SelectionChangedEventArgs
