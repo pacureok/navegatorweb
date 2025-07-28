@@ -6,57 +6,74 @@ using System.Windows.Controls; // Necesario para TextChangedEventArgs y Selectio
 
 namespace NavegadorWeb
 {
-    public partial class MainWindow : Window // 'partial' es crucial. No lo elimines.
+    // 'partial' es CLAVE. Significa que hay otra parte de esta clase (generada por WPF).
+    public partial class MainWindow : Window
     {
         public MainWindow()
         {
-            InitializeComponent(); // ESTO ES FUNDAMENTAL Y DEBE LLAMARSE SOLO UNA VEZ AQUÍ.
-                                   // NO implementes este método manualmente.
-                                   // NO declares campos de UI aquí (ej. 'public Border MainBorder;', 'public Button CloseButton;')
-                                   // que ya tienen x:Name en el XAML.
-                                   // NO implementes IComponentConnector.Connect ni IStyleConnector.Connect manualmente.
+            // ESTA ES LA ÚNICA LÍNEA InitializeComponent() que debe existir.
+            // NO definas el cuerpo de este método aquí. WPF lo genera.
+            InitializeComponent();
+
+            // ******************************************************************************
+            // * ¡¡¡ VERIFICA Y ELIMINA ESTO !!!                          *
+            // ******************************************************************************
+            // Si tienes CUALQUIER declaración de campos para los elementos de UI
+            // que tienen un 'x:Name' en tu MainWindow.xaml, ELIMÍNALAS.
+            // Ejemplos de lo que NO DEBES tener aquí (si ya están en XAML con x:Name):
+            // public Border MainBorder;
+            // public Grid TitleBarGrid;
+            // public Button MinimizeButton;
+            // public TextBox AddressBar;
+            // public TabControl BrowserTabs;
+            // public Image WindowIcon; // si la declaras con x:Name en XAML
+            // etc.
+
+            // ******************************************************************************
+            // * ¡¡¡ VERIFICA Y ELIMINA ESTO !!!                          *
+            // ******************************************************************************
+            // NO DEBES IMPLEMENTAR MANUALMENTE estos métodos. Son generados por WPF.
+            /*
+            public void InitializeComponent()
+            {
+                // ...código generado, ¡no lo copies aquí!
+            }
+
+            // O si ves una implementación explícita de la interfaz IComponentConnector:
+            void System.Windows.Markup.IComponentConnector.Connect(int connectionId, object target)
+            {
+                // ...código generado, ¡no lo copies aquí!
+            }
+            */
+            // ******************************************************************************
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            // Lógica tras cargar la ventana
-            // Por ejemplo:
-            // if (BrowserTabs.Items.Count == 0)
-            // {
-            //     // Suponiendo que tienes un método para añadir una nueva pestaña
-            //     // AddNewTab("about:blank");
-            // }
+            // Lógica tras cargar la ventana (ej: iniciar WebView2, cargar página de inicio)
+            // Asegúrate de que tu lógica para WebView2 se inicialice aquí o en el constructor
+            // y asigne el WebView2 a la primera pestaña, o cree una nueva.
         }
 
         private void Window_Closing(object sender, CancelEventArgs e)
         {
-            // Guardar estado o confirmar cierre
-            // Por ejemplo:
-            // MessageBoxResult result = MessageBox.Show("¿Quieres cerrar todas las pestañas y salir?", "Cerrar Navegador", MessageBoxButton.YesNo, MessageBoxImage.Question);
-            // if (result == MessageBoxResult.No)
-            // {
-            //     e.Cancel = true; // Cancela el cierre de la ventana
-            // }
-            // else
-            // {
-            //     // Lógica para guardar la sesión o liberar recursos
-            // }
+            // Lógica al cerrar la ventana
         }
 
         private void MainWindow_SourceInitialized(object sender, EventArgs e)
         {
-            // Ajustes tras inicializar la ventana (DPI, sombras…)
+            // Lógica después de que la ventana se ha inicializado
         }
 
         private void MainWindow_StateChanged(object sender, EventArgs e)
         {
-            // Cambiar icono de maximizar/restaurar
+            // Lógica cuando el estado de la ventana cambia (Minimizar/Maximizar/Normal)
         }
 
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Left)
-                DragMove();
+                DragMove(); // Permite mover la ventana arrastrando la barra de título personalizada
         }
 
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
@@ -74,7 +91,7 @@ namespace NavegadorWeb
         {
             if (e.Key == Key.Enter)
             {
-                // Navegar a la dirección de AddressBar.Text
+                // Lógica para navegar a la URL en la barra de direcciones
             }
         }
 
@@ -100,25 +117,29 @@ namespace NavegadorWeb
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
-            // Asegúrate de que SettingsWindow exista en tu proyecto.
+            // Lógica para abrir la ventana de configuración.
+            // Asegúrate de que 'SettingsWindow' exista como una clase en tu proyecto.
             // new SettingsWindow().ShowDialog();
         }
 
-        // CORRECCIÓN: La firma del evento debe ser SelectionChangedEventArgs, no RoutedEventArgs.
+        // CORRECCIÓN IMPORTANTE: El tipo de evento para SelectionChanged es SelectionChangedEventArgs
         private void BrowserTabControl_SelectionChanged_Grouped(object sender, SelectionChangedEventArgs e)
         {
             // Lógica para manejar el cambio de selección de pestaña.
-            // Esto actualizaría la barra de direcciones y el estado de los botones.
+            // Esto debería actualizar la barra de direcciones y otros elementos de UI
+            // para reflejar la pestaña seleccionada actualmente.
         }
 
         private void CloseTabButton_Click(object sender, RoutedEventArgs e)
         {
-            // Lógica para cerrar la pestaña.
-            // El Tag del botón de cerrar tab en el XAML se ha configurado para pasar el TabItemData.
+            // Lógica para cerrar una pestaña específica.
+            // El 'Tag' del botón en XAML está configurado para pasar el objeto 'TabItemData'
+            // de la pestaña que se está cerrando.
             // Button closeButton = sender as Button;
-            // if (closeButton != null && closeButton.Tag is TabItemData tabToClose) // Asume que tienes una clase TabItemData
+            // if (closeButton != null && closeButton.Tag is TabItemData tabToClose)
             // {
-            //     // Lógica para remover tabToClose de tu colección de pestañas, que está binded a BrowserTabs.ItemsSource
+            //     // Aquí debes tener la lógica para remover 'tabToClose' de la colección
+            //     // a la que está enlazado 'BrowserTabs.ItemsSource' (ej. TabGroupManager.SelectedTabGroup.TabsInGroup).
             // }
         }
     }
