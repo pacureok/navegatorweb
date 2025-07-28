@@ -15,6 +15,7 @@
   <ItemGroup>
     <Compile Include="App.xaml.cs" />
     <Compile Include="MainWindow.xaml.cs" />
+    <Compile Include="Services\**\*.cs" />
     <Page Include="App.xaml" />
     <Page Include="MainWindow.xaml" />
     </ItemGroup>
