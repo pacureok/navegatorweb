@@ -13,9 +13,157 @@
         Loaded="Window_Loaded"
         Closing="Window_Closing"
         SourceInitialized="MainWindow_SourceInitialized"
-        StateChanged="MainWindow_StateChanged">
+        StateChanged="Window_StateChanged">
 
     <Window.Resources>
+        <Color x:Key="DefaultBrowserBackgroundColor">#282c34</Color> <SolidColorBrush x:Key="DefaultBrowserBackgroundBrush" Color="{StaticResource DefaultBrowserBackgroundColor}"/>
+
+        <Color x:Key="DefaultBrowserForegroundColor">#abb2bf</Color> <SolidColorBrush x:Key="DefaultBrowserForegroundBrush" Color="{StaticResource DefaultBrowserForegroundColor}"/>
+
+        <Color x:Key="GeminiBackgroundColor">#343a40</Color> <SolidColorBrush x:Key="GeminiBackgroundBrush" Color="{StaticResource GeminiBackgroundColor}"/>
+
+        <Color x:Key="GeminiForegroundColor">#61afef</Color> <SolidColorBrush x:Key="GeminiForegroundBrush" Color="{StaticResource GeminiForegroundColor}"/>
+
+        <Color x:Key="BrowserBackgroundColor" x:Shared="False">#282c34</Color>
+        <SolidColorBrush x:Key="BrowserBackgroundBrush" x:Shared="False" Color="{DynamicResource BrowserBackgroundColor}"/>
+
+        <Color x:Key="BrowserForegroundColor" x:Shared="False">#abb2bf</Color>
+        <SolidColorBrush x:Key="BrowserForegroundBrush" x:Shared="False" Color="{DynamicResource BrowserForegroundColor}"/>
+
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#3a3e47"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#1f2227"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="WindowControlButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#444a54"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#1f2227"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="WindowCloseButton" TargetType="Button" BasedOn="{StaticResource WindowControlButton}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E74C3C"/> </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#C0392B"/> </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#1a1a1a"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
+            <Setter Property="BorderBrush" Value="#333333"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource BrowserForegroundColor}"/>
+        </Style>
+
+        <Style x:Key="TabItemStyle" TargetType="TabItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Grid>
+                            <Border Name="Border"
+                                    Margin="0,0,2,0"
+                                    Background="{DynamicResource BrowserBackgroundBrush}"
+                                    BorderBrush="{DynamicResource BrowserBackgroundBrush}"
+                                    BorderThickness="1,1,1,0"
+                                    CornerRadius="5,5,0,0">
+                                <ContentPresenter x:Name="ContentSite"
+                                        VerticalAlignment="Center"
+                                        HorizontalAlignment="Center"
+                                        ContentSource="Header"
+                                        Margin="12,2,12,2"/>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource BrowserBackgroundColor}"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource BrowserForegroundColor}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#444a54"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SwitchToggleButton" TargetType="ToggleButton">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Grid VerticalAlignment="Center" HorizontalAlignment="Left">
+                            <Border x:Name="OuterBorder"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="10"
+                                    Width="40"
+                                    Height="20"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="1"/>
+                            <Ellipse x:Name="ToggleThumb"
+                                     Fill="{TemplateBinding Foreground}"
+                                     Width="16"
+                                     Height="16"
+                                     HorizontalAlignment="Left"
+                                     Margin="2,0,0,0"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="OuterBorder" Property="Background" Value="#28a745"/>
+                                <Setter TargetName="ToggleThumb" Property="HorizontalAlignment" Value="Right"/>
+                                <Setter TargetName="ToggleThumb" Property="Margin" Value="0,0,2,0"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="False">
+                                <Setter TargetName="OuterBorder" Property="Background" Value="#dc3545"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style TargetType="ListBoxItem">
             <Setter Property="Template">
                 <Setter.Value>
@@ -42,11 +190,302 @@
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Foreground" Value="{DynamicResource BrowserForegroundColor}"/>
                             </Trigger>
-                        </ControlTemplate.Triggers> </ControlTemplate>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
 
-        </Window.Resources>
+        <ContextMenu x:Key="AddressBarContextMenu">
+            <MenuItem Header="Cut" Command="ApplicationCommands.Cut"/>
+            <MenuItem Header="Copy" Command="ApplicationCommands.Copy"/>
+            <MenuItem Header="Paste" Command="ApplicationCommands.Paste"/>
+        </ContextMenu>
 
-    </Window>
+        <DataTemplate x:Key="TabHeaderTemplate">
+            <StackPanel Orientation="Horizontal">
+                <Image Source="{Binding Favicon}" Width="16" Height="16" Margin="0,0,5,0"/>
+                <TextBlock Text="{Binding Title}" ToolTip="{Binding Url}" VerticalAlignment="Center"/>
+                <Button Content="✕" Click="CloseTabButton_Click"
+                        Margin="5,0,0,0"
+                        Width="20" Height="20"
+                        Style="{StaticResource {x:Type Button}}"
+                        Background="Transparent" Foreground="White"
+                        BorderThickness="0" Padding="0"
+                        Tag="{Binding}"/> </StackPanel>
+        </DataTemplate>
+
+        <Style x:Key="CustomScrollBarStyle" TargetType="{x:Type ScrollViewer}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ScrollViewer}">
+                        <Grid SnapsToDevicePixels="True" Background="{TemplateBinding Background}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <ScrollContentPresenter CanContentScroll="{TemplateBinding CanContentScroll}"
+                                                    CanHorizontallyScroll="False"
+                                                    CanVerticallyScroll="False"
+                                                    ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                    Content="{TemplateBinding Content}"
+                                                    Grid.Column="0" Grid.Row="0"/>
+                            <ScrollBar x:Name="PART_VerticalScrollBar"
+                                       AutomationProperties.AutomationId="VerticalScrollBar"
+                                       Cursor="Arrow"
+                                       Grid.Column="1" Grid.Row="0"
+                                       Maximum="{TemplateBinding ScrollableHeight}"
+                                       Orientation="Vertical"
+                                       ViewportSize="{TemplateBinding ViewportHeight}"
+                                       Value="{TemplateBinding VerticalOffset}"
+                                       Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}">
+                                <ScrollBar.Template>
+                                    <ControlTemplate TargetType="{x:Type ScrollBar}">
+                                        <Grid x:Name="Bg" SnapsToDevicePixels="True" Background="{DynamicResource BrowserBackgroundColor}">
+                                            <Track x:Name="PART_Track" IsDirectionReversed="True" IsEnabled="{TemplateBinding IsMouseOver}" Margin="0,2,0,2">
+                                                <Track.DecreaseRepeatButton>
+                                                    <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" Opacity="0"/>
+                                                </Track.DecreaseRepeatButton>
+                                                <Track.Thumb>
+                                                    <Thumb Background="{DynamicResource BrowserForegroundColor}" Style="{StaticResource ScrollBarThumbStyle}"/>
+                                                </Track.Thumb>
+                                                <Track.IncreaseRepeatButton>
+                                                    <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" Opacity="0"/>
+                                                </Track.IncreaseRepeatButton>
+                                            </Track>
+                                        </Grid>
+                                    </ControlTemplate>
+                                </ScrollBar.Template>
+                            </ScrollBar>
+                            <ScrollBar x:Name="PART_HorizontalScrollBar"
+                                       AutomationProperties.AutomationId="HorizontalScrollBar"
+                                       Cursor="Arrow"
+                                       Grid.Column="0" Grid.Row="1"
+                                       Maximum="{TemplateBinding ScrollableWidth}"
+                                       Orientation="Horizontal"
+                                       ViewportSize="{TemplateBinding ViewportWidth}"
+                                       Value="{TemplateBinding HorizontalOffset}"
+                                       Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}">
+                                <ScrollBar.Template>
+                                    <ControlTemplate TargetType="{x:Type ScrollBar}">
+                                        <Grid x:Name="Bg" SnapsToDevicePixels="True" Background="{DynamicResource BrowserBackgroundColor}">
+                                            <Track x:Name="PART_Track" IsEnabled="{TemplateBinding IsMouseOver}" Margin="2,0,2,0">
+                                                <Track.DecreaseRepeatButton>
+                                                    <RepeatButton Command="{x:Static ScrollBar.PageLeftCommand}" Opacity="0"/>
+                                                </Track.DecreaseRepeatButton>
+                                                <Track.Thumb>
+                                                    <Thumb Background="{DynamicResource BrowserForegroundColor}" Style="{StaticResource ScrollBarThumbStyle}"/>
+                                                </Track.Thumb>
+                                                <Track.IncreaseRepeatButton>
+                                                    <RepeatButton Command="{x:Static ScrollBar.PageRightCommand}" Opacity="0"/>
+                                                </Track.IncreaseRepeatButton>
+                                            </Track>
+                                        </Grid>
+                                    </ControlTemplate>
+                                </ScrollBar.Template>
+                            </ScrollBar>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ScrollBarThumbStyle" TargetType="{x:Type Thumb}">
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Height" Value="10"/>
+            <Setter Property="Width" Value="10"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Thumb}">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="5"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+    </Window.Resources>
+
+    <Border x:Name="MainBorder"
+            Background="{DynamicResource BrowserBackgroundBrush}"
+            CornerRadius="10"
+            BorderBrush="{DynamicResource BrowserForegroundColor}"
+            BorderThickness="1">
+        <Grid x:Name="mainGrid" >
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> <RowDefinition Height="*"/>    <RowDefinition Height="Auto"/> </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Row="0" x:Name="TitleBarGrid"
+                  Background="{DynamicResource BrowserBackgroundBrush}"
+                  MouseLeftButtonDown="Window_MouseLeftButtonDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Image Source="/app.ico" Width="16" Height="16" Margin="5,0,0,0" VerticalAlignment="Center" Grid.Column="0"/>
+                <TextBlock x:Name="WindowTitleText"
+                           Text="Aurora Browser"
+                           Grid.Column="1"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Left"
+                           Margin="5,0,0,0"
+                           Foreground="{DynamicResource BrowserForegroundColor}"
+                           FontWeight="Bold"/>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Grid.Column="4">
+                    <Button x:Name="MinimizeButton" Content="—" Click="MinimizeButton_Click"
+                            ToolTip="Minimize" Style="{StaticResource WindowControlButton}"/>
+                    <Button x:Name="MaximizeRestoreButton" Content="🗖" Click="MaximizeRestoreButton_Click"
+                            ToolTip="Maximize / Restore" Style="{StaticResource WindowControlButton}"/>
+                    <Button x:Name="CloseButton" Content="✕" Click="CloseButton_Click"
+                            ToolTip="Close" Style="{StaticResource WindowCloseButton}"/>
+                </StackPanel>
+            </Grid>
+
+            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Stretch" Margin="5" x:Name="ToolbarGrid">
+                <Button Command="{x:Static NavigationCommands.BrowseBack}" ToolTip="Back" Margin="0,0,5,0" x:Name="GoBackButton"/>
+                <Button Command="{x:Static NavigationCommands.BrowseForward}" ToolTip="Forward" Margin="0,0,5,0" x:Name="GoForwardButton"/>
+                <Button Command="{x:Static NavigationCommands.Refresh}" ToolTip="Reload" Margin="0,0,5,0"/>
+                <Button Command="{x:Static NavigationCommands.GoToPage}" ToolTip="Home" Margin="0,0,5,0"/>
+
+                <TextBox x:Name="AddressBar"
+                         Text="{Binding SelectedTabItem.Url, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         KeyDown="AddressBar_KeyDown"
+                         VerticalContentAlignment="Center"
+                         HorizontalAlignment="Stretch"
+                         Margin="5,0"
+                         ContextMenu="{StaticResource AddressBarContextMenu}"
+                         TextWrapping="Wrap"
+                         AcceptsReturn="False"
+                         ScrollViewer.CanContentScroll="True"
+                         VerticalScrollBarVisibility="Auto"
+                         HorizontalScrollBarVisibility="Auto">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                            <Setter Property="Width" Value="*"/> <Style.Triggers>
+                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=StackPanel}, Path=Orientation}" Value="Horizontal">
+                                    <Setter Property="Width" Value="*"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
+                <Button Command="{x:Static NavigationCommands.Search}" ToolTip="Go" Margin="5,0,0,0"/>
+
+                <Button x:Name="FindButton" Click="FindButton_Click" ToolTip="Find in page" Margin="5,0,0,0">
+                    <Image Source="/Icons/find.png" Width="20" Height="20"/>
+                </Button>
+                <Button x:Name="GeminiButton" Click="GeminiButton_Click" ToolTip="Ask Gemini" Margin="5,0,0,0">
+                    <Image Source="/Icons/ai.png" Width="20" Height="20"/>
+                </Button>
+                <Button x:Name="PipButton" Click="PipButton_Click" ToolTip="Picture-in-Picture" Margin="5,0,0,0">
+                    <Image Source="/Icons/pip.png" Width="20" Height="20"/>
+                </Button>
+                <Button x:Name="ReadAloudButton" Click="ReadAloudButton_Click" ToolTip="Read aloud" Margin="5,0,0,0">
+                    <Image Source="/Icons/read_aloud.png" Width="20" Height="20"/>
+                </Button>
+                <Button x:Name="ReaderModeButton" Click="ReaderModeButton_Click" ToolTip="Reader mode" Margin="5,0,0,0">
+                    <Image Source="/Icons/reader.png" Width="20" Height="20"/>
+                </Button>
+                <Button x:Name="IncognitoButton" Click="IncognitoButton_Click" ToolTip="Incognito mode" Margin="5,0,0,0">
+                    <Image Source="/Icons/incognito.png" Width="20" Height="20"/>
+                </Button>
+                <Button x:Name="HistoryButton" Click="HistoryButton_Click" ToolTip="History" Margin="5,0,0,0">
+                    <Image Source="/Icons/history.png" Width="20" Height="20"/>
+                </Button>
+                <Button x:Name="BookmarksButton" Click="BookmarksButton_Click" ToolTip="Bookmarks" Margin="5,0,0,0">
+                    <Image Source="/Icons/bookmarks.png" Width="20" Height="20"/>
+                </Button>
+                <Button x:Name="PasswordManagerButton" Click="PasswordManagerButton_Click" ToolTip="Passwords" Margin="5,0,0,0">
+                    <Image Source="/Icons/password.png" Width="20" Height="20"/>
+                </Button>
+                <Button x:Name="DataExtractionButton" Click="DataExtractionButton_Click" ToolTip="Data Extraction" Margin="5,0,0,0">
+                    <Image Source="/Icons/data_extraction.png" Width="20" Height="20"/>
+                </Button>
+                <Button x:Name="ExtensionsButton" ToolTip="Extensions" Margin="5,0,0,0" >
+                    <Button.Content>
+                        <Image Source="/Icons/extensions.png" Width="20" Height="20"/>
+                    </Button.Content>
+                    <Button.ContextMenu>
+                        <ContextMenu x:Name="ExtensionsMenuItem" ItemsSource="{Binding ExtensionManager.Extensions}">
+                            <ContextMenu.ItemTemplate>
+                                <DataTemplate>
+                                    <MenuItem Header="{Binding Name}" IsCheckable="True" IsChecked="{Binding IsEnabled}" Click="ExtensionMenuItem_Click" Tag="{Binding}"/>
+                                </DataTemplate>
+                            </ContextMenu.ItemTemplate>
+                            <MenuItem Header="Manage Extensions..." Click="ManageExtensionsButton_Click"/>
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                </Button>
+                <Button x:Name="SettingsButton" Click="SettingsButton_Click" ToolTip="Settings" Margin="5,0,0,0">
+                    <Image Source="/Icons/settings.png" Width="20" Height="20"/>
+                </Button>
+            </StackPanel>
+
+            <Border x:Name="FindBar"
+                    Grid.Row="2"
+                    Visibility="{Binding IsFindBarVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    Background="{DynamicResource BrowserBackgroundBrush}"
+                    BorderBrush="{DynamicResource BrowserForegroundColor}"
+                    BorderThickness="0,1,0,1"
+                    Margin="0,0,0,5"
+                    Padding="5">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <TextBlock Text="Find:" VerticalAlignment="Center" Margin="0,0,5,0"
+                               Foreground="{DynamicResource BrowserForegroundColor}"/>
+                    <TextBox x:Name="FindTextBox"
+                             Width="200"
+                             VerticalContentAlignment="Center"
+                             KeyDown="FindTextBox_KeyDown"
+                             TextChanged="FindTextBox_TextChanged"
+                             Margin="0,0,5,0"/>
+                    <TextBlock x:Name="FindResultsTextBlock"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"
+                               Foreground="{DynamicResource BrowserForegroundColor}"/>
+                    <Button Content="▲"
+                            Click="FindPreviousButton_Click"
+                            Margin="0,0,2,0"
+                            ToolTip="Find previous"/>
+                    <Button Content="▼"
+                            Click="FindNextButton_Click"
+                            Margin="0,0,5,0"
+                            ToolTip="Find next"/>
+                    <Button Content="✖"
+                            Click="CloseFindBarButton_Click"
+                            ToolTip="Close search"/>
+                </StackPanel>
+            </Border>
+
+            <TabControl x:Name="BrowserTabs"
+                        Grid.Row="3" Grid.Column="0"
+                        ItemsSource="{Binding TabGroupManager.SelectedTabGroup.TabsInGroup}"
+                        SelectedItem="{Binding SelectedTabItem, Mode=TwoWay}"
+                        SelectionChanged="BrowserTabControl_SelectionChanged_Grouped"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                        ItemContainerStyle="{StaticResource TabItemStyle}"
+                        ItemTemplate="{StaticResource TabHeaderTemplate}">
+            </TabControl>
+
+            <ProgressBar Grid.Row="4"
+                         Height="5"
+                         Value="{Binding DownloadProgress}"
+                         Visibility="{Binding DownloadProgressBarVisibility}"
+                         Background="#333" Foreground="#007bff"
+                         BorderThickness="0"
+                         Margin="0,0,0,0"
+                         VerticalAlignment="Bottom"/>
+        </Grid>
+    </Border>
+</Window>
