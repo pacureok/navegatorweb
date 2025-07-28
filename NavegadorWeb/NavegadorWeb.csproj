@@ -21,7 +21,7 @@
   <ItemGroup>
     <Page Include="App.xaml" />
     <Page Include="MainWindow.xaml" />
-  </ItemGroup>
+    <Page Include="Windows\SettingsWindow.xaml" /> </ItemGroup>
 
   <ItemGroup>
     <Content Include="Icons\app.ico"> 
