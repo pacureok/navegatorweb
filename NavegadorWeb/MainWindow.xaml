@@ -169,7 +169,7 @@
 
         <DataTemplate x:Key="TabContentTemplate">
             <wv2:WebView2 Source="{Binding CurrentUrl}" x:Name="BrowserWebView" />
-            </DataTemplate>
+        </DataTemplate>
 
         <DataTemplate x:Key="TabHeaderTemplate">
             <StackPanel Orientation="Horizontal" Tag="{Binding}">
@@ -264,7 +264,7 @@
             <Border x:Name="FindBar"
                     Grid.Row="2" Grid.Column="0"
                     Visibility="Collapsed"
-                    BorderBrush="{StaticResource DefaultBrowserForegroundBrush}"
+                    BorderBrush="{StaticResource DefaultBrowserForegroundColor}"
                     BorderThickness="1"
                     CornerRadius="5"
                     Margin="5" Padding="5"
@@ -275,7 +275,8 @@
                              Margin="0,0,5,0"
                              TextChanged="FindTextBox_TextChanged"
                              KeyDown="FindTextBox_KeyDown"
-                             Style="{StaticResource AddressBarTextBoxStyle}"/> <Button Content="▲"
+                             Style="{StaticResource AddressBarTextBoxStyle}"/>
+                    <Button Content="▲"
                             Click="FindPreviousButton_Click"
                             Margin="0,0,5,0"
                             ToolTip="Find previous"
@@ -299,9 +300,8 @@
                         SelectionChanged="BrowserTabControl_SelectionChanged_Grouped"
                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                         ItemContainerStyle="{StaticResource TabItemStyle}"
-                        ContentTemplate="{StaticResource TabContentTemplate}"
-                        Margin="0,5,0,0">
-                </TabControl>
+                        ContentTemplate="{StaticResource TabContentTemplate}"  Margin="0,5,0,0">
+            </TabControl>
 
             <ProgressBar Grid.Row="4"
                          Height="5"
