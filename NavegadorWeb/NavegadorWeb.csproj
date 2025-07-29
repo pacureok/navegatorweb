@@ -6,34 +6,28 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <ApplicationIcon>Icons\app.ico</ApplicationIcon> 
+    <!-- Ruta del icono de la aplicación, asumiendo que icono.ico está en la carpeta Icons -->
+    <ApplicationIcon>Icons\icono.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Paquetes NuGet -->
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
     <PackageReference Include="System.Speech" Version="8.0.0" />
+    <!-- Versión segura de System.Text.Json (actualizada para evitar vulnerabilidades) -->
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.61" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Icons\app.ico"> 
+    <!-- Incluir todos los archivos .ico y .png de la carpeta 'Icons' y copiarlos al directorio de salida -->
+    <!-- Esto asegura que los iconos estén disponibles en tiempo de ejecución -->
+    <Content Include="Icons\*.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Icons\*.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Icons\*.ico">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Icons\back.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\forward.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\refresh.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\home.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\new_tab.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\history.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\settings.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\find.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
   </ItemGroup>
 
 </Project>
