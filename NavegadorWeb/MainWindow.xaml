@@ -16,11 +16,14 @@
         StateChanged="Window_StateChanged">
 
     <Window.Resources>
-        <Color x:Key="DefaultBrowserBackgroundColor">#282c34</Color> <SolidColorBrush x:Key="DefaultBrowserBackgroundBrush" Color="{StaticResource DefaultBrowserBackgroundColor}"/>
+        <Color x:Key="DefaultBrowserBackgroundColor">#282c34</Color>
+        <SolidColorBrush x:Key="DefaultBrowserBackgroundBrush" Color="{StaticResource DefaultBrowserBackgroundColor}"/>
 
-        <Color x:Key="DefaultBrowserForegroundColor">#abb2bf</Color> <SolidColorBrush x:Key="DefaultBrowserForegroundBrush" Color="{StaticResource DefaultBrowserForegroundColor}"/>
+        <Color x:Key="DefaultBrowserForegroundColor">#abb2bf</Color>
+        <SolidColorBrush x:Key="DefaultBrowserForegroundBrush" Color="{StaticResource DefaultBrowserForegroundColor}"/>
 
-        <Color x:Key="GeminiBackgroundColor">#343a40</Color> <SolidColorBrush x:Key="GeminiBackgroundBrush" Color="{StaticResource GeminiBackgroundColor}"/>
+        <Color x:Key="GeminiBackgroundColor">#343a40</Color>
+        <SolidColorBrush x:Key="GeminiBackgroundBrush" Color="{StaticResource GeminiBackgroundColor}"/>
 
         <Style x:Key="NavigationButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
@@ -43,9 +46,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#444a54"/> </Trigger>
+                                <Setter Property="Background" Value="#444a54"/>
+                            </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#555c66"/> </Trigger>
+                                <Setter Property="Background" Value="#555c66"/>
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -53,7 +58,8 @@
         </Style>
 
         <Style x:Key="AddressBarTextBoxStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="#3d424b"/> <Setter Property="Foreground" Value="{StaticResource DefaultBrowserForegroundColor}"/>
+            <Setter Property="Background" Value="#3d424b"/>
+            <Setter Property="Foreground" Value="{StaticResource DefaultBrowserForegroundColor}"/>
             <Setter Property="BorderBrush" Value="#555c66"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="5,2,5,2"/>
@@ -66,11 +72,13 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="15"> <ScrollViewer x:Name="PART_ContentHost" Focusable="False" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                                CornerRadius="15">
+                            <ScrollViewer x:Name="PART_ContentHost" Focusable="False" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="#007bff"/> </Trigger>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#007bff"/>
+                            </Trigger>
                             <Trigger Property="IsFocused" Value="True">
                                 <Setter TargetName="border" Property="BorderBrush" Value="#007bff"/>
                                 <Setter TargetName="border" Property="BorderThickness" Value="2"/>
@@ -188,7 +196,12 @@
 
         <Grid x:Name="MainGrid">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> <RowDefinition Height="*"/>   <RowDefinition Height="Auto"/> </Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
@@ -215,7 +228,11 @@
 
             <Grid Grid.Row="1" Margin="0,5,0,5">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="*"/>   <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="Auto"/> </Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,5,0">
                     <Button x:Name="BackButton" Click="BackButton_Click" ToolTip="Go Back" Style="{StaticResource NavigationButtonStyle}">
@@ -258,7 +275,7 @@
                     <Button x:Name="FindButton" Click="FindButton_Click" ToolTip="Find in page" Style="{StaticResource NavigationButtonStyle}">
                         <Image Source="/Icons/find.png" Width="20" Height="20"/>
                     </Button>
-                    </StackPanel>
+                </StackPanel>
             </Grid>
 
             <Border x:Name="FindBar"
@@ -301,7 +318,8 @@
                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                         ItemContainerStyle="{StaticResource TabItemStyle}"
                         ItemTemplate="{StaticResource TabHeaderTemplate}"
-                        ContentTemplate="{StaticResource TabContentTemplate}">  </TabControl>
+                        ContentTemplate="{StaticResource TabContentTemplate}">
+            </TabControl>
 
             <ProgressBar Grid.Row="4"
                          Height="5"
