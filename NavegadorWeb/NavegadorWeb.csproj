@@ -7,22 +7,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Icons\app.ico</ApplicationIcon> 
-    <!--
-      Se han ELIMINADO las siguientes líneas para habilitar el modelo de inclusión implícita del SDK:
-      <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-      <EnableDefaultPageItems>false</EnableDefaultPageItems>
-      Esto significa que el SDK ahora incluirá automáticamente todos los archivos .cs y .xaml
-      (excepto los que estén explícitamente excluidos en otros ItemGroup si los tuvieras).
-    -->
-  </PropertyGroup>
+    </PropertyGroup>
 
-  <!--
-    IMPORTANTE: Todos los <ItemGroup> que listaban manualmente App.xaml.cs, MainWindow.xaml.cs,
-    App.xaml y MainWindow.xaml han sido eliminados.
-    El SDK los incluye automáticamente.
-  -->
-
-  <!-- Iconos y otros assets -->
   <ItemGroup>
     <Content Include="Icons\app.ico"> 
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -33,8 +19,6 @@
     <Content Include="Icons\*.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <!-- Asegúrate de que 'back.png', 'forward.png', etc. estén en la carpeta Icons si los usas en MainWindow.xaml -->
-    <!-- Ejemplo explícito para algunos iconos usados en MainWindow.xaml: -->
     <Content Include="Icons\back.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
     <Content Include="Icons\forward.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
     <Content Include="Icons\refresh.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
@@ -45,7 +29,6 @@
     <Content Include="Icons\find.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
   </ItemGroup>
 
-  <!-- Tus referencias NuGet -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
     <PackageReference Include="System.Speech" Version="8.0.0" />
