@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Controls; // Necesario para TextChangedEventArgs y SelectionChangedEventArgs
-// using NavegadorWeb.Windows; // Descomenta esta línea si realmente tienes una SettingsWindow en la carpeta 'Windows'
+using NavegadorWeb.Windows; // Asegúrate de que este using esté si tienes SettingsWindow en la carpeta Windows
 
 namespace NavegadorWeb
 {
@@ -15,16 +15,21 @@ namespace NavegadorWeb
             // ESTA ES LA ÚNICA LÍNEA InitializeComponent() que debe existir.
             // NO definas el cuerpo de este método aquí. WPF lo genera automáticamente.
             InitializeComponent();
+
+            // Aquí puedes establecer el DataContext, por ejemplo:
+            // this.DataContext = new MainViewModel();
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             // Lógica que se ejecuta una vez que la ventana y su contenido han sido cargados.
+            // Por ejemplo, podrías inicializar la primera pestaña o navegar a una URL predeterminada.
         }
 
         private void Window_Closing(object sender, CancelEventArgs e)
         {
             // Lógica para manejar el cierre de la ventana.
+            // Aquí podrías guardar el estado de la sesión, confirmar con el usuario, etc.
         }
 
         private void MainWindow_SourceInitialized(object sender, EventArgs e)
@@ -34,124 +39,107 @@ namespace NavegadorWeb
 
         private void Window_StateChanged(object sender, EventArgs e)
         {
-            // Lógica para manejar los cambios de estado de la ventana (minimizada, maximizada, normal).
-            // Actualiza el icono del botón maximizar/restaurar.
-            if (this.WindowState == WindowState.Maximized)
-            {
-                MaximizeRestoreButton.Content = "❐"; // Icono de restaurar
-            }
-            else
-            {
-                MaximizeRestoreButton.Content = "⬜"; // Icono de maximizar
-            }
+            // Lógica para manejar los cambios de estado de la ventana (minimizada, maximizada, restaurada).
         }
 
-        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void MainBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // Permite arrastrar la ventana cuando se hace clic en la barra de título.
-            if (e.ClickCount == 2) // Doble clic para maximizar/restaurar
-            {
-                MaximizeRestoreButton_Click(sender, e);
-            }
-            else // Un solo clic para arrastrar
-            {
-                DragMove();
-            }
+            // Permite arrastrar la ventana desde el borde.
+            DragMove();
+        }
+
+        private void TitleBarGrid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // Permite arrastrar la ventana desde la barra de título.
+            DragMove();
         }
 
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
-            this.WindowState = WindowState.Minimized;
+            WindowState = WindowState.Minimized;
         }
 
         private void MaximizeRestoreButton_Click(object sender, RoutedEventArgs e)
         {
-            if (this.WindowState == WindowState.Maximized)
+            if (WindowState == WindowState.Maximized)
             {
-                this.WindowState = WindowState.Normal;
+                WindowState = WindowState.Normal;
             }
             else
             {
-                this.WindowState = WindowState.Maximized;
+                WindowState = WindowState.Maximized;
             }
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            this.Close();
-        }
-
-        private void BackButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Botón 'Atrás' presionado.");
-            // Lógica para ir atrás en el navegador actual
-            // (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.GoBack();
-        }
-
-        private void ForwardButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Botón 'Adelante' presionado.");
-            // Lógica para ir adelante en el navegador actual
-            // (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.GoForward();
-        }
-
-        private void RefreshButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Botón 'Recargar' presionado.");
-            // Lógica para recargar la página actual
-            // (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.Reload();
+            Close();
         }
 
         private void AddressBar_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
-                MessageBox.Show($"Navegando a: {AddressBar.Text}");
-                // Lógica para navegar a la URL ingresada en la barra de direcciones
-                // (this.DataContext as MainViewModel)?.Navigate(AddressBar.Text);
+                // Aquí deberías tener la lógica para navegar a la URL ingresada en AddressBar.Text.
+                // Por ejemplo: (this.DataContext as MainViewModel)?.Navigate(AddressBar.Text);
             }
+        }
+
+        private void AddressBar_GotFocus(object sender, RoutedEventArgs e)
+        {
+            // Selecciona todo el texto en la barra de direcciones cuando se enfoca.
+            AddressBar.SelectAll();
+        }
+
+        private void AddressBar_LostFocus(object sender, RoutedEventArgs e)
+        {
+            // Deselecciona el texto cuando pierde el foco.
+            AddressBar.Select(0, 0);
+        }
+
+        private void BackButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para navegar hacia atrás en el historial del WebView2 actual.
+            // Por ejemplo: (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.GoBack();
+        }
+
+        private void ForwardButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para navegar hacia adelante en el historial del WebView2 actual.
+            // Por ejemplo: (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.GoForward();
+        }
+
+        private void RefreshButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para recargar la página actual en el WebView2 actual.
+            // Por ejemplo: (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.Reload();
         }
 
         private void HomeButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Botón 'Inicio' presionado.");
-            // Lógica para ir a la página de inicio predeterminada
-            // (this.DataContext as MainViewModel)?.Navigate("about:blank"); // Ejemplo
+            // Lógica para navegar a la página de inicio.
+            // Por ejemplo: (this.DataContext as MainViewModel)?.Navigate("about:blank");
         }
 
         private void NewTabButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Botón 'Nueva Pestaña' presionado.");
-            // Lógica para abrir una nueva pestaña
-            // (this.DataContext as MainViewModel)?.AddNewTab();
-        }
-
-        private void SettingsButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Botón 'Configuración' presionado.");
-            // Lógica para abrir la ventana de configuración.
-            // new SettingsWindow().ShowDialog(); // Descomenta si tienes SettingsWindow
-        }
-
-        private void ShowFindBarButton_Click(object sender, RoutedEventArgs e)
-        {
-            FindBar.Visibility = Visibility.Visible;
-            MessageBox.Show("Botón 'Buscar en página' presionado.");
-        }
-
-        private void FindTextBox_KeyDown(object sender, KeyEventArgs e)
-        {
-            // Lógica para buscar texto en la página
-            // if (e.Key == Key.Enter)
-            // {
-            //     (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.Find(FindTextBox.Text);
-            // }
+            // Lógica para crear una nueva pestaña.
+            // Por ejemplo: (this.DataContext as MainViewModel)?.TabGroupManager.SelectedTabGroup.AddNewTab();
         }
 
         private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            // Lógica para buscar texto en la página mientras el usuario escribe
+            // Lógica para buscar texto en la página actual.
             // (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.Find(FindTextBox.Text);
+        }
+
+        private void FindTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                // Lógica para iniciar la búsqueda cuando se presiona Enter.
+                // (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.Find(FindTextBox.Text);
+            }
         }
 
         private void FindPreviousButton_Click(object sender, RoutedEventArgs e)
@@ -172,116 +160,43 @@ namespace NavegadorWeb
             // (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.ClearFindResult();
         }
 
+        // Método para el botón de historial (asegúrate de que este método exista si tienes el botón en XAML)
+        private void HistoryButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para abrir la ventana o panel de historial
+            MessageBox.Show("Abrir historial de navegación.");
+            // new HistoryWindow().ShowDialog(); // Si tienes una ventana de historial
+        }
+
+        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para abrir la ventana de configuración.
+            // Asegúrate de que 'SettingsWindow' exista como una clase en tu proyecto.
+            // new SettingsWindow().ShowDialog();
+        }
+
+        // CORRECCIÓN IMPORTANTE: El tipo de evento para SelectionChanged es SelectionChangedEventArgs
         private void BrowserTabControl_SelectionChanged_Grouped(object sender, SelectionChangedEventArgs e)
         {
             // Lógica para manejar el cambio de selección de pestaña.
+            // Esto debería actualizar la barra de direcciones y otros elementos de UI
+            // para reflejar la pestaña seleccionada actualmente.
+            // Puedes acceder a la pestaña seleccionada a través de BrowserTabs.SelectedItem
+            // o de las propiedades e.AddedItems y e.RemovedItems.
         }
 
         private void CloseTabButton_Click(object sender, RoutedEventArgs e)
         {
+            // Lógica para cerrar una pestaña específica.
+            // El 'Tag' del botón en XAML está configurado para pasar el objeto 'TabItemData'
+            // de la pestaña que se está cerrando.
             Button closeButton = sender as Button;
-            if (closeButton != null && closeButton.Tag is object tabToClose) 
+            if (closeButton != null && closeButton.Tag is object tabToClose) // Cambia 'object' por tu tipo de datos de pestaña, por ejemplo 'TabItemData'
             {
                 // Aquí debes tener la lógica para remover 'tabToClose' de la colección
-                // a la que está enlazado 'BrowserTabs.ItemsSource'.
+                // a la que está enlazado 'BrowserTabs.ItemsSource' (ej. TabGroupManager.SelectedTabGroup.TabsInGroup).
+                // Por ejemplo: (this.DataContext as MainViewModel)?.TabGroupManager.SelectedTabGroup.TabsInGroup.Remove(tabToClose);
             }
-        }
-
-        // MANEJADORES DE EVENTOS PARA LOS NUEVOS BOTONES CON IMAGEN
-        private void AIButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Botón 'Asistente IA' presionado.");
-            // Lógica para el asistente de IA
-        }
-
-        private void PipButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Botón 'Picture-in-Picture' presionado.");
-            // Lógica para Picture-in-Picture
-        }
-
-        private void ReadAloudButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Botón 'Leer en voz alta' presionado.");
-            // Lógica para lectura en voz alta
-        }
-
-        private void ReaderModeButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Botón 'Modo Lector' presionado.");
-            // Lógica para modo lector
-        }
-
-        private void IncognitoButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Botón 'Modo Incógnito' presionado.");
-            // Lógica para modo incógnito
-        }
-
-        private void HistoryButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Botón 'Historial' presionado.");
-            // Lógica para historial
-        }
-
-        private void BookmarksButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Botón 'Marcadores' presionado.");
-            // Lógica para marcadores
-        }
-
-        private void PasswordManagerButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Botón 'Administrador de Contraseñas' presionado.");
-            // Lógica para administrador de contraseñas
-        }
-
-        private void DataExtractionButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Botón 'Extracción de Datos' presionado.");
-            // Lógica para extracción de datos
-        }
-
-        private void ExtensionsButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Botón 'Extensiones' presionado.");
-            // Lógica para extensiones
-        }
-
-        private void DownloadButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Botón 'Descargas' presionado.");
-            // Lógica para descargas
-        }
-
-        private void SplitButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Botón 'Vista Dividida' presionado.");
-            // Lógica para vista dividida
-        }
-
-        private void PerformanceButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Botón 'Monitor de Rendimiento' presionado.");
-            // Lógica para monitor de rendimiento
-        }
-
-        private void PermissionsButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Botón 'Permisos' presionado.");
-            // Lógica para permisos
-        }
-
-        private void ScreenshotButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Botón 'Captura de Pantalla' presionado.");
-            // Lógica para captura de pantalla
-        }
-
-        private void TabManagerButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Botón 'Administrador de Pestañas' presionado.");
-            // Lógica para administrador de pestañas
         }
     }
 }
