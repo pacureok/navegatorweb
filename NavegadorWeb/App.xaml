@@ -2,8 +2,6 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="MainWindow.xaml">
-    <Application.Resources>
-        <!-- Aquí puedes añadir recursos a nivel de aplicación si es necesario,
-             pero para este proyecto, la mayoría de los recursos están en MainWindow.xaml -->
+  <Application.Resources>
     </Application.Resources>
 </Application>
