@@ -199,7 +199,7 @@
                         ToolTip="Close tab"/>
             </Grid>
         </DataTemplate>
-        
+
     </Window.Resources>
 
     <Border x:Name="MainBorder" Background="{StaticResource DefaultBrowserBackgroundBrush}" BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1" CornerRadius="5">
