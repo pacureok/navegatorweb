@@ -10,6 +10,11 @@ namespace NavegadorWeb
     // 'partial' es CLAVE. Significa que hay otra parte de esta clase (generada por WPF a partir del XAML).
     public partial class MainWindow : Window
     {
+        // NO declares aquí campos para los elementos de UI que tienen un 'x:Name' en tu XAML.
+        // WPF los genera automáticamente como miembros protegidos si la Acción de Compilación es 'Page'.
+        // Por ejemplo, NO hagas esto: public TextBox AddressBar;
+        // Simplemente usa directamente el nombre (ej. AddressBar.Text = ...).
+
         public MainWindow()
         {
             // ESTA ES LA ÚNICA LÍNEA InitializeComponent() que debe existir.
@@ -44,92 +49,115 @@ namespace NavegadorWeb
 
         private void MainBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // Permite arrastrar la ventana desde el borde.
-            DragMove();
+            // Lógica para arrastrar la ventana sin borde.
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                this.DragMove();
+            }
         }
 
         private void TitleBarGrid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // Permite arrastrar la ventana desde la barra de título.
-            DragMove();
+            // Lógica para arrastrar la ventana desde la barra de título.
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                this.DragMove();
+            }
         }
 
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
-            WindowState = WindowState.Minimized;
+            this.WindowState = WindowState.Minimized;
         }
 
         private void MaximizeRestoreButton_Click(object sender, RoutedEventArgs e)
         {
-            if (WindowState == WindowState.Maximized)
+            if (this.WindowState == WindowState.Maximized)
             {
-                WindowState = WindowState.Normal;
+                this.WindowState = WindowState.Normal;
             }
             else
             {
-                WindowState = WindowState.Maximized;
+                this.WindowState = WindowState.Maximized;
             }
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            Close();
+            this.Close();
+        }
+
+        private void BackButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para ir hacia atrás en el historial de navegación de la pestaña actual.
+            // (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.GoBack();
+        }
+
+        private void ForwardButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para ir hacia adelante en el historial de navegación de la pestaña actual.
+            // (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.GoForward();
+        }
+
+        private void RefreshButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para recargar la página actual en la pestaña actual.
+            // (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.Reload();
+        }
+
+        private void HomeButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para ir a la página de inicio predeterminada en la pestaña actual.
+            // (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.CoreWebView2.Navigate("about:blank"); // O una URL real
         }
 
         private void AddressBar_KeyDown(object sender, KeyEventArgs e)
         {
+            // Lógica para navegar cuando se presiona Enter en la barra de direcciones.
             if (e.Key == Key.Enter)
             {
-                // Aquí deberías tener la lógica para navegar a la URL ingresada en AddressBar.Text.
-                // Por ejemplo: (this.DataContext as MainViewModel)?.Navigate(AddressBar.Text);
+                // string url = AddressBar.Text;
+                // if (!url.StartsWith("http://") && !url.StartsWith("https://"))
+                // {
+                //     url = "http://" + url; // Añadir http:// si no está presente
+                // }
+                // (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.CoreWebView2.Navigate(url);
             }
         }
 
         private void AddressBar_GotFocus(object sender, RoutedEventArgs e)
         {
-            // Selecciona todo el texto en la barra de direcciones cuando se enfoca.
             AddressBar.SelectAll();
         }
 
         private void AddressBar_LostFocus(object sender, RoutedEventArgs e)
         {
-            // Deselecciona el texto cuando pierde el foco.
-            AddressBar.Select(0, 0);
-        }
-
-        private void BackButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Lógica para navegar hacia atrás en el historial del WebView2 actual.
-            // Por ejemplo: (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.GoBack();
-        }
-
-        private void ForwardButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Lógica para navegar hacia adelante en el historial del WebView2 actual.
-            // Por ejemplo: (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.GoForward();
-        }
-
-        private void RefreshButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Lógica para recargar la página actual en el WebView2 actual.
-            // Por ejemplo: (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.Reload();
-        }
-
-        private void HomeButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Lógica para navegar a la página de inicio.
-            // Por ejemplo: (this.DataContext as MainViewModel)?.Navigate("about:blank");
+            // Puedes añadir lógica aquí si necesitas hacer algo cuando la barra pierde el foco.
         }
 
         private void NewTabButton_Click(object sender, RoutedEventArgs e)
         {
             // Lógica para crear una nueva pestaña.
-            // Por ejemplo: (this.DataContext as MainViewModel)?.TabGroupManager.SelectedTabGroup.AddNewTab();
+            // (this.DataContext as MainViewModel)?.TabGroupManager.SelectedTabGroup.AddNewTab();
         }
 
+        private void HistoryButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para abrir una ventana o panel de historial.
+            // Por ejemplo: new HistoryWindow().ShowDialog();
+        }
+
+        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Lógica para abrir la ventana de configuración.
+            // Asegúrate de que 'SettingsWindow' exista como una clase en tu proyecto.
+            // new SettingsWindow().ShowDialog();
+        }
+
+        // Métodos para la barra de búsqueda (Find Bar)
         private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            // Lógica para buscar texto en la página actual.
+            // Lógica para iniciar la búsqueda a medida que se escribe.
             // (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.Find(FindTextBox.Text);
         }
 
@@ -137,8 +165,7 @@ namespace NavegadorWeb
         {
             if (e.Key == Key.Enter)
             {
-                // Lógica para iniciar la búsqueda cuando se presiona Enter.
-                // (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.Find(FindTextBox.Text);
+                // (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.FindNext(FindTextBox.Text);
             }
         }
 
@@ -158,21 +185,6 @@ namespace NavegadorWeb
         {
             FindBar.Visibility = Visibility.Collapsed;
             // (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.ClearFindResult();
-        }
-
-        // Método para el botón de historial (asegúrate de que este método exista si tienes el botón en XAML)
-        private void HistoryButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Lógica para abrir la ventana o panel de historial
-            MessageBox.Show("Abrir historial de navegación.");
-            // new HistoryWindow().ShowDialog(); // Si tienes una ventana de historial
-        }
-
-        private void SettingsButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Lógica para abrir la ventana de configuración.
-            // Asegúrate de que 'SettingsWindow' exista como una clase en tu proyecto.
-            // new SettingsWindow().ShowDialog();
         }
 
         // CORRECCIÓN IMPORTANTE: El tipo de evento para SelectionChanged es SelectionChangedEventArgs
