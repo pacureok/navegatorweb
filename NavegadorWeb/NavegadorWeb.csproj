@@ -6,25 +6,21 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <ApplicationIcon>Icons\app.ico</ApplicationIcon> 
-
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <EnableDefaultPageItems>false</EnableDefaultPageItems>
+    <ApplicationIcon>Icons\app.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="App.xaml.cs" />
-    <Compile Include="MainWindow.xaml.cs" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
+    <PackageReference Include="System.Speech" Version="8.0.0" />
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.61" /> </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="Services\**\*.cs" />
     </ItemGroup>
 
   <ItemGroup>
-    <Page Include="App.xaml" />
-    <Page Include="MainWindow.xaml" />
-    </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="Icons\app.ico"> 
+    <Content Include="Icons\app.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Icons\*.png">
@@ -35,10 +31,4 @@
     </Content>
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
-    <PackageReference Include="System.Speech" Version="8.0.0" />
-    <PackageReference Include="System.Text.Json" Version="9.0.0" /> 
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.61" /> </ItemGroup>
-
-</Project>
+  </Project>
