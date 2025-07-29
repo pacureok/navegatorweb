@@ -83,18 +83,21 @@ namespace NavegadorWeb
 
         private void BackButton_Click(object sender, RoutedEventArgs e)
         {
+            MessageBox.Show("Botón 'Atrás' presionado.");
             // Lógica para ir atrás en el navegador actual
             // (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.GoBack();
         }
 
         private void ForwardButton_Click(object sender, RoutedEventArgs e)
         {
+            MessageBox.Show("Botón 'Adelante' presionado.");
             // Lógica para ir adelante en el navegador actual
             // (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.GoForward();
         }
 
         private void RefreshButton_Click(object sender, RoutedEventArgs e)
         {
+            MessageBox.Show("Botón 'Recargar' presionado.");
             // Lógica para recargar la página actual
             // (this.BrowserTabs.SelectedItem as TabItemData)?.WebView.Reload();
         }
@@ -103,6 +106,7 @@ namespace NavegadorWeb
         {
             if (e.Key == Key.Enter)
             {
+                MessageBox.Show($"Navegando a: {AddressBar.Text}");
                 // Lógica para navegar a la URL ingresada en la barra de direcciones
                 // (this.DataContext as MainViewModel)?.Navigate(AddressBar.Text);
             }
@@ -110,18 +114,21 @@ namespace NavegadorWeb
 
         private void HomeButton_Click(object sender, RoutedEventArgs e)
         {
+            MessageBox.Show("Botón 'Inicio' presionado.");
             // Lógica para ir a la página de inicio predeterminada
             // (this.DataContext as MainViewModel)?.Navigate("about:blank"); // Ejemplo
         }
 
         private void NewTabButton_Click(object sender, RoutedEventArgs e)
         {
+            MessageBox.Show("Botón 'Nueva Pestaña' presionado.");
             // Lógica para abrir una nueva pestaña
             // (this.DataContext as MainViewModel)?.AddNewTab();
         }
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
+            MessageBox.Show("Botón 'Configuración' presionado.");
             // Lógica para abrir la ventana de configuración.
             // new SettingsWindow().ShowDialog(); // Descomenta si tienes SettingsWindow
         }
@@ -129,6 +136,7 @@ namespace NavegadorWeb
         private void ShowFindBarButton_Click(object sender, RoutedEventArgs e)
         {
             FindBar.Visibility = Visibility.Visible;
+            MessageBox.Show("Botón 'Buscar en página' presionado.");
         }
 
         private void FindTextBox_KeyDown(object sender, KeyEventArgs e)
@@ -172,19 +180,108 @@ namespace NavegadorWeb
         private void CloseTabButton_Click(object sender, RoutedEventArgs e)
         {
             Button closeButton = sender as Button;
-            if (closeButton != null && closeButton.Tag is object tabToClose)
+            if (closeButton != null && closeButton.Tag is object tabToClose) 
             {
                 // Aquí debes tener la lógica para remover 'tabToClose' de la colección
                 // a la que está enlazado 'BrowserTabs.ItemsSource'.
             }
         }
 
-        // NUEVO: Manejador de eventos para el botón de IA
+        // MANEJADORES DE EVENTOS PARA LOS NUEVOS BOTONES CON IMAGEN
         private void AIButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("¡Botón de IA/Gemini presionado!");
-            // Aquí puedes añadir la lógica para abrir una nueva pestaña con tu IA,
-            // mostrar un panel lateral, etc.
+            MessageBox.Show("Botón 'Asistente IA' presionado.");
+            // Lógica para el asistente de IA
+        }
+
+        private void PipButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Botón 'Picture-in-Picture' presionado.");
+            // Lógica para Picture-in-Picture
+        }
+
+        private void ReadAloudButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Botón 'Leer en voz alta' presionado.");
+            // Lógica para lectura en voz alta
+        }
+
+        private void ReaderModeButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Botón 'Modo Lector' presionado.");
+            // Lógica para modo lector
+        }
+
+        private void IncognitoButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Botón 'Modo Incógnito' presionado.");
+            // Lógica para modo incógnito
+        }
+
+        private void HistoryButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Botón 'Historial' presionado.");
+            // Lógica para historial
+        }
+
+        private void BookmarksButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Botón 'Marcadores' presionado.");
+            // Lógica para marcadores
+        }
+
+        private void PasswordManagerButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Botón 'Administrador de Contraseñas' presionado.");
+            // Lógica para administrador de contraseñas
+        }
+
+        private void DataExtractionButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Botón 'Extracción de Datos' presionado.");
+            // Lógica para extracción de datos
+        }
+
+        private void ExtensionsButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Botón 'Extensiones' presionado.");
+            // Lógica para extensiones
+        }
+
+        private void DownloadButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Botón 'Descargas' presionado.");
+            // Lógica para descargas
+        }
+
+        private void SplitButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Botón 'Vista Dividida' presionado.");
+            // Lógica para vista dividida
+        }
+
+        private void PerformanceButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Botón 'Monitor de Rendimiento' presionado.");
+            // Lógica para monitor de rendimiento
+        }
+
+        private void PermissionsButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Botón 'Permisos' presionado.");
+            // Lógica para permisos
+        }
+
+        private void ScreenshotButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Botón 'Captura de Pantalla' presionado.");
+            // Lógica para captura de pantalla
+        }
+
+        private void TabManagerButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Botón 'Administrador de Pestañas' presionado.");
+            // Lógica para administrador de pestañas
         }
     }
 }
