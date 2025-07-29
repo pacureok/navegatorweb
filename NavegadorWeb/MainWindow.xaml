@@ -257,7 +257,7 @@
                 <Button Content="⌂" Style="{StaticResource BrowserButtonStyle}" Click="HomeButton_Click" Grid.Column="4"/>
                 <Button Content="+" Style="{StaticResource BrowserButtonStyle}" Click="NewTabButton_Click" Grid.Column="5"/>
                 <Button x:Name="SettingsButton" Content="⚙" Style="{StaticResource BrowserButtonStyle}" Click="SettingsButton_Click" Grid.Column="6"/>
-                <Button Content="🔍" Style="{StaticResource BrowserButtonStyle}" Click="FindBar.Visibility = Visibility.Visible;" Grid.Column="7"/>
+                <Button Content="🔍" Style="{StaticResource BrowserButtonStyle}" Click="ShowFindBarButton_Click" Grid.Column="7"/>
             </Grid>
 
             <Border x:Name="FindBar"
