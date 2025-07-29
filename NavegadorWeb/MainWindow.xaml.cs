@@ -10,6 +10,11 @@ namespace NavegadorWeb
     // 'partial' es CLAVE. Significa que hay otra parte de esta clase (generada por WPF a partir del XAML).
     public partial class MainWindow : Window
     {
+        // *** IMPORTANTE: NO DECLARAR AQUÍ CAMPOS PARA LOS ELEMENTOS DE UI QUE TIENEN UN 'x:Name' EN TU XAML. ***
+        // *** WPF LOS GENERA AUTOMÁTICAMENTE. LA DUPLICIDAD CAUSA LOS ERRORES CS0102. ***
+        // Por ejemplo, NO hagas esto: public TextBox AddressBar;
+        // Simplemente usa directamente el nombre (ej. AddressBar.Text = ...).
+
         public MainWindow()
         {
             // ESTA ES LA ÚNICA LÍNEA InitializeComponent() que debe existir.
