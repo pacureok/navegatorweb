@@ -6,26 +6,20 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <!-- Asegúrate de que 'app.ico' exista en la carpeta 'Icons' de tu proyecto. -->
     <ApplicationIcon>Icons\app.ico</ApplicationIcon> 
 
-    <!-- Estas en 'false' implican que DEBES listar explícitamente CADA ARCHIVO .cs y .xaml -->
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <EnableDefaultPageItems>false</EnableDefaultPageItems>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Archivos .cs a compilar. Añade aquí cualquier otro archivo .cs que tengas. -->
     <Compile Include="App.xaml.cs" />
     <Compile Include="MainWindow.xaml.cs" />
     <Compile Include="Services\**\*.cs" />
-    <!-- Si tienes una carpeta 'ViewModels' con archivos .cs, inclúyelos así: -->
-    <!-- <Compile Include="ViewModels\**\*.cs" /> -->
-    <!-- Y así sucesivamente para cualquier otra carpeta con código C# -->
-  </ItemGroup>
+    <Compile Include="Windows\SettingsWindow.xaml.cs" /> 
+    </ItemGroup>
 
   <ItemGroup>
-    <!-- Archivos .xaml a compilar como "Page". Añade aquí cualquier otra ventana o UserControl .xaml que tengas. -->
     <Page Include="App.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -34,15 +28,13 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <!-- Si tienes la ventana de configuración (SettingsWindow.xaml) en una subcarpeta 'Windows', la incluyes así: -->
-    <!-- <Page Include="Windows\SettingsWindow.xaml">
+    <Page Include="Windows\SettingsWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
-    </Page> -->
+    </Page>
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Referencias a paquetes NuGet. ASEGÚRATE de que estas sean las versiones que usas. -->
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
     <PackageReference Include="System.Speech" Version="8.0.0" />
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
@@ -50,8 +42,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- INCLUSIÓN EXPLÍCITA DE TODOS TUS ICONOS EN LA CARPETA 'Icons' -->
-    <!-- Asegúrate de que los nombres de archivo aquí coincidan exactamente con los nombres de tus archivos físicos en la carpeta Icons. -->
     <Content Include="Icons\add_bookmark.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
     <Content Include="Icons\ai.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
     <Content Include="Icons\app.ico"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
@@ -80,12 +70,9 @@
     <Content Include="Icons\split.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
     <Content Include="Icons\tab_manager.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
     <Content Include="Icons\tabs.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <!-- Asegúrate de que 'back.png' y 'forward.png' también estén si los usas en MainWindow.xaml -->
     <Content Include="Icons\back.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
     <Content Include="Icons\forward.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
     <Content Include="Icons\refresh.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
   </ItemGroup>
-
-  <!-- NOTA IMPORTANTE: Se han eliminado todas las etiquetas <None Remove> -->
 
 </Project>
