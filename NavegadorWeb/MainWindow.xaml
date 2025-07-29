@@ -60,8 +60,7 @@
             <Setter Property="Foreground" Value="{StaticResource DefaultBrowserForegroundBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="BorderBrush" Value="#454c57"/>
-            <Setter Property Property="Padding" Value="5"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="5"/>  <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
