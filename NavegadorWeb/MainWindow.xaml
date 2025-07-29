@@ -22,17 +22,16 @@
 
         <Color x:Key="GeminiBackgroundColor">#343a40</Color> <SolidColorBrush x:Key="GeminiBackgroundBrush" Color="{StaticResource GeminiBackgroundColor}"/>
 
-        <Color x:Key="GeminiControlBackgroundColor">#3a4049</Color> <SolidColorBrush x:Key="GeminiControlBackgroundBrush" Color="{StaticResource GeminiControlBackgroundColor}"/>
-
-        <Color x:Key="GeminiAccentColor">#007bff</Color> <SolidColorBrush x:Key="GeminiAccentBrush" Color="{StaticResource GeminiAccentColor}"/>
-
-        <Style TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource GeminiControlBackgroundBrush}"/>
-            <Setter Property="Foreground" Value="{StaticResource DefaultBrowserForegroundBrush}"/>
+        <Style x:Key="NavigationButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource DefaultBrowserForegroundColor}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="5"/>
-            <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Margin" Value="2"/>
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -44,10 +43,37 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#454c57"/>
-                            </Trigger>
+                                <Setter Property="Background" Value="#444a54"/> </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#2f343a"/>
+                                <Setter Property="Background" Value="#555c66"/> </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="AddressBarTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="#3d424b"/> <Setter Property="Foreground" Value="{StaticResource DefaultBrowserForegroundColor}"/>
+            <Setter Property="BorderBrush" Value="#555c66"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="5,2,5,2"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="15"> <ScrollViewer x:Name="PART_ContentHost" Focusable="False" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#007bff"/> </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#007bff"/>
+                                <Setter TargetName="border" Property="BorderThickness" Value="2"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -55,28 +81,7 @@
             </Setter>
         </Style>
 
-        <Style TargetType="TextBox">
-            <Setter Property="Background" Value="{StaticResource GeminiControlBackgroundBrush}"/>
-            <Setter Property="Foreground" Value="{StaticResource DefaultBrowserForegroundBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#454c57"/>
-            <Setter Property="Padding" Value="5"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="3">
-                            <ScrollViewer x:Name="PART_ContentHost"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="TabHeaderTemplate" TargetType="TabItem">
+        <Style x:Key="TabItemStyle" TargetType="TabItem">
             <Setter Property="HeaderTemplate">
                 <Setter.Value>
                     <DataTemplate>
@@ -86,67 +91,44 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <Image Source="{Binding IconSource}" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding Title}" VerticalAlignment="Center" Foreground="{StaticResource DefaultBrowserForegroundBrush}"/>
-                            <Button Grid.Column="2" Content="x" Command="{Binding CloseTabCommand}"
-                                    Width="16" Height="16"
-                                    Margin="5,0,0,0"
-                                    Background="Transparent"
-                                    Foreground="{StaticResource DefaultBrowserForegroundColor}"
-                                    BorderThickness="0"
-                                    ToolTip="Close tab"
-                                    VerticalAlignment="Center">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Background="{TemplateBinding Background}"
-                                                BorderBrush="{TemplateBinding BorderBrush}"
-                                                BorderThickness="{TemplateBinding BorderThickness}"
-                                                CornerRadius="3">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="#FF6060"/> </Trigger>
-                                            <Trigger Property="IsPressed" Value="True">
-                                                <Setter Property="Background" Value="#E55050"/> </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
+                            <Image Grid.Column="0" Source="{Binding FaviconSource}" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Title}" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{StaticResource DefaultBrowserForegroundColor}"/>
+                            <Button Grid.Column="2" Content="x"
+                                    Command="{Binding CloseTabCommand}"
+                                    Style="{StaticResource TabCloseButtonStyle}"/>
                         </Grid>
                     </DataTemplate>
                 </Setter.Value>
             </Setter>
-        </Style>
-
-        <Style x:Key="TabItemStyle" TargetType="{x:Type TabItem}">
-            <Setter Property="Background" Value="{StaticResource GeminiBackgroundColor}"/>
+            <Setter Property="Background" Value="{StaticResource GeminiBackgroundBrush}"/>
             <Setter Property="Foreground" Value="{StaticResource DefaultBrowserForegroundColor}"/>
-            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="BorderBrush" Value="{StaticResource GeminiBackgroundBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="10,5"/>
-            <Setter Property="Margin" Value="0,0,1,0"/>
+            <Setter Property="Margin" Value="0,0,2,0"/>
             <Setter Property="Template">
                 <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type TabItem}">
-                        <Border x:Name="Border"
-                                Background="{TemplateBinding Background}"
-                                BorderThickness="0"
-                                CornerRadius="4,4,0,0"
-                                Margin="0">
-                            <ContentPresenter x:Name="ContentSite"
-                                        VerticalAlignment="Center"
-                                        HorizontalAlignment="Center"
-                                        ContentSource="Header"
-                                        Margin="{TemplateBinding Padding}"
-                                        RecognizesAccessKey="True"/>
-                        </Border>
+                    <ControlTemplate TargetType="TabItem">
+                        <Grid SnapsToDevicePixels="true">
+                            <Border x:Name="Bd"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="5,5,0,0">
+                                <ContentPresenter x:Name="ContentSite"
+                                                  ContentSource="Header"
+                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                  Margin="{TemplateBinding Padding}"/>
+                            </Border>
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="{StaticResource DefaultBrowserBackgroundColor}"/>
-                                <Setter Property="Panel.ZIndex" Value="1"/>
+                                <Setter Property="Background" Value="{StaticResource DefaultBrowserBackgroundColor}"/>
+                                <Setter Property="BorderBrush" Value="{StaticResource DefaultBrowserBackgroundColor}"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="#4a505b"/>
+                                <Setter Property="Background" Value="#3a3e47"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -154,142 +136,159 @@
             </Setter>
         </Style>
 
-        <Style TargetType="ContextMenu">
-            <Setter Property="Background" Value="{StaticResource GeminiBackgroundColor}"/>
-            <Setter Property="Foreground" Value="{StaticResource DefaultBrowserForegroundColor}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#454c57"/>
-        </Style>
-
-        <Style TargetType="MenuItem">
+        <Style x:Key="TabCloseButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{StaticResource DefaultBrowserForegroundColor}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="18"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="5,0,0,0"/>
             <Setter Property="Template">
                 <Setter.Value>
-                    <ControlTemplate TargetType="MenuItem">
-                        <Border x:Name="Border" Background="Transparent" BorderThickness="0">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <ContentPresenter ContentSource="Header" Margin="5"/>
-                            </Grid>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="9">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="{StaticResource GeminiAccentBrush}"/>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="Red"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="DarkRed"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <DataTemplate x:Key="TabContentTemplate">
+            <wv2:WebView2 Source="{Binding CurrentUrl}" x:Name="BrowserWebView" />
+            </DataTemplate>
+
+        <DataTemplate x:Key="TabHeaderTemplate">
+            <StackPanel Orientation="Horizontal" Tag="{Binding}">
+                <TextBlock Text="{Binding Title}" Margin="0,0,5,0" />
+                <Button Content="X" Command="{Binding CloseTabCommand}" Style="{StaticResource TabCloseButtonStyle}"/>
+            </StackPanel>
+        </DataTemplate>
+
     </Window.Resources>
 
-    <Border x:Name="MainBorder"
-            Background="{StaticResource DefaultBrowserBackgroundBrush}"
-            CornerRadius="8"
+    <Border Background="{StaticResource DefaultBrowserBackgroundBrush}"
+            BorderBrush="{StaticResource GeminiBackgroundBrush}"
             BorderThickness="1"
-            BorderBrush="{StaticResource GeminiControlBackgroundBrush}"
+            CornerRadius="8"
             MouseLeftButtonDown="MainBorder_MouseLeftButtonDown">
-        <Grid>
+
+        <Grid x:Name="MainGrid">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>    <RowDefinition Height="Auto"/>    <RowDefinition Height="Auto"/>    <RowDefinition Height="*"/>       <RowDefinition Height="Auto"/>    </Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> <RowDefinition Height="*"/>   <RowDefinition Height="Auto"/> </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <Grid Grid.Row="0" Grid.Column="0"
-                  x:Name="TitleBarGrid"
-                  Background="{StaticResource DefaultBrowserBackgroundBrush}"
-                  Height="30">
+            <Grid Grid.Row="0" x:Name="TitleBarGrid" Height="30" Background="{StaticResource GeminiBackgroundBrush}"
+                  MouseLeftButtonDown="TitleBarGrid_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <Image x:Name="WindowIcon" Grid.Column="0" Source="Icons/app.ico" Width="20" Height="20" Margin="5,0"/>
+                <TextBlock Grid.Column="0" Text="{Binding Title}" VerticalAlignment="Center" HorizontalAlignment="Center"
+                           Foreground="{StaticResource DefaultBrowserForegroundColor}" FontWeight="Bold"/>
 
-                <TextBlock Text="{Binding ElementName=BrowserTabs, Path=SelectedItem.Title}"
-                           Grid.Column="1"
-                           VerticalAlignment="Center" HorizontalAlignment="Left"
-                           Margin="10,0"
-                           Foreground="{StaticResource DefaultBrowserForegroundColor}"
-                           MouseLeftButtonDown="TitleBarGrid_MouseLeftButtonDown"/>
-
-                <Button x:Name="MinimizeButton" Content="—" Grid.Column="3" Click="MinimizeButton_Click" ToolTip="Minimize"/>
-                <Button x:Name="MaximizeRestoreButton" Content="⬜" Grid.Column="4" Click="MaximizeRestoreButton_Click" ToolTip="Maximize"/>
-                <Button x:Name="CloseButton" Content="✕" Grid.Column="5" Click="CloseButton_Click" ToolTip="Close"/>
+                <Button x:Name="MinimizeButton" Grid.Column="1" Content="—" Click="MinimizeButton_Click"
+                        Style="{StaticResource NavigationButtonStyle}"/>
+                <Button x:Name="MaximizeRestoreButton" Grid.Column="2" Content="◻" Click="MaximizeRestoreButton_Click"
+                        Style="{StaticResource NavigationButtonStyle}"/>
+                <Button x:Name="CloseButton" Grid.Column="3" Content="✕" Click="CloseButton_Click"
+                        Style="{StaticResource NavigationButtonStyle}"/>
             </Grid>
 
-            <Grid Grid.Row="1" Grid.Column="0" Margin="5,0,5,5" Height="35">
+            <Grid Grid.Row="1" Margin="0,5,0,5">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="*"/>    <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="Auto"/> </Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="*"/>   <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="Auto"/> </Grid.ColumnDefinitions>
 
-                <Button Grid.Column="0" Click="BackButton_Click" ToolTip="Back" Margin="0,0,5,0">
-                    <Image Source="/NavegadorWeb;component/Icons/back.png" Width="20" Height="20"/>
-                </Button>
-                <Button Grid.Column="1" Click="ForwardButton_Click" ToolTip="Forward" Margin="0,0,5,0">
-                    <Image Source="/NavegadorWeb;component/Icons/forward.png" Width="20" Height="20"/>
-                </Button>
-                <Button Grid.Column="2" Click="RefreshButton_Click" ToolTip="Refresh" Margin="0,0,5,0">
-                    <Image Source="/NavegadorWeb;component/Icons/refresh.png" Width="20" Height="20"/>
-                </Button>
-                <Button Grid.Column="3" Click="HomeButton_Click" ToolTip="Home" Margin="0,0,5,0">
-                    <Image Source="/NavegadorWeb;component/Icons/home.png" Width="20" Height="20"/>
-                </Button>
+                <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,5,0">
+                    <Button x:Name="BackButton" Click="BackButton_Click" ToolTip="Go Back" Style="{StaticResource NavigationButtonStyle}">
+                        <Image Source="/Icons/back.png" Width="20" Height="20"/>
+                    </Button>
+                    <Button x:Name="ForwardButton" Click="ForwardButton_Click" ToolTip="Go Forward" Style="{StaticResource NavigationButtonStyle}">
+                        <Image Source="/Icons/forward.png" Width="20" Height="20"/>
+                    </Button>
+                    <Button x:Name="RefreshButton" Click="RefreshButton_Click" ToolTip="Refresh" Style="{StaticResource NavigationButtonStyle}">
+                        <Image Source="/Icons/refresh.png" Width="20" Height="20"/>
+                    </Button>
+                    <Button x:Name="HomeButton" Click="HomeButton_Click" ToolTip="Go Home" Style="{StaticResource NavigationButtonStyle}">
+                        <Image Source="/Icons/home.png" Width="20" Height="20"/>
+                    </Button>
+                </StackPanel>
 
-                <TextBox x:Name="AddressBar" Grid.Column="4"
-                         Text="{Binding SelectedTabItem.Address, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                <TextBox x:Name="AddressBar"
+                         Grid.Column="1"
+                         VerticalAlignment="Center"
+                         HorizontalAlignment="Stretch"
+                         Margin="5,0"
                          KeyDown="AddressBar_KeyDown"
                          GotFocus="AddressBar_GotFocus"
                          LostFocus="AddressBar_LostFocus"
-                         ToolTip="Enter web address"/>
+                         Style="{StaticResource AddressBarTextBoxStyle}"/>
 
-                <Button Grid.Column="5" Click="NewTabButton_Click" ToolTip="New Tab" Margin="5,0,0,0">
-                    <Image Source="/NavegadorWeb;component/Icons/new_tab.png" Width="20" Height="20"/>
-                </Button>
+                <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Center" Margin="5,0,0,0">
+                    <Button x:Name="NewTabButton" Click="NewTabButton_Click" ToolTip="New Tab" Style="{StaticResource NavigationButtonStyle}">
+                        <Image Source="/Icons/new_tab.png" Width="20" Height="20"/>
+                    </Button>
+                </StackPanel>
 
-                <Button Grid.Column="6" Click="HistoryButton_Click" ToolTip="Historial" Margin="5,0,0,0">
-                    <Image Source="/NavegadorWeb;component/Icons/history.png" Width="20" Height="20"/>
-                </Button>
-
-                <Button Grid.Column="7" Click="SettingsButton_Click" ToolTip="Settings" Margin="5,0,0,0">
-                    <Image Source="/NavegadorWeb;component/Icons/settings.png" Width="20" Height="20"/>
-                </Button>
+                <StackPanel Orientation="Horizontal" Grid.Column="3" VerticalAlignment="Center" Margin="5,0,0,0">
+                    <Button x:Name="HistoryButton" Click="HistoryButton_Click" ToolTip="History" Style="{StaticResource NavigationButtonStyle}">
+                        <Image Source="/Icons/history.png" Width="20" Height="20"/>
+                    </Button>
+                    <Button x:Name="SettingsButton" Click="SettingsButton_Click" ToolTip="Settings" Style="{StaticResource NavigationButtonStyle}">
+                        <Image Source="/Icons/settings.png" Width="20" Height="20"/>
+                    </Button>
+                    <Button x:Name="FindButton" Click="FindButton_Click" ToolTip="Find in page" Style="{StaticResource NavigationButtonStyle}">
+                        <Image Source="/Icons/find.png" Width="20" Height="20"/>
+                    </Button>
+                    </StackPanel>
             </Grid>
 
             <Border x:Name="FindBar"
                     Grid.Row="2" Grid.Column="0"
-                    Background="{StaticResource GeminiBackgroundColor}"
-                    BorderThickness="0,1,0,1"
-                    BorderBrush="{StaticResource GeminiControlBackgroundBrush}"
                     Visibility="Collapsed"
-                    Height="35"
-                    Padding="5">
+                    BorderBrush="{StaticResource DefaultBrowserForegroundBrush}"
+                    BorderThickness="1"
+                    CornerRadius="5"
+                    Margin="5" Padding="5"
+                    Background="{StaticResource GeminiBackgroundBrush}">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <TextBox x:Name="FindTextBox"
                              Width="200"
                              Margin="0,0,5,0"
                              TextChanged="FindTextBox_TextChanged"
                              KeyDown="FindTextBox_KeyDown"
-                             ToolTip="Find on page"/>
-                    <Button Content="▲"
+                             Style="{StaticResource AddressBarTextBoxStyle}"/> <Button Content="▲"
                             Click="FindPreviousButton_Click"
                             Margin="0,0,5,0"
-                            ToolTip="Find previous"/>
+                            ToolTip="Find previous"
+                            Style="{StaticResource NavigationButtonStyle}"/>
                     <Button Content="▼"
                             Click="FindNextButton_Click"
                             Margin="0,0,5,0"
-                            ToolTip="Find next"/>
+                            ToolTip="Find next"
+                            Style="{StaticResource NavigationButtonStyle}"/>
                     <Button Content="✖"
                             Click="CloseFindBarButton_Click"
-                            ToolTip="Close search"/>
+                            ToolTip="Close search"
+                            Style="{StaticResource NavigationButtonStyle}"/>
                 </StackPanel>
             </Border>
 
@@ -300,8 +299,9 @@
                         SelectionChanged="BrowserTabControl_SelectionChanged_Grouped"
                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                         ItemContainerStyle="{StaticResource TabItemStyle}"
-                        ItemTemplate="{StaticResource TabHeaderTemplate}">
-            </TabControl>
+                        ContentTemplate="{StaticResource TabContentTemplate}"
+                        Margin="0,5,0,0">
+                </TabControl>
 
             <ProgressBar Grid.Row="4"
                          Height="5"
