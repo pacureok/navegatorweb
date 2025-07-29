@@ -254,11 +254,11 @@
                 <Button Grid.Column="5" Click="NewTabButton_Click" ToolTip="New Tab" Margin="5,0,0,0">
                     <Image Source="/NavegadorWeb;component/Icons/new_tab.png" Width="20" Height="20"/>
                 </Button>
-                
+
                 <Button Grid.Column="6" Click="HistoryButton_Click" ToolTip="Historial" Margin="5,0,0,0">
                     <Image Source="/NavegadorWeb;component/Icons/history.png" Width="20" Height="20"/>
                 </Button>
-                
+
                 <Button Grid.Column="7" Click="SettingsButton_Click" ToolTip="Settings" Margin="5,0,0,0">
                     <Image Source="/NavegadorWeb;component/Icons/settings.png" Width="20" Height="20"/>
                 </Button>
