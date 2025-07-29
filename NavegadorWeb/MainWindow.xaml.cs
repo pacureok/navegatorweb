@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Controls; // Necesario para TextChangedEventArgs y SelectionChangedEventArgs
-// using NavegadorWeb.Windows; // ELIMINA O COMENTA ESTA LÍNEA si no tienes SettingsWindow en la carpeta Windows.
+// using NavegadorWeb.Windows; // Descomenta esta línea si realmente tienes una SettingsWindow en la carpeta 'Windows'
 
 namespace NavegadorWeb
 {
@@ -126,7 +126,6 @@ namespace NavegadorWeb
             // new SettingsWindow().ShowDialog(); // Descomenta si tienes SettingsWindow
         }
 
-        // NUEVO MÉTODO para mostrar la barra de búsqueda (corrección MC6005)
         private void ShowFindBarButton_Click(object sender, RoutedEventArgs e)
         {
             FindBar.Visibility = Visibility.Visible;
@@ -178,6 +177,14 @@ namespace NavegadorWeb
                 // Aquí debes tener la lógica para remover 'tabToClose' de la colección
                 // a la que está enlazado 'BrowserTabs.ItemsSource'.
             }
+        }
+
+        // NUEVO: Manejador de eventos para el botón de IA
+        private void AIButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("¡Botón de IA/Gemini presionado!");
+            // Aquí puedes añadir la lógica para abrir una nueva pestaña con tu IA,
+            // mostrar un panel lateral, etc.
         }
     }
 }
