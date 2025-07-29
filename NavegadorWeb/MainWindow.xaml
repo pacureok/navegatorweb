@@ -243,21 +243,37 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/> </Grid.ColumnDefinitions>
 
-                <Button Content="←" Style="{StaticResource BrowserButtonStyle}" Click="BackButton_Click" Grid.Column="0"/>
-                <Button Content="→" Style="{StaticResource BrowserButtonStyle}" Click="ForwardButton_Click" Grid.Column="1"/>
-                <Button Content="↻" Style="{StaticResource BrowserButtonStyle}" Click="RefreshButton_Click" Grid.Column="2"/>
+                <Button Style="{StaticResource BrowserButtonStyle}" Click="BackButton_Click" Grid.Column="0" ToolTip="Go Back">
+                    <Image Source="/Icons/back.png" Width="16" Height="16"/>
+                </Button>
+                <Button Style="{StaticResource BrowserButtonStyle}" Click="ForwardButton_Click" Grid.Column="1" ToolTip="Go Forward">
+                    <Image Source="/Icons/forward.png" Width="16" Height="16"/>
+                </Button>
+                <Button Style="{StaticResource BrowserButtonStyle}" Click="RefreshButton_Click" Grid.Column="2" ToolTip="Refresh Page">
+                    <Image Source="/Icons/refresh.png" Width="16" Height="16"/>
+                </Button>
 
                 <TextBox x:Name="AddressBar"
                          Style="{StaticResource AddressBarStyle}"
                          KeyDown="AddressBar_KeyDown"
                          Grid.Column="3"/>
 
-                <Button Content="⌂" Style="{StaticResource BrowserButtonStyle}" Click="HomeButton_Click" Grid.Column="4"/>
-                <Button Content="+" Style="{StaticResource BrowserButtonStyle}" Click="NewTabButton_Click" Grid.Column="5"/>
-                <Button x:Name="SettingsButton" Content="⚙" Style="{StaticResource BrowserButtonStyle}" Click="SettingsButton_Click" Grid.Column="6"/>
-                <Button Content="🔍" Style="{StaticResource BrowserButtonStyle}" Click="ShowFindBarButton_Click" Grid.Column="7"/>
+                <Button Style="{StaticResource BrowserButtonStyle}" Click="HomeButton_Click" Grid.Column="4" ToolTip="Home">
+                    <Image Source="/Icons/home.png" Width="16" Height="16"/>
+                </Button>
+                <Button Content="+" Style="{StaticResource BrowserButtonStyle}" Click="NewTabButton_Click" Grid.Column="5" ToolTip="New Tab"/>
+                <Button x:Name="SettingsButton" Style="{StaticResource BrowserButtonStyle}" Click="SettingsButton_Click" Grid.Column="6" ToolTip="Settings">
+                    <Image Source="/Icons/settings.png" Width="16" Height="16"/>
+                </Button>
+                <Button Style="{StaticResource BrowserButtonStyle}" Click="ShowFindBarButton_Click" Grid.Column="7" ToolTip="Find in page">
+                    <Image Source="/Icons/find.png" Width="16" Height="16"/>
+                </Button>
+
+                <Button x:Name="AIButton" Style="{StaticResource BrowserButtonStyle}" Click="AIButton_Click" Grid.Column="8" ToolTip="AI Assistant">
+                    <Image Source="/Icons/ai.png" Width="16" Height="16"/>
+                </Button>
             </Grid>
 
             <Border x:Name="FindBar"
