@@ -173,7 +173,7 @@ namespace NavegadorWeb
         private void CloseTabButton_Click(object sender, RoutedEventArgs e)
         {
             Button closeButton = sender as Button;
-            if (closeButton != null && closeButton.Tag is object tabToClose) 
+            if (closeButton != null && closeButton.Tag is object tabToClose)
             {
                 // Aquí debes tener la lógica para remover 'tabToClose' de la colección
                 // a la que está enlazado 'BrowserTabs.ItemsSource'.
