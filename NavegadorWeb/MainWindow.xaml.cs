@@ -7,10 +7,13 @@ using System.Windows.Controls; // Necesario para TextChangedEventArgs y Selectio
 
 namespace NavegadorWeb
 {
+    // 'partial' es CLAVE. Significa que hay otra parte de esta clase (generada por WPF a partir del XAML).
     public partial class MainWindow : Window
     {
         public MainWindow()
         {
+            // ESTA ES LA ÚNICA LÍNEA InitializeComponent() que debe existir.
+            // NO definas el cuerpo de este método aquí. WPF lo genera automáticamente.
             InitializeComponent();
         }
 
