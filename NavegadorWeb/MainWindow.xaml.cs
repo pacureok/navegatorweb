@@ -11,9 +11,9 @@ namespace NavegadorWeb
     public partial class MainWindow : Window
     {
         // *** IMPORTANTE: NO DECLARAR AQUÍ CAMPOS PARA LOS ELEMENTOS DE UI QUE TIENEN UN 'x:Name' EN TU XAML. ***
-        // *** WPF LOS GENERA AUTOMÁTICAMENTE. LA DUPLICIDAD CAUSA LOS ERRORES CS0102. ***
+        // *** WPF LOS GENERA AUTOMÁTICAMENTE EN EL ARCHIVO MainWindow.g.cs. LA DUPLICIDAD CAUSA LOS ERRORES CS0102. ***
         // Por ejemplo, NO hagas esto: public TextBox AddressBar;
-        // Simplemente usa directamente el nombre (ej. AddressBar.Text = ...).
+        // Simplemente usa directamente el nombre del control (ej. AddressBar.Text = ...).
 
         public MainWindow()
         {
