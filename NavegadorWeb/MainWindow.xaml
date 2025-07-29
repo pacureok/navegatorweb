@@ -16,17 +16,12 @@
         StateChanged="Window_StateChanged">
 
     <Window.Resources>
-        <!-- Colores por defecto para el navegador. Puedes ajustarlos o moverlos a App.xaml -->
-        <Color x:Key="DefaultBrowserBackgroundColor">#282c34</Color> <!-- Gris azulado oscuro -->
-        <SolidColorBrush x:Key="DefaultBrowserBackgroundBrush" Color="{StaticResource DefaultBrowserBackgroundColor}"/>
+        <Color x:Key="DefaultBrowserBackgroundColor">#282c34</Color> <SolidColorBrush x:Key="DefaultBrowserBackgroundBrush" Color="{StaticResource DefaultBrowserBackgroundColor}"/>
 
-        <Color x:Key="DefaultBrowserForegroundColor">#abb2bf</Color> <!-- Color de texto claro -->
-        <SolidColorBrush x:Key="DefaultBrowserForegroundBrush" Color="{StaticResource DefaultBrowserForegroundColor}"/>
+        <Color x:Key="DefaultBrowserForegroundColor">#abb2bf</Color> <SolidColorBrush x:Key="DefaultBrowserForegroundBrush" Color="{StaticResource DefaultBrowserForegroundColor}"/>
 
-        <Color x:Key="GeminiBackgroundColor">#343a40</Color> <!-- Un gris más oscuro para barras/bordes -->
-        <SolidColorBrush x:Key="GeminiBackgroundBrush" Color="{StaticResource GeminiBackgroundColor}"/>
+        <Color x:Key="GeminiBackgroundColor">#343a40</Color> <SolidColorBrush x:Key="GeminiBackgroundBrush" Color="{StaticResource GeminiBackgroundColor}"/>
 
-        <!-- Estilo básico para botones de navegación/control -->
         <Style x:Key="NavigationButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{StaticResource DefaultBrowserForegroundColor}"/>
@@ -48,21 +43,17 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#444a54"/> <!-- Un poco más claro al pasar el ratón -->
-                            </Trigger>
+                                <Setter Property="Background" Value="#444a54"/> </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#555c66"/> <!-- Más claro al presionar -->
-                            </Trigger>
+                                <Setter Property="Background" Value="#555c66"/> </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
 
-        <!-- Estilo para la barra de direcciones -->
         <Style x:Key="AddressBarTextBoxStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="#3d424b"/> <!-- Fondo ligeramente más claro para la barra de direcciones -->
-            <Setter Property="Foreground" Value="{StaticResource DefaultBrowserForegroundColor}"/>
+            <Setter Property="Background" Value="#3d424b"/> <Setter Property="Foreground" Value="{StaticResource DefaultBrowserForegroundColor}"/>
             <Setter Property="BorderBrush" Value="#555c66"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="5,2,5,2"/>
@@ -75,13 +66,11 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="15"> <!-- Borde redondeado -->
-                            <ScrollViewer x:Name="PART_ContentHost" Focusable="False" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                                CornerRadius="15"> <ScrollViewer x:Name="PART_ContentHost" Focusable="False" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="#007bff"/> <!-- Borde azul al pasar el ratón -->
-                            </Trigger>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#007bff"/> </Trigger>
                             <Trigger Property="IsFocused" Value="True">
                                 <Setter TargetName="border" Property="BorderBrush" Value="#007bff"/>
                                 <Setter TargetName="border" Property="BorderThickness" Value="2"/>
@@ -92,7 +81,6 @@
             </Setter>
         </Style>
 
-        <!-- Estilo para las pestañas del navegador (encabezado de la pestaña) -->
         <Style x:Key="TabItemStyle" TargetType="TabItem">
             <Setter Property="HeaderTemplate">
                 <Setter.Value>
@@ -103,11 +91,8 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <!-- Icono de la página (favicon) -->
                             <Image Grid.Column="0" Source="{Binding FaviconSource}" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                            <!-- Título de la página -->
                             <TextBlock Grid.Column="1" Text="{Binding Title}" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{StaticResource DefaultBrowserForegroundColor}"/>
-                            <!-- Botón de cerrar pestaña -->
                             <Button Grid.Column="2" Content="x"
                                     Command="{Binding CloseTabCommand}"
                                     Style="{StaticResource TabCloseButtonStyle}"/>
@@ -151,7 +136,6 @@
             </Setter>
         </Style>
 
-        <!-- Estilo para el botón de cerrar pestaña (dentro del encabezado de la pestaña) -->
         <Style x:Key="TabCloseButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{StaticResource DefaultBrowserForegroundColor}"/>
@@ -183,12 +167,10 @@
             </Setter>
         </Style>
 
-        <!-- DataTemplate para el contenido de cada TabItem (el WebView2) -->
         <DataTemplate x:Key="TabContentTemplate">
             <wv2:WebView2 Source="{Binding CurrentUrl}" x:Name="BrowserWebView" />
         </DataTemplate>
 
-        <!-- Template para el encabezado de las pestañas -->
         <DataTemplate x:Key="TabHeaderTemplate">
             <StackPanel Orientation="Horizontal" Tag="{Binding}">
                 <TextBlock Text="{Binding Title}" Margin="0,0,5,0" />
@@ -206,17 +188,11 @@
 
         <Grid x:Name="MainGrid">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/> <!-- Fila para la barra de título personalizada -->
-                <RowDefinition Height="Auto"/> <!-- Fila para los botones de navegación y barra de dirección -->
-                <RowDefinition Height="Auto"/> <!-- Fila para la barra de búsqueda (Find Bar) -->
-                <RowDefinition Height="*"/>   <!-- Fila principal para el contenido del navegador (TabControl) -->
-                <RowDefinition Height="Auto"/> <!-- Fila para la barra de progreso de descarga -->
-            </Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> <RowDefinition Height="Auto"/> <RowDefinition Height="*"/>   <RowDefinition Height="Auto"/> </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Custom Title Bar -->
             <Grid Grid.Row="0" x:Name="TitleBarGrid" Height="30" Background="{StaticResource GeminiBackgroundBrush}"
                   MouseLeftButtonDown="TitleBarGrid_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
@@ -237,14 +213,9 @@
                         Style="{StaticResource NavigationButtonStyle}"/>
             </Grid>
 
-            <!-- Navigation Bar (Buttons and Address Bar) -->
             <Grid Grid.Row="1" Margin="0,5,0,5">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/> <!-- Botones de navegación (Atrás, Adelante, Recargar, Inicio) -->
-                    <ColumnDefinition Width="*"/>   <!-- Barra de direcciones -->
-                    <ColumnDefinition Width="Auto"/> <!-- Botón de nueva pestaña -->
-                    <ColumnDefinition Width="Auto"/> <!-- Otros botones (Configuración, Historial, etc.) -->
-                </Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="*"/>   <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="Auto"/> </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,5,0">
                     <Button x:Name="BackButton" Click="BackButton_Click" ToolTip="Go Back" Style="{StaticResource NavigationButtonStyle}">
@@ -261,7 +232,6 @@
                     </Button>
                 </StackPanel>
 
-                <!-- Barra de direcciones - ¡Asegúrate de que 'x:Name="AddressBar"' esté aquí! -->
                 <TextBox x:Name="AddressBar"
                          Grid.Column="1"
                          VerticalAlignment="Center"
@@ -288,11 +258,9 @@
                     <Button x:Name="FindButton" Click="FindButton_Click" ToolTip="Find in page" Style="{StaticResource NavigationButtonStyle}">
                         <Image Source="/Icons/find.png" Width="20" Height="20"/>
                     </Button>
-                    <!-- Otros botones aquí si los tienes, como Bookmarks, Extensions, etc. -->
-                </StackPanel>
+                    </StackPanel>
             </Grid>
 
-            <!-- Find Bar (initially Collapsed) -->
             <Border x:Name="FindBar"
                     Grid.Row="2" Grid.Column="0"
                     Visibility="Collapsed"
@@ -325,7 +293,6 @@
                 </StackPanel>
             </Border>
 
-            <!-- Main Browser Content (Tabs) -->
             <TabControl x:Name="BrowserTabs"
                         Grid.Row="3" Grid.Column="0"
                         ItemsSource="{Binding TabGroupManager.SelectedTabGroup.TabsInGroup}"
@@ -334,10 +301,8 @@
                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                         ItemContainerStyle="{StaticResource TabItemStyle}"
                         ItemTemplate="{StaticResource TabHeaderTemplate}"
-                        ContentTemplate="{StaticResource TabContentTemplate}">  <!-- ¡Esta es la línea clave y corregida! -->
-            </TabControl>
+                        ContentTemplate="{StaticResource TabContentTemplate}">  </TabControl>
 
-            <!-- Download progress bar (Optional) -->
             <ProgressBar Grid.Row="4"
                          Height="5"
                          Value="{Binding DownloadProgress}"
