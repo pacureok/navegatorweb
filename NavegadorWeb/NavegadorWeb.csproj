@@ -7,31 +7,26 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Icons\app.ico</ApplicationIcon> 
-
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <EnableDefaultPageItems>false</EnableDefaultPageItems>
-  </PropertyGroup>
+    </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="App.xaml.cs" />
-    <Compile Include="MainWindow.xaml.cs" />
-    <Compile Include="Services\**\*.cs" />
-    <Compile Include="Windows\SettingsWindow.xaml.cs" /> 
-    </ItemGroup>
-
-  <ItemGroup>
-    <Page Include="App.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="MainWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Windows\SettingsWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
+    <Content Include="Icons\app.ico"> 
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Icons\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Icons\*.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Icons\back.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
+    <Content Include="Icons\forward.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
+    <Content Include="Icons\refresh.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
+    <Content Include="Icons\home.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
+    <Content Include="Icons\new_tab.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
+    <Content Include="Icons\history.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
+    <Content Include="Icons\settings.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
+    <Content Include="Icons\find.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -39,40 +34,6 @@
     <PackageReference Include="System.Speech" Version="8.0.0" />
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.61" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="Icons\add_bookmark.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\ai.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\app.ico"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\audio_playing_icon.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\blocked_icon.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\bookmarks.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\data_extraction.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\download.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\extensions.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\extension_icon.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\find.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\gemini_icon.ico"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\globe_icon.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\history.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\home.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\incognito.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\new_tab.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\password.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\performance.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\permissions.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\pip.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\read_aloud.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\reader.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\screenshot.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\settings.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\split.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\tab_manager.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\tabs.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\back.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\forward.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-    <Content Include="Icons\refresh.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
   </ItemGroup>
 
 </Project>
