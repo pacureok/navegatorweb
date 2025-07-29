@@ -7,7 +7,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Icons\app.ico</ApplicationIcon> 
-    </PropertyGroup>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
+    <PackageReference Include="System.Speech" Version="8.0.0" />
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.61" />
+  </ItemGroup>
 
   <ItemGroup>
     <Content Include="Icons\app.ico"> 
@@ -27,13 +34,6 @@
     <Content Include="Icons\history.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
     <Content Include="Icons\settings.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
     <Content Include="Icons\find.png"> <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
-    <PackageReference Include="System.Speech" Version="8.0.0" />
-    <PackageReference Include="System.Text.Json" Version="9.0.0" />
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.61" />
   </ItemGroup>
 
 </Project>
