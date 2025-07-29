@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Controls; // Necesario para TextChangedEventArgs y SelectionChangedEventArgs
-using NavegadorWeb.Windows; // Asegúrate de que este using esté si tienes SettingsWindow en la carpeta Windows
+// using NavegadorWeb.Windows; // ELIMINA O COMENTA ESTA LÍNEA si no tienes SettingsWindow en la carpeta Windows.
 
 namespace NavegadorWeb
 {
@@ -150,8 +150,9 @@ namespace NavegadorWeb
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
             // Lógica para abrir la ventana de configuración.
-            // Asegúrate de que 'SettingsWindow' exista como una clase en tu proyecto.
-            // new SettingsWindow().ShowDialog();
+            // Si has comentado el 'using NavegadorWeb.Windows;', esta línea NO compilará.
+            // Necesitarías crear la ventana en la raíz del proyecto o implementar la carpeta 'Windows' correctamente.
+            // new SettingsWindow().ShowDialog(); // <--- Esta línea causaría un error si no tienes la clase SettingsWindow
         }
 
         // Métodos para la barra de búsqueda (Find Bar)
