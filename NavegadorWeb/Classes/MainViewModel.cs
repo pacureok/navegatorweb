@@ -1,4 +1,3 @@
-// NavegadorWeb/Classes/MainViewModel.cs (o ViewModels/MainViewModel.cs)
 using System;
 using System.ComponentModel;
 using System.Collections.ObjectModel;
@@ -6,6 +5,11 @@ using System.Windows.Input; // Para ICommand
 using Microsoft.Web.WebView2.Wpf; // Para WebView2
 using NavegadorWeb.Services; // Para HistoryManager, SettingsManager, etc.
 using System.Linq; // Para FirstOrDefault
+using System.IO; // Para Path, File, Directory
+using System.Text.Json; // Para JsonSerializer
+using System.Windows.Media.Imaging; // Para BitmapImage, BitmapCacheOption
+using Microsoft.Web.WebView2.Core; // <--- ¡NUEVA LÍNEA AÑADIDA! Necesaria para CoreWebView2DownloadStartingEventArgs y otros tipos de WebView2.Core
+using System.Windows; // <--- ¡NUEVA LÍNEA AÑADIDA! Necesaria para Visibility
 
 namespace NavegadorWeb.Classes
 {
@@ -336,7 +340,7 @@ namespace NavegadorWeb.Classes
         // Lógica para guardar y restaurar la sesión (ejemplo)
         public void SaveSession()
         {
-            var sessionState = new List<TabGroupState>();
+            var sessionState = new System.Collections.Generic.List<TabGroupState>();
             foreach (var group in TabGroupManager.TabGroups)
             {
                 sessionState.Add(new TabGroupState
@@ -366,16 +370,16 @@ namespace NavegadorWeb.Classes
                 try
                 {
                     string jsonString = File.ReadAllText("session.json");
-                    var sessionState = JsonSerializer.Deserialize<List<TabGroupState>>(jsonString);
+                    var sessionState = JsonSerializer.Deserialize<System.Collections.Generic.List<TabGroupState>>(jsonString);
 
                     TabGroupManager.TabGroups.Clear(); // Limpiar grupos existentes
 
-                    foreach (var groupState in sessionState ?? new List<TabGroupState>())
+                    foreach (var groupState in sessionState ?? new System.Collections.Generic.List<TabGroupState>())
                     {
                         var group = new TabGroup(groupState.GroupName) { GroupId = groupState.GroupId };
                         TabGroupManager.TabGroups.Add(group);
 
-                        foreach (var url in groupState.TabUrls ?? new List<string?>())
+                        foreach (var url in groupState.TabUrls ?? new System.Collections.Generic.List<string?>())
                         {
                             if (url != null)
                             {
