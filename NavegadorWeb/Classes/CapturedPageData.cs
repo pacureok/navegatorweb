@@ -1,31 +1,81 @@
-// This file defines a class to hold captured data from a web page,
-// intended for use with AI features like Gemini.
-
 using System.ComponentModel;
 
 namespace NavegadorWeb.Classes
 {
-    /// <summary>
-    /// Represents data captured from a web page, including URL, title,
-    /// extracted text, and Base64 encoded screenshots/favicons.
-    /// Implements INotifyPropertyChanged for UI updates.
-    /// </summary>
     public class CapturedPageData : INotifyPropertyChanged
     {
-        // Public properties for captured page data
-        public string Url { get; set; } = string.Empty;
-        public string Title { get; set; } = string.Empty;
-        public string ExtractedText { get; set; } = string.Empty;
-        public string ScreenshotBase64 { get; set; } = string.Empty; // Base64 encoded image data
-        public string FaviconBase64 { get; set; } = string.Empty;   // Base64 encoded favicon data
+        private string _url = string.Empty;
+        public string Url
+        {
+            get => _url;
+            set
+            {
+                if (_url != value)
+                {
+                    _url = value;
+                    OnPropertyChanged(nameof(Url));
+                }
+            }
+        }
 
-        // Event for property change notification
+        private string _title = string.Empty;
+        public string Title
+        {
+            get => _title;
+            set
+            {
+                if (_title != value)
+                {
+                    _title = value;
+                    OnPropertyChanged(nameof(Title));
+                }
+            }
+        }
+
+        private string _extractedText = string.Empty;
+        public string ExtractedText
+        {
+            get => _extractedText;
+            set
+            {
+                if (_extractedText != value)
+                {
+                    _extractedText = value;
+                    OnPropertyChanged(nameof(ExtractedText));
+                }
+            }
+        }
+
+        private string _screenshotBase64 = string.Empty;
+        public string ScreenshotBase64
+        {
+            get => _screenshotBase64;
+            set
+            {
+                if (_screenshotBase64 != value)
+                {
+                    _screenshotBase64 = value;
+                    OnPropertyChanged(nameof(ScreenshotBase64));
+                }
+            }
+        }
+
+        private string _faviconBase64 = string.Empty;
+        public string FaviconBase64
+        {
+            get => _faviconBase64;
+            set
+            {
+                if (_faviconBase64 != value)
+                {
+                    _faviconBase64 = value;
+                    OnPropertyChanged(nameof(FaviconBase64));
+                }
+            }
+        }
+
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        /// <summary>
-        /// Raises the PropertyChanged event.
-        /// </summary>
-        /// <param name="propertyName">The name of the property that changed.</param>
         protected void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
