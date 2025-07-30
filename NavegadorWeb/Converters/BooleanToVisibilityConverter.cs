@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 
-namespace NavegadorWeb.Converters // ¡MUY IMPORTANTE! Asegúrate de que este namespace sea correcto. 
+namespace NavegadorWeb.Converters // ¡MUY IMPORTANTE! Asegúrate de que este namespace sea correcto.
 {
     public class BooleanToVisibilityConverter : IValueConverter
     {
