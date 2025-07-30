@@ -111,7 +111,7 @@
                 <Setter.Value>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal" ToolTip="{Binding Url}">
-                            <Image Source="{Binding Favicon}" Width="16" Height="16" Margin="0,0,5,0" Stretch="Uniform"/>
+                            <Image Source="/Icons/app.ico" Width="16" Height="16" Margin="0,0,5,0" Stretch="Uniform"/>
                             <TextBlock Text="{Binding Title}" VerticalAlignment="Center" Foreground="{StaticResource DefaultBrowserForegroundColor}"/>
                             <Button Content="x" Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabControl}}, Path=DataContext.CloseTabCommand}"
                                     CommandParameter="{Binding}"
