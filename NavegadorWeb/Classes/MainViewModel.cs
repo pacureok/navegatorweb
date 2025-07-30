@@ -280,7 +280,7 @@ namespace NavegadorWeb.Classes
                 tab.WebViewInstance.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
                 tab.WebViewInstance.CoreWebView2.Settings.AreDevToolsEnabled = true;
                 tab.WebViewInstance.CoreWebView2.Settings.IsGeneralAutofillEnabled = true;
-                tab.WebViewInstance.CoreWebView2.Settings.IsPasswordAutosaveEnabled = true;
+                tab.WebViewInstance.CoreWebView2.CoreWebView2.Settings.IsPasswordAutosaveEnabled = true;
 
                 if (!string.IsNullOrEmpty(url) && url != "about:blank")
                 {
