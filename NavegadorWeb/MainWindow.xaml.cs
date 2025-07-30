@@ -21,7 +21,8 @@ using System.Timers;
 using NavegadorWeb.Classes;
 using NavegadorWeb.Extensions;
 using NavegadorWeb.Services;
-using NavegadorWeb.Windows; // Para las ventanas de diálogo
+using NavegadorWeb.Windows; // ¡MUY IMPORTANTE! Asegúrate de que esta línea esté presente.
+using NavegadorWeb.Converters; // ¡MUY IMPORTANTE! Asegúrate de que esta línea esté presente.
 
 namespace NavegadorWeb
 {
@@ -146,7 +147,9 @@ namespace NavegadorWeb
         {
             // La lógica de búsqueda se maneja en el ViewModel a través del binding TwoWay de FindSearchText
             // y el comando FindCommand.
-            ViewModel.FindCommand.Execute(FindTextBox.Text);
+            // No es necesario llamar a FindCommand aquí, ya que el binding TwoWay con UpdateSourceTrigger=PropertyChanged
+            // en el XAML de FindTextBox ya lo maneja al actualizar FindSearchText en el ViewModel.
+            // ViewModel.FindCommand.Execute(FindTextBox.Text); // Esta línea es redundante si el binding es correcto.
         }
 
         private void BrowserTabControl_SelectionChanged_Grouped(object sender, SelectionChangedEventArgs e)
