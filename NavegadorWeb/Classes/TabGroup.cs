@@ -15,7 +15,7 @@ namespace NavegadorWeb.Classes
     /// </summary>
     public class TabGroup : INotifyPropertyChanged
     {
-        public string GroupId { get; } // Unique ID for the tab group
+        public string GroupId { get; set; } // <--- ¡CORREGIDO! Ahora es de lectura y escritura para la serialización
         private string _groupName;
 
         // Public property for the group's name with change notification
@@ -52,24 +52,13 @@ namespace NavegadorWeb.Classes
         }
 
         /// <summary>
-        /// Initializes a new instance of the TabGroup class with a given name.
+        /// Initializes a new instance of the TabGroup class with a specified group name and a unique ID.
         /// </summary>
-        /// <param name="name">The name of the tab group.</param>
-        public TabGroup(string name)
+        /// <param name="groupName">The name of the tab group.</param>
+        public TabGroup(string groupName)
         {
-            GroupId = Guid.NewGuid().ToString(); // Generate a new unique ID
-            _groupName = name;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the TabGroup class with a given ID and name (for restoration).
-        /// </summary>
-        /// <param name="id">The unique ID of the tab group.</param>
-        /// <param name="name">The name of the tab group.</param>
-        public TabGroup(string id, string name)
-        {
-            GroupId = id;
-            _groupName = name;
+            GroupId = Guid.NewGuid().ToString(); // Assign a unique ID when a new group is created
+            _groupName = groupName;
         }
 
         /// <summary>
