@@ -156,7 +156,7 @@ namespace NavegadorWeb
         {
             // El SelectedItem del TabControl ya está enlazado TwoWay a SelectedTabItem en el ViewModel.
             // Esta función se puede usar para lógica de UI específica que no se maneje en el ViewModel.
-            // Por ejemplo, si quieres que la barra de direcciones se actualice inmediatamente al cambiar de pestaña.
+            // Por ejemplo, si quieres que la barra de direcciones se actualice inmediatamente al cambiar de pestaña. 
             if (ViewModel.SelectedTabItem != null)
             {
                 AddressBar.Text = ViewModel.SelectedTabItem.Url;
