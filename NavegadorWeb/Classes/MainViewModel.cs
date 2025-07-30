@@ -7,19 +7,24 @@ using System.Linq;
 using System.IO;
 using System.Text.Json;
 using System.Windows.Media.Imaging;
-using Microsoft.Web.WebView2.Core; // <--- ¡VERIFICADO!
-using System.Windows; // <--- ¡VERIFICADO!
-using NavegadorWeb.Services; // <--- ¡VERIFICADO! Para HistoryManager, SettingsManager, etc.
+using Microsoft.Web.WebView2.Core; // Necessary for CoreWebView2 types
+using System.Windows; // Necessary for Visibility, MessageBox, Application
+using NavegadorWeb.Services; // For HistoryManager, SettingsManager, etc.
+using NavegadorWeb.Windows; // For HistoryWindow, BookmarksWindow, etc.
 using System.Threading.Tasks;
 using System.Net.NetworkInformation;
 using System.Timers;
+using Microsoft.Win32; // For SaveFileDialog
+using System.Speech.Synthesis; // Necessary for SpeechSynthesizer
+using System.Diagnostics; // Necessary for Debug.WriteLine
 
 namespace NavegadorWeb.Classes
 {
     public class MainViewModel : INotifyPropertyChanged
     {
-        // Propiedades para la UI
+        // UI Bindable Properties
         public TabGroupManager TabGroupManager { get; set; }
+
         public TabItemData? SelectedTabItem
         {
             get => TabGroupManager.SelectedTabGroup?.SelectedTabItem;
@@ -32,28 +37,35 @@ namespace NavegadorWeb.Classes
                         TabGroupManager.SelectedTabGroup.SelectedTabItem = value;
                     }
                     OnPropertyChanged(nameof(SelectedTabItem));
-                    OnPropertyChanged(nameof(CurrentUrl)); // Actualiza la barra de dirección
+                    OnPropertyChanged(nameof(CurrentUrl)); // Update address bar
                     OnPropertyChanged(nameof(CanGoBack));
                     OnPropertyChanged(nameof(CanGoForward));
                 }
             }
         }
 
+        private string _currentUrl = "about:blank";
         public string CurrentUrl
         {
             get => SelectedTabItem?.Url ?? "about:blank";
             set
             {
-                if (SelectedTabItem != null && SelectedTabItem.Url != value)
+                // The URL is updated via SelectedTabItem.Url
+                // This setter is mainly for the TwoWay binding of the AddressBar
+                if (SelectedTabItem != null)
                 {
-                    SelectedTabItem.Url = value;
+                    Navigate(value);
+                }
+                else
+                {
+                    _currentUrl = value; // For the initial case with no tabs
                     OnPropertyChanged(nameof(CurrentUrl));
                 }
             }
         }
 
-        public bool CanGoBack => SelectedTabItem?.WebViewInstance.CoreWebView2.CanGoBack ?? false;
-        public bool CanGoForward => SelectedTabItem?.WebViewInstance.CoreWebView2.CanGoForward ?? false;
+        public bool CanGoBack => SelectedTabItem?.WebViewInstance.CoreWebView2?.CanGoBack ?? false;
+        public bool CanGoForward => SelectedTabItem?.WebViewInstance.CoreWebView2?.CanGoForward ?? false;
 
         private double _downloadProgress;
         public double DownloadProgress
@@ -83,7 +95,56 @@ namespace NavegadorWeb.Classes
             }
         }
 
-        // Comandos
+        private bool _isFindBarVisible;
+        public bool IsFindBarVisible
+        {
+            get => _isFindBarVisible;
+            set
+            {
+                if (_isFindBarVisible != value)
+                {
+                    _isFindBarVisible = value;
+                    OnPropertyChanged(nameof(IsFindBarVisible));
+                    if (!value)
+                    {
+                        SelectedTabItem?.WebViewInstance.CoreWebView2?.StopFindInPage(CoreWebView2StopFindInPageKind.ClearSelection);
+                        FindSearchText = string.Empty;
+                        FindResultsText = string.Empty;
+                    }
+                }
+            }
+        }
+
+        private string _findSearchText = "";
+        public string FindSearchText
+        {
+            get => _findSearchText;
+            set
+            {
+                if (_findSearchText != value)
+                {
+                    _findSearchText = value;
+                    OnPropertyChanged(nameof(FindSearchText));
+                    FindInPage(_findSearchText, false); // Perform search when text changes
+                }
+            }
+        }
+
+        private string _findResultsText = "";
+        public string FindResultsText
+        {
+            get => _findResultsText;
+            set
+            {
+                if (_findResultsText != value)
+                {
+                    _findResultsText = value;
+                    OnPropertyChanged(nameof(FindResultsText));
+                }
+            }
+        }
+
+        // Commands
         public ICommand NavigateCommand { get; }
         public ICommand GoBackCommand { get; }
         public ICommand GoForwardCommand { get; }
@@ -91,55 +152,85 @@ namespace NavegadorWeb.Classes
         public ICommand NewTabCommand { get; }
         public ICommand CloseTabCommand { get; }
         public ICommand SaveSessionCommand { get; }
-        public ICommand AddTabGroupCommand { get; }
-        public ICommand RemoveTabGroupCommand { get; }
+        public ICommand AddNewTabGroupCommand { get; }
+        public ICommand RemoveSelectedTabGroupCommand { get; }
         public ICommand DuplicateTabCommand { get; }
         public ICommand ToggleReaderModeCommand { get; }
         public ICommand CaptureScreenshotCommand { get; }
         public ICommand SuspendTabCommand { get; }
         public ICommand RestoreTabCommand { get; }
         public ICommand ReadAloudCommand { get; }
-        public ICommand ClearHistoryCommand { get; } // Añadido
-        public ICommand OpenHistoryCommand { get; } // Añadido
+        public ICommand ClearHistoryCommand { get; }
+        public ICommand OpenHistoryCommand { get; }
+        public ICommand OpenBookmarksCommand { get; }
+        public ICommand OpenPasswordManagerCommand { get; }
+        public ICommand ExtractDataCommand { get; }
+        public ICommand OpenExtensionsCommand { get; }
+        public ICommand OpenSettingsCommand { get; }
+        public ICommand ShowAISelectionCommand { get; }
+        public ICommand ToggleFindBarCommand { get; }
+        public ICommand FindNextCommand { get; }
+        public ICommand FindPreviousCommand { get; }
+        public ICommand CloseFindBarCommand { get; }
+
 
         private System.Timers.Timer _suspensionTimer;
+        private SpeechSynthesizer _speechSynthesizer;
 
         // Constructor
         public MainViewModel()
         {
             TabGroupManager = new TabGroupManager();
-            LoadSession(); // Carga la sesión al iniciar
+            _speechSynthesizer = new SpeechSynthesizer();
+            _speechSynthesizer.SetOutputToDefaultAudioDevice();
 
-            if (!TabGroupManager.TabGroups.Any() || !TabGroupManager.TabGroups.First().TabsInGroup.Any())
+            InitializeCommands();
+            LoadSession();
+
+            // Initialize suspension timer
+            _suspensionTimer = new System.Timers.Timer(SettingsManager.SuspensionTimeMinutes * 60 * 1000); // Convert minutes to milliseconds
+            _suspensionTimer.Elapsed += SuspensionTimer_Elapsed;
+            _suspensionTimer.AutoReset = true; // Timer resets automatically
+            _suspensionTimer.Start();
+        }
+
+        public void InitializeBrowser()
+        {
+            if (!TabGroupManager.TabGroups.Any() || !TabGroupManager.SelectedTabGroup.TabsInGroup.Any())
             {
-                // Si no hay sesión cargada o está vacía, crea una pestaña inicial
-                AddNewTab("about:blank");
+                AddNewTab(SettingsManager.DefaultHomePage);
             }
+        }
 
+        private void InitializeCommands()
+        {
             NavigateCommand = new RelayCommand(url => Navigate(url?.ToString()));
             GoBackCommand = new RelayCommand(_ => GoBack(), _ => CanGoBack);
             GoForwardCommand = new RelayCommand(_ => GoForward(), _ => CanGoForward);
             RefreshCommand = new RelayCommand(_ => Refresh());
-            NewTabCommand = new RelayCommand(_ => AddNewTab("about:blank"));
+            NewTabCommand = new RelayCommand(_ => AddNewTab(SettingsManager.DefaultHomePage));
             CloseTabCommand = new RelayCommand(tab => CloseTab(tab as TabItemData));
             SaveSessionCommand = new RelayCommand(_ => SaveSession());
-            AddTabGroupCommand = new RelayCommand(_ => AddNewTabGroup());
-            RemoveTabGroupCommand = new RelayCommand(group => RemoveTabGroup(group as TabGroup));
+            AddNewTabGroupCommand = new RelayCommand(_ => AddNewTabGroup());
+            RemoveSelectedTabGroupCommand = new RelayCommand(group => RemoveTabGroup(group as TabGroup), group => TabGroupManager.TabGroups.Count > 1);
             DuplicateTabCommand = new RelayCommand(tab => DuplicateTab(tab as TabItemData));
             ToggleReaderModeCommand = new RelayCommand(_ => ToggleReaderMode());
             CaptureScreenshotCommand = new RelayCommand(async _ => await CaptureScreenshot());
             SuspendTabCommand = new RelayCommand(tab => SuspendTab(tab as TabItemData));
             RestoreTabCommand = new RelayCommand(tab => RestoreTab(tab as TabItemData));
             ReadAloudCommand = new RelayCommand(async _ => await ReadAloud());
-            ClearHistoryCommand = new RelayCommand(_ => HistoryManager.ClearHistory()); // Usando HistoryManager
-            OpenHistoryCommand = new RelayCommand(_ => OpenHistoryWindow()); // Usando HistoryWindow
-
-
-            // Inicializa el temporizador de suspensión
-            _suspensionTimer = new System.Timers.Timer(SettingsManager.SuspensionTimeMinutes * 60 * 1000); // Convertir minutos a milisegundos
-            _suspensionTimer.Elapsed += SuspensionTimer_Elapsed;
-            _suspensionTimer.AutoReset = true; // El temporizador se reinicia automáticamente
-            _suspensionTimer.Start();
+            ClearHistoryCommand = new RelayCommand(_ => HistoryManager.ClearHistory());
+            OpenHistoryCommand = new RelayCommand(_ => OpenHistoryWindow());
+            OpenBookmarksCommand = new RelayCommand(_ => OpenBookmarksWindow());
+            OpenPasswordManagerCommand = new RelayCommand(_ => OpenPasswordManagerWindow());
+            ExtractDataCommand = new RelayCommand(async _ => await ExtractDataForAI());
+            OpenExtensionsCommand = new RelayCommand(_ => OpenExtensionsWindow());
+            OpenSettingsCommand = new RelayCommand(_ => OpenSettingsWindow());
+            ShowAISelectionCommand = new RelayCommand(_ => ShowAISelection());
+            ToggleFindBarCommand = new RelayCommand(_ => IsFindBarVisible = !IsFindBarVisible);
+            FindNextCommand = new RelayCommand(_ => FindInPage(FindSearchText, true, false)); // Find next
+            FindPreviousCommand = new RelayCommand(_ => FindInPage(FindSearchText, false, true)); // Find previous
+            CloseFindBarCommand = new RelayCommand(_ => IsFindBarVisible = false);
         }
 
         private void SuspensionTimer_Elapsed(object? sender, ElapsedEventArgs e)
@@ -159,59 +250,185 @@ namespace NavegadorWeb.Classes
             });
         }
 
-
         private void AddNewTab(string url)
         {
             var webView = new WebView2();
             var newTab = new TabItemData(webView);
-            webView.CoreWebView2InitializationCompleted += (s, e) => OnWebViewInitialized(newTab, url);
-            webView.NavigationCompleted += (s, e) => OnNavigationCompleted(newTab, e);
-            webView.SourceChanged += (s, e) => OnSourceChanged(newTab, e);
-            webView.ContentLoading += (s, e) => OnContentLoading(newTab, e);
-            webView.HistoryChanged += (s, e) => OnHistoryChanged(newTab, e);
-            webView.DownloadStarting += CoreWebView2_DownloadStarting; // Adjuntar el evento de descarga
-            // Adjuntar evento de recarga para favicon (si lo necesitas en el ViewModel)
-            webView.CoreWebView2.FaviconChanged += async (s, e) => await OnFaviconChanged(newTab);
 
+            // Subscribe to CoreWebView2 events
+            webView.CoreWebView2InitializationCompleted += (s, e) => OnWebViewInitialized(newTab, url);
+            webView.CoreWebView2.NavigationCompleted += (s, e) => OnNavigationCompleted(newTab, e);
+            webView.CoreWebView2.SourceChanged += (s, e) => OnSourceChanged(newTab, e);
+            webView.CoreWebView2.DocumentTitleChanged += (s, e) => OnDocumentTitleChanged(newTab, e);
+            webView.CoreWebView2.HistoryChanged += (s, e) => OnHistoryChanged(newTab, e);
+            webView.CoreWebView2.FaviconChanged += async (s, e) => await OnFaviconChanged(newTab);
+            webView.CoreWebView2.DownloadStarting += CoreWebView2_DownloadStarting;
+            webView.CoreWebView2.WebMessageReceived += (s, e) => OnWebMessageReceived(newTab, e);
+            webView.CoreWebView2.NewWindowRequested += (s, e) => OnNewWindowRequested(newTab, e);
 
             TabGroupManager.SelectedTabGroup?.AddTab(newTab);
             SelectedTabItem = newTab;
-            OnPropertyChanged(nameof(CurrentUrl)); // Asegurarse de que la URL se actualice en la UI
+            OnPropertyChanged(nameof(CurrentUrl));
         }
 
         private async void OnWebViewInitialized(TabItemData tab, string url)
         {
             try
             {
-                await tab.WebViewInstance.EnsureCoreWebView2Async();
-                tab.WebViewInstance.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false; // Deshabilita F5 y Ctrl+R
+                await tab.WebViewInstance.EnsureCoreWebView2Async(null);
+                tab.WebViewInstance.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false;
                 tab.WebViewInstance.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
                 tab.WebViewInstance.CoreWebView2.Settings.AreDevToolsEnabled = true;
                 tab.WebViewInstance.CoreWebView2.Settings.IsGeneralAutofillEnabled = true;
                 tab.WebViewInstance.CoreWebView2.Settings.IsPasswordAutosaveEnabled = true;
 
-                tab.WebViewInstance.CoreWebView2.NavigationStarting += (s, e) => OnNavigationStarting(tab, e);
-                // Otros eventos importantes pueden adjuntarse aquí si es necesario.
-
                 if (!string.IsNullOrEmpty(url) && url != "about:blank")
                 {
                     tab.WebViewInstance.CoreWebView2.Navigate(url);
                 }
-                tab.LastActivity = DateTime.Now; // Marcar actividad al inicializar
-
+                tab.LastActivity = DateTime.Now;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error during WebView2 initialization: {ex.Message}");
-                // Puedes mostrar un MessageBox o loguear el error.
+                System.Windows.MessageBox.Show($"Error during WebView2 initialization: {ex.Message}", "WebView2 Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void OnNavigationStarting(TabItemData tab, CoreWebView2NavigationStartingEventArgs e)
         {
-            if (e.IsUserInitiated) // Solo registrar si el usuario inició la navegación (clic, escribir URL)
+            tab.IsLoading = true;
+            tab.Url = e.Uri;
+            HistoryManager.AddHistoryEntry(tab.Title, e.Uri);
+            tab.LastActivity = DateTime.Now;
+            OnPropertyChanged(nameof(CurrentUrl));
+        }
+
+        private void OnNavigationCompleted(TabItemData tab, CoreWebView2NavigationCompletedEventArgs e)
+        {
+            tab.IsLoading = false;
+            OnPropertyChanged(nameof(CanGoBack));
+            OnPropertyChanged(nameof(CanGoForward));
+            tab.LastActivity = DateTime.Now;
+        }
+
+        private void OnSourceChanged(TabItemData tab, CoreWebView2SourceChangedEventArgs e)
+        {
+            tab.Url = tab.WebViewInstance.Source.OriginalString;
+            OnPropertyChanged(nameof(CurrentUrl));
+            OnPropertyChanged(nameof(CanGoBack));
+            OnPropertyChanged(nameof(CanGoForward));
+            tab.LastActivity = DateTime.Now;
+        }
+
+        private void OnDocumentTitleChanged(TabItemData tab, object e)
+        {
+            tab.Title = tab.WebViewInstance.CoreWebView2.DocumentTitle;
+            tab.LastActivity = DateTime.Now;
+        }
+
+        private async Task OnFaviconChanged(TabItemData tab)
+        {
+            if (tab.WebViewInstance.CoreWebView2 != null)
             {
-                HistoryManager.AddHistoryEntry(tab.Title, e.Uri); // Usando HistoryManager
+                try
+                {
+                    using (var stream = await tab.WebViewInstance.CoreWebView2.GetFaviconStreamAsync())
+                    {
+                        if (stream != null && stream.Length > 0)
+                        {
+                            Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                BitmapImage favicon = new BitmapImage();
+                                favicon.BeginInit();
+                                favicon.StreamSource = stream;
+                                favicon.CacheOption = BitmapCacheOption.OnLoad;
+                                favicon.EndInit();
+                                favicon.Freeze();
+                                tab.Favicon = favicon;
+                            });
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error getting favicon: {ex.Message}");
+                }
+            }
+        }
+
+        private void OnHistoryChanged(TabItemData tab, object e)
+        {
+            OnPropertyChanged(nameof(CanGoBack));
+            OnPropertyChanged(nameof(CanGoForward));
+            tab.LastActivity = DateTime.Now;
+        }
+
+        private void OnWebMessageReceived(TabItemData tab, CoreWebView2WebMessageReceivedEventArgs e)
+        {
+            // Logic for web messages (JavaScript to C#)
+        }
+
+        private void OnNewWindowRequested(TabItemData tab, CoreWebView2NewWindowRequestedEventArgs e)
+        {
+            // Prevent new windows from opening and open them in a new tab instead
+            e.Handled = true;
+            AddNewTab(e.Uri);
+        }
+
+        private async void CoreWebView2_DownloadStarting(object? sender, CoreWebView2DownloadStartingEventArgs e)
+        {
+            Application.Current.Dispatcher.Invoke(() => DownloadProgressBarVisibility = Visibility.Visible);
+
+            e.Cancel = true; // Cancel download by default to handle it manually
+
+            SaveFileDialog saveFileDialog = new SaveFileDialog
+            {
+                FileName = e.ResultFilePath, // Default file name
+                Filter = "All files (*.*)|*.*"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                e.ResultFilePath = saveFileDialog.FileName; // Set the destination path chosen by the user
+                e.Cancel = false; // Allow WebView2 to continue with the download
+                e.Handled = true; // Indicate that we have handled the event
+
+                e.DownloadOperation.ProgressChanged += (downloadSender, downloadArgs) =>
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        DownloadProgress = (double)e.DownloadOperation.BytesReceived / e.DownloadOperation.TotalBytesToReceive * 100;
+                    });
+                };
+
+                e.DownloadOperation.StateChanged += (downloadSender, downloadArgs) =>
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        if (e.DownloadOperation.State == CoreWebView2DownloadState.Completed)
+                        {
+                            MessageBox.Show($"Download complete: {e.ResultFilePath}", "Download", MessageBoxButton.OK, MessageBoxImage.Information);
+                            DownloadProgressBarVisibility = Visibility.Collapsed;
+                            DownloadProgress = 0;
+                        }
+                        else if (e.DownloadOperation.State == CoreWebView2DownloadState.Interrupted)
+                        {
+                            MessageBox.Show($"Download interrupted: {e.ResultFilePath}\nReason: {e.DownloadOperation.InterruptReason}", "Download Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                            DownloadProgressBarVisibility = Visibility.Collapsed;
+                            DownloadProgress = 0;
+                        }
+                    });
+                };
+            }
+            else
+            {
+                e.Cancel = true;
+                e.Handled = true;
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    DownloadProgressBarVisibility = Visibility.Collapsed;
+                    DownloadProgress = 0;
+                });
             }
         }
 
@@ -222,32 +439,33 @@ namespace NavegadorWeb.Classes
                 string formattedUrl = url;
                 if (!url.Contains("://") && !url.StartsWith("about:"))
                 {
-                    formattedUrl = "https://" + url; // Asume HTTPS si no hay protocolo
+                    // Use the default search engine if it's not a full URL
+                    formattedUrl = SettingsManager.DefaultSearchEngineUrl + Uri.EscapeDataString(url);
                 }
                 SelectedTabItem.WebViewInstance.CoreWebView2.Navigate(formattedUrl);
-                SelectedTabItem.Url = formattedUrl; // Actualiza la propiedad URL inmediatamente
-                SelectedTabItem.LastActivity = DateTime.Now; // Marcar actividad
-                HistoryManager.AddHistoryEntry(SelectedTabItem.Title, formattedUrl); // Guarda en el historial
+                SelectedTabItem.Url = formattedUrl; // Update the URL property immediately
+                SelectedTabItem.LastActivity = DateTime.Now; // Mark activity
+                HistoryManager.AddHistoryEntry(SelectedTabItem.Title, formattedUrl); // Save to history
                 OnPropertyChanged(nameof(CurrentUrl));
             }
         }
 
         private void GoBack()
         {
-            SelectedTabItem?.WebViewInstance.CoreWebView2.GoBack();
-            SelectedTabItem.LastActivity = DateTime.Now; // Marcar actividad
+            SelectedTabItem?.WebViewInstance.CoreWebView2?.GoBack();
+            SelectedTabItem.LastActivity = DateTime.Now; // Mark activity
         }
 
         private void GoForward()
         {
-            SelectedTabItem?.WebViewInstance.CoreWebView2.GoForward();
-            SelectedTabItem.LastActivity = DateTime.Now; // Marcar actividad
+            SelectedTabItem?.WebViewInstance.CoreWebView2?.GoForward();
+            SelectedTabItem.LastActivity = DateTime.Now; // Mark activity
         }
 
         private void Refresh()
         {
-            SelectedTabItem?.WebViewInstance.CoreWebView2.Reload();
-            SelectedTabItem.LastActivity = DateTime.Now; // Marcar actividad
+            SelectedTabItem?.WebViewInstance.CoreWebView2?.Reload();
+            SelectedTabItem.LastActivity = DateTime.Now; // Mark activity
         }
 
         private void CloseTab(TabItemData? tab)
@@ -255,12 +473,19 @@ namespace NavegadorWeb.Classes
             if (tab != null && TabGroupManager.SelectedTabGroup != null)
             {
                 TabGroupManager.SelectedTabGroup.RemoveTab(tab);
-                tab.WebViewInstance.Dispose(); // Libera los recursos de WebView2
+                tab.WebViewInstance.Dispose(); // Release WebView2 resources
 
                 if (!TabGroupManager.SelectedTabGroup.TabsInGroup.Any())
                 {
-                    // Si no quedan pestañas en el grupo, añade una nueva por defecto
-                    AddNewTab("about:blank");
+                    // If no tabs left in the group, remove the group or add a new tab
+                    if (TabGroupManager.TabGroups.Count > 1)
+                    {
+                        TabGroupManager.RemoveTabGroup(TabGroupManager.SelectedTabGroup);
+                    }
+                    else // If it's the last group, add a new tab
+                    {
+                        AddNewTab(SettingsManager.DefaultHomePage);
+                    }
                 }
                 OnPropertyChanged(nameof(CurrentUrl));
             }
@@ -270,23 +495,16 @@ namespace NavegadorWeb.Classes
         {
             var newGroup = new TabGroup($"Grupo {TabGroupManager.TabGroups.Count + 1}");
             TabGroupManager.AddTabGroup(newGroup);
-            // Si quieres que el nuevo grupo tenga una pestaña inicial, podrías hacer:
-            // AddNewTab("about:blank"); // Esto añadiría a la pestaña activa, no necesariamente al nuevo grupo.
-            // Para añadir al nuevo grupo y seleccionarlo:
-            // var webView = new WebView2();
-            // var newTab = new TabItemData(webView);
-            // newGroup.AddTab(newTab);
-            // TabGroupManager.SelectedTabGroup = newGroup;
-            // SelectedTabItem = newTab;
-            // OnWebViewInitialized(newTab, "about:blank");
+            TabGroupManager.SelectedTabGroup = newGroup; // Select the new group
+            AddNewTab(SettingsManager.DefaultHomePage); // Add a default tab to the new group
         }
 
         private void RemoveTabGroup(TabGroup? group)
         {
-            if (group != null)
+            if (group != null && TabGroupManager.TabGroups.Count > 1)
             {
-                // Disponer de todos los WebView2 en el grupo antes de removerlo
-                foreach (var tab in group.TabsInGroup)
+                // Dispose of all WebView2 instances in the group before removing it
+                foreach (var tab in group.TabsInGroup.ToList()) // ToList to avoid modifying the collection while iterating
                 {
                     tab.WebViewInstance.Dispose();
                 }
@@ -294,9 +512,9 @@ namespace NavegadorWeb.Classes
 
                 if (!TabGroupManager.TabGroups.Any())
                 {
-                    // Si no quedan grupos, crea uno por defecto y una pestaña
+                    // If no groups left, create a default one and a tab
                     AddNewTabGroup();
-                    AddNewTab("about:blank");
+                    AddNewTab(SettingsManager.DefaultHomePage);
                 }
             }
         }
@@ -314,9 +532,8 @@ namespace NavegadorWeb.Classes
             if (SelectedTabItem != null)
             {
                 SelectedTabItem.IsReaderMode = !SelectedTabItem.IsReaderMode;
-                // Aquí podrías añadir lógica para aplicar CSS o manipular el DOM
-                // para una experiencia de modo lector real.
-                // Por ejemplo:
+                // Add logic here to apply CSS or manipulate the DOM for a real reader mode experience.
+                // For example:
                 // if (SelectedTabItem.IsReaderMode)
                 // {
                 //     await SelectedTabItem.WebViewInstance.CoreWebView2.ExecuteScriptAsync("document.body.style.fontFamily='serif'; document.body.style.lineHeight='1.6';");
@@ -334,27 +551,27 @@ namespace NavegadorWeb.Classes
             {
                 try
                 {
-                    // Captura la imagen del WebView2
+                    // Capture the WebView2 image
                     using (var stream = new MemoryStream())
                     {
-                        await SelectedTabItem.WebViewInstance.CoreWebView2.CapturePreview(CoreWebView2CapturePreviewImageFormat.Png, stream);
-                        stream.Position = 0; // Reinicia la posición del stream
+                        await SelectedTabItem.WebViewInstance.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream);
+                        stream.Position = 0; // Reset stream position
                         BitmapImage screenshot = new BitmapImage();
                         screenshot.BeginInit();
-                        screenshot.CacheOption = BitmapCacheOption.OnLoad; // Carga la imagen completamente para liberar el stream
+                        screenshot.CacheOption = BitmapCacheOption.OnLoad; // Load the image completely to free the stream
                         screenshot.StreamSource = stream;
                         screenshot.EndInit();
-                        screenshot.Freeze(); // Congela el BitmapImage para que sea accesible desde otros hilos si es necesario
+                        screenshot.Freeze(); // Freeze the BitmapImage so it can be accessed from other threads if needed
 
-                        // Convierte a Base64 y almacena en CapturedData
+                        // Convert to Base64 and store in CapturedData
                         SelectedTabItem.CapturedData.ScreenshotBase64 = ConvertBitmapImageToBase64(screenshot);
 
-                        MessageBox.Show("Captura de pantalla guardada en el objeto de datos de la página.", "Captura Exitosa", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show("Screenshot saved to page data object.", "Screenshot Success", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error al capturar la pantalla: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Error capturing screen: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -365,11 +582,11 @@ namespace NavegadorWeb.Classes
             {
                 tab.LastSuspendedUrl = tab.Url;
                 tab.IsSuspended = true;
-                tab.WebViewInstance.CoreWebView2.Navigate("about:blank"); // Navega a una página en blanco para liberar recursos
-                tab.WebViewInstance.Visibility = Visibility.Collapsed; // Oculta el WebView2
-                // Puedes cambiar el Title y Favicon a algo que indique "suspendido"
-                tab.Title = $"Suspendido: {tab.Title}";
-                tab.Favicon = null; // O un icono de "suspendido"
+                tab.WebViewInstance.CoreWebView2.Navigate("about:blank"); // Navigate to a blank page to free resources
+                tab.WebViewInstance.Visibility = Visibility.Collapsed; // Hide the WebView2
+                // You can change the Title and Favicon to indicate "suspended"
+                tab.Title = $"Suspended: {tab.Title}";
+                tab.Favicon = null; // Or a "suspended" icon
             }
         }
 
@@ -378,9 +595,9 @@ namespace NavegadorWeb.Classes
             if (tab != null && tab.IsSuspended && !string.IsNullOrEmpty(tab.LastSuspendedUrl))
             {
                 tab.IsSuspended = false;
-                tab.WebViewInstance.Visibility = Visibility.Visible; // Muestra el WebView2
-                tab.WebViewInstance.CoreWebView2.Navigate(tab.LastSuspendedUrl); // Recarga la URL original
-                tab.LastActivity = DateTime.Now; // Marcar actividad al restaurar
+                tab.WebViewInstance.Visibility = Visibility.Visible; // Show the WebView2
+                tab.WebViewInstance.CoreWebView2.Navigate(tab.LastSuspendedUrl); // Reload the original URL
+                tab.LastActivity = DateTime.Now; // Mark activity upon restoring
             }
         }
 
@@ -390,33 +607,31 @@ namespace NavegadorWeb.Classes
             {
                 try
                 {
-                    // Ejecuta JavaScript para obtener el texto del cuerpo de la página
-                    // Esto es una simplificación, para un texto más limpio necesitarías un parser HTML
+                    // Execute JavaScript to get the page body text
+                    // This is a simplification; for cleaner text, you would need an HTML parser
                     string pageText = await SelectedTabItem.WebViewInstance.CoreWebView2.ExecuteScriptAsync("document.body.innerText;");
-                    pageText = System.Text.Json.JsonSerializer.Deserialize<string>(pageText) ?? string.Empty; // Deserializar la cadena JSON
+                    pageText = System.Text.Json.JsonSerializer.Deserialize<string>(pageText) ?? string.Empty; // Deserialize the JSON string
 
                     if (!string.IsNullOrEmpty(pageText))
                     {
-                        // Limitar el texto para evitar sobrecargar el sintetizador de voz (opcional)
+                        // Limit text to avoid overwhelming the speech synthesizer (optional)
                         if (pageText.Length > 2000)
                         {
                             pageText = pageText.Substring(0, 2000) + "... (truncated)";
                         }
 
-                        SpeechSynthesizer synth = new SpeechSynthesizer();
-                        synth.SetOutputToDefaultAudioDevice();
-                        synth.SpeakAsync(pageText); // Leer el texto de forma asíncrona
+                        _speechSynthesizer.SpeakAsync(pageText); // Read text asynchronously
 
-                        MessageBox.Show("Leyendo el contenido de la página...", "Lectura en Voz Alta", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show("Reading page content aloud...", "Read Aloud", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     else
                     {
-                        MessageBox.Show("No se encontró texto para leer en esta página.", "Lectura en Voz Alta", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show("No text found to read on this page.", "Read Aloud", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error al leer en voz alta: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Error reading aloud: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -435,285 +650,115 @@ namespace NavegadorWeb.Classes
             });
         }
 
-        // Métodos auxiliares para la serialización de sesión
-        private const string SessionFileName = "browserSession.json";
-
-        private void SaveSession()
-        {
-            try
-            {
-                var sessionState = new SessionState
-                {
-                    SelectedTabGroupId = TabGroupManager.SelectedTabGroup?.GroupId,
-                    TabGroupStates = TabGroupManager.TabGroups.Select(g => new TabGroupState
-                    {
-                        GroupId = g.GroupId,
-                        GroupName = g.GroupName,
-                        TabUrls = g.TabsInGroup.Select(t => t.Url).ToList(),
-                        SelectedTabUrl = g.SelectedTabItem?.Url
-                    }).ToList()
-                };
-
-                string jsonString = JsonSerializer.Serialize(sessionState, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(SessionFileName, jsonString);
-                Console.WriteLine("Sesión guardada exitosamente.");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error al guardar la sesión: {ex.Message}");
-            }
-        }
-
-        private void LoadSession()
-        {
-            try
-            {
-                if (File.Exists(SessionFileName))
-                {
-                    string jsonString = File.ReadAllText(SessionFileName);
-                    var sessionState = JsonSerializer.Deserialize<SessionState>(jsonString);
-
-                    if (sessionState != null && sessionState.TabGroupStates != null)
-                    {
-                        TabGroupManager.TabGroups.Clear();
-                        foreach (var groupState in sessionState.TabGroupStates)
-                        {
-                            var group = new TabGroup(groupState.GroupName);
-                            group.GroupId = groupState.GroupId; // Asignar el GroupId deserializado
-                            TabGroupManager.AddTabGroup(group);
-
-                            foreach (var url in groupState.TabUrls)
-                            {
-                                if (!string.IsNullOrEmpty(url))
-                                {
-                                    var webView = new WebView2();
-                                    var newTab = new TabItemData(webView);
-                                    group.AddTab(newTab);
-                                    // Inicializa el WebView2 y navega
-                                    newTab.WebViewInstance.CoreWebView2InitializationCompleted += async (s, e) =>
-                                    {
-                                        await newTab.WebViewInstance.EnsureCoreWebView2Async();
-                                        newTab.WebViewInstance.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false;
-                                        newTab.WebViewInstance.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
-                                        newTab.WebView2.CoreWebView2.NavigationStarting += (s, navArgs) => OnNavigationStarting(newTab, navArgs);
-                                        newTab.WebViewInstance.CoreWebView2.NavigationCompleted += (s, navArgs) => OnNavigationCompleted(newTab, navArgs);
-                                        newTab.WebViewInstance.CoreWebView2.SourceChanged += (s, srcArgs) => OnSourceChanged(newTab, srcArgs);
-                                        newTab.WebViewInstance.CoreWebView2.ContentLoading += (s, clArgs) => OnContentLoading(newTab, clArgs);
-                                        newTab.WebViewInstance.CoreWebView2.HistoryChanged += (s, hArgs) => OnHistoryChanged(newTab, hArgs);
-                                        newTab.WebViewInstance.CoreWebView2.DownloadStarting += CoreWebView2_DownloadStarting;
-                                        newTab.WebViewInstance.CoreWebView2.FaviconChanged += async (s, e) => await OnFaviconChanged(newTab);
-
-                                        newTab.WebViewInstance.CoreWebView2.Navigate(url);
-                                        newTab.Url = url;
-                                        newTab.Title = url; // Título temporal hasta que cargue
-                                        newTab.LastActivity = DateTime.Now;
-                                    };
-                                }
-                            }
-                            if (!string.IsNullOrEmpty(groupState.SelectedTabUrl))
-                            {
-                                group.SelectedTabItem = group.TabsInGroup.FirstOrDefault(t => t.Url == groupState.SelectedTabUrl);
-                            }
-                        }
-
-                        if (sessionState.SelectedTabGroupId != null)
-                        {
-                            TabGroupManager.SelectedTabGroup = TabGroupManager.TabGroups.FirstOrDefault(g => g.GroupId == sessionState.SelectedTabGroupId);
-                        }
-                    }
-                    Console.WriteLine("Sesión cargada exitosamente.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error al cargar la sesión: {ex.Message}");
-            }
-        }
-
-        // Métodos de eventos de WebView2
-        private void OnNavigationCompleted(TabItemData tab, CoreWebView2NavigationCompletedEventArgs e)
+        private void OpenBookmarksWindow()
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
-                tab.IsLoading = false;
-                OnPropertyChanged(nameof(CanGoBack));
-                OnPropertyChanged(nameof(CanGoForward));
-                tab.LastActivity = DateTime.Now; // Marcar actividad
+                BookmarksWindow bookmarksWindow = new BookmarksWindow();
+                bookmarksWindow.ShowDialog();
             });
         }
 
-        private async void OnFaviconChanged(TabItemData tab)
+        private void OpenPasswordManagerWindow()
         {
-            if (tab.WebViewInstance.CoreWebView2 != null)
+            Application.Current.Dispatcher.Invoke(() =>
             {
+                PasswordManagerWindow passwordManagerWindow = new PasswordManagerWindow();
+                passwordManagerWindow.ShowDialog();
+            });
+        }
+
+        private async Task ExtractDataForAI()
+        {
+            if (SelectedTabItem?.WebViewInstance.CoreWebView2 != null)
+            {
+                var currentTab = SelectedTabItem;
+
+                var html = await currentTab.WebViewInstance.CoreWebView2.ExecuteScriptAsync("document.documentElement.outerHTML;");
+                var text = await currentTab.WebViewInstance.CoreWebView2.ExecuteScriptAsync("document.body.innerText;");
+
+                currentTab.CapturedData.Url = currentTab.Url;
+                currentTab.CapturedData.Title = currentTab.Title;
+                currentTab.CapturedData.ExtractedText = JsonSerializer.Deserialize<string>(text) ?? string.Empty;
+
                 try
                 {
-                    using (var stream = await tab.WebViewInstance.CoreWebView2.GetFaviconStreamAsync())
+                    using (var screenshotStream = new MemoryStream())
                     {
-                        if (stream != null && stream.Length > 0)
-                        {
-                            Application.Current.Dispatcher.Invoke(() =>
-                            {
-                                BitmapImage favicon = new BitmapImage();
-                                favicon.BeginInit();
-                                favicon.CacheOption = BitmapCacheOption.OnLoad;
-                                favicon.StreamSource = stream;
-                                favicon.EndInit();
-                                favicon.Freeze();
-                                tab.Favicon = favicon;
-                            });
-                        }
+                        await currentTab.WebViewInstance.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, screenshotStream);
+                        screenshotStream.Position = 0;
+                        BitmapImage screenshotImage = new BitmapImage();
+                        screenshotImage.BeginInit();
+                        screenshotImage.CacheOption = BitmapCacheOption.OnLoad;
+                        screenshotImage.StreamSource = screenshotStream;
+                        screenshotImage.EndInit();
+                        screenshotImage.Freeze();
+                        currentTab.CapturedData.ScreenshotBase64 = ConvertBitmapImageToBase64(screenshotImage);
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error al obtener el favicon: {ex.Message}");
+                    Debug.WriteLine($"Error capturing preview for AI: {ex.Message}");
+                    currentTab.CapturedData.ScreenshotBase64 = string.Empty;
                 }
+
+                currentTab.CapturedData.FaviconBase64 = string.Empty; // Placeholder, getting favicon is more complex
+
+                GeminiDataViewerWindow geminiViewer = new GeminiDataViewerWindow(new ObservableCollection<CapturedPageData> { currentTab.CapturedData });
+                geminiViewer.ShowDialog();
             }
         }
 
-
-        private async void OnSourceChanged(TabItemData tab, CoreWebView2SourceChangedEventArgs e)
+        private void OpenExtensionsWindow()
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
-                tab.Url = tab.WebViewInstance.Source.OriginalString;
-                OnPropertyChanged(nameof(CurrentUrl));
-                OnPropertyChanged(nameof(CanGoBack));
-                OnPropertyChanged(nameof(CanGoForward));
-                tab.LastActivity = DateTime.Now; // Marcar actividad
+                ExtensionsWindow extensionsWindow = new ExtensionsWindow(); // Pass your ExtensionManager if needed
+                extensionsWindow.ShowDialog();
             });
+        }
 
-            // Actualizar título y favicon después de un SourceChanged si el título no se ha actualizado
-            // Esto es importante porque SourceChanged ocurre antes de que el título esté disponible.
-            // Puedes añadir un pequeño retraso o esperar a un evento como DOMContentLoaded.
-            // Para simplicidad, actualizamos el título y favicon aquí de nuevo,
-            // pero lo ideal es hacerlo en NavigationCompleted o TitleChanged.
-            try
+        private void OpenSettingsWindow()
+        {
+            Application.Current.Dispatcher.Invoke(() =>
             {
-                if (tab.WebViewInstance.CoreWebView2 != null)
+                SettingsWindow settingsWindow = new SettingsWindow(); // Pass your MainViewModel or SettingsViewModel
+                settingsWindow.ShowDialog();
+            });
+        }
+
+        private void ShowAISelection()
+        {
+            MessageBox.Show($"Current AI Assistant: {SettingsManager.DefaultAIModel}\n\n" +
+                            "AI selection will be handled in the Settings window.", "AI Selection", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private async void FindInPage(string searchText, bool findNext = false, bool findPrevious = false)
+        {
+            if (SelectedTabItem?.WebViewInstance.CoreWebView2 != null)
+            {
+                if (string.IsNullOrEmpty(searchText))
                 {
-                    string title = await tab.WebViewInstance.CoreWebView2.ExecuteScriptAsync("document.title");
-                    title = System.Text.Json.JsonSerializer.Deserialize<string>(title) ?? "New Tab";
-                    Application.Current.Dispatcher.Invoke(() => tab.Title = title);
+                    SelectedTabItem.WebViewInstance.CoreWebView2.StopFindInPage(CoreWebView2StopFindInPageKind.ClearSelection);
+                    FindResultsText = string.Empty;
+                    return;
                 }
-                await OnFaviconChanged(tab); // Re-obtener el favicon
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error al actualizar título/favicon en SourceChanged: {ex.Message}");
-            }
-        }
 
+                CoreWebView2FindParameters parameters = SelectedTabItem.WebViewInstance.CoreWebView2.CreateFindParameters();
+                parameters.FindNext = findNext;
+                parameters.SearchPrevious = findPrevious;
+                parameters.MatchCase = false; // You can make this configurable
+                parameters.WholeWord = false; // You can make this configurable
 
-        private void OnContentLoading(TabItemData tab, CoreWebView2ContentLoadingEventArgs e)
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                tab.IsLoading = true;
-                tab.LastActivity = DateTime.Now; // Marcar actividad
-            });
-        }
-
-        private void OnHistoryChanged(TabItemData tab, object e)
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                OnPropertyChanged(nameof(CanGoBack));
-                OnPropertyChanged(nameof(CanGoForward));
-                tab.LastActivity = DateTime.Now; // Marcar actividad
-            });
-        }
-
-        private async void CoreWebView2_DownloadStarting(object? sender, CoreWebView2DownloadStartingEventArgs e)
-        {
-            // Ocultar la barra de progreso al inicio de la descarga
-            Application.Current.Dispatcher.Invoke(() => DownloadProgressBarVisibility = Visibility.Visible);
-
-            e.Cancel = true; // Cancela la descarga por defecto para manejarla manualmente
-
-            // Mostrar un cuadro de diálogo para guardar el archivo
-            Microsoft.Win32.SaveFileDialog saveFileDialog = new Microsoft.Win32.SaveFileDialog
-            {
-                FileName = e.ResultFilePath, // Nombre de archivo por defecto
-                Filter = "All files (*.*)|*.*"
-            };
-
-            if (saveFileDialog.ShowDialog() == true)
-            {
-                e.ResultFilePath = saveFileDialog.FileName; // Establece la ruta de destino elegida por el usuario
-                e.Cancel = false; // Permite que WebView2 continúe con la descarga
-                e.Handled = true; // Indica que hemos manejado el evento
-
-                e.DownloadOperation.ProgressChanged += (downloadSender, downloadArgs) =>
-                {
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        DownloadProgress = (double)e.DownloadOperation.BytesReceived / e.DownloadOperation.TotalBytesToReceive * 100;
-                    });
-                };
-
-                e.DownloadOperation.StateChanged += (downloadSender, downloadArgs) =>
-                {
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        if (e.DownloadOperation.State == CoreWebView2DownloadState.Completed)
-                        {
-                            MessageBox.Show($"Descarga completa: {e.ResultFilePath}", "Descarga", MessageBoxButton.OK, MessageBoxImage.Information);
-                            DownloadProgressBarVisibility = Visibility.Collapsed;
-                            DownloadProgress = 0;
-                        }
-                        else if (e.DownloadOperation.State == CoreWebView2DownloadState.Interrupted)
-                        {
-                            MessageBox.Show($"Descarga interrumpida: {e.ResultFilePath}\nMotivo: {e.DownloadOperation.InterruptReason}", "Descarga Fallida", MessageBoxButton.OK, MessageBoxImage.Error);
-                            DownloadProgressBarVisibility = Visibility.Collapsed;
-                            DownloadProgress = 0;
-                        }
-                    });
-                };
-
-                // Si no se usa await directamente en este método, la advertencia CS1998 aparecerá.
-                // La operación de descarga es manejada por los eventos de DownloadOperation.
-            }
-            else
-            {
-                // El usuario canceló el diálogo de guardar, por lo tanto cancela la descarga en WebView2
-                e.Cancel = true;
-                e.Handled = true;
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    DownloadProgressBarVisibility = Visibility.Collapsed;
-                    DownloadProgress = 0;
-                });
+                CoreWebView2FindResult result = await SelectedTabItem.WebViewInstance.CoreWebView2.FindInPage(searchText, parameters);
+                FindResultsText = $"{result.Matches} results";
             }
         }
 
-
-        // Métodos auxiliares para convertir imágenes (pueden ser movidos a una clase utilitaria)
-        private BitmapImage? ConvertBase64ToBitmapImage(string base64String)
-        {
-            if (string.IsNullOrEmpty(base64String)) return null;
-
-            try
-            {
-                byte[] binaryData = Convert.FromBase64String(base64String);
-                BitmapImage bi = new BitmapImage();
-                bi.BeginInit();
-                bi.StreamSource = new MemoryStream(binaryData);
-                bi.EndInit();
-                return bi;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error al convertir Base64 a BitmapImage: {ex.Message}");
-                return null;
-            }
-        }
-
+        // Helper methods for image conversion
         private string ConvertBitmapImageToBase64(BitmapImage bitmapImage)
         {
             if (bitmapImage == null) return string.Empty;
-
             try
             {
                 MemoryStream stream = new MemoryStream();
@@ -725,12 +770,12 @@ namespace NavegadorWeb.Classes
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error al convertir BitmapImage a Base64: {ex.Message}");
+                Console.WriteLine($"Error converting BitmapImage to Base64: {ex.Message}");
                 return string.Empty;
             }
         }
 
-        // Implementación de INotifyPropertyChanged
+        // INotifyPropertyChanged implementation
         public event PropertyChangedEventHandler? PropertyChanged;
 
         protected void OnPropertyChanged(string propertyName)
@@ -738,12 +783,11 @@ namespace NavegadorWeb.Classes
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        // Clases internas para serialización de sesión
+        // Internal classes for session serialization
         private class SessionState
         {
             public string? SelectedTabGroupId { get; set; }
             public List<TabGroupState> TabGroupStates { get; set; } = new List<TabGroupState>();
         }
-
     }
 }
