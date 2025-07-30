@@ -287,7 +287,7 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/> <!-- CORREGIDO: Era ColumnColumnDefinition, ahora es ColumnDefinition -->
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
