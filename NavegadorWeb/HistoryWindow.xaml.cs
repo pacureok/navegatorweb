@@ -2,8 +2,9 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Diagnostics; // Para abrir URLs en el navegador principal
+using NavegadorWeb.Services; // Necesario para HistoryManager
 
-namespace NavegadorWeb
+namespace NavegadorWeb.Windows // ¡MUY IMPORTANTE! Este debe ser el namespace.
 {
     /// <summary>
     /// Lógica de interacción para HistoryWindow.xaml
@@ -11,7 +12,7 @@ namespace NavegadorWeb
     public partial class HistoryWindow : Window
     {
         // Propiedad para que MainWindow pueda acceder a la URL seleccionada
-        public string SelectedUrl { get; private set; }
+        public string SelectedUrl { get; private set; } = string.Empty;
 
         public HistoryWindow()
         {
