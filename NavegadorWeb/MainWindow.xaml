@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:NavegadorWeb"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        xmlns:converters="clr-namespace:NavegadorWeb.Converters"
         mc:Ignorable="d"
         Title="Aurora Browser" Height="768" Width="1024"
         WindowStyle="None"
@@ -16,28 +17,110 @@
         StateChanged="MainWindow_StateChanged">
 
     <Window.Resources>
-        <Color x:Key="DefaultBrowserBackgroundColor">#282c34</Color> <SolidColorBrush x:Key="DefaultBrowserBackgroundBrush" Color="{StaticResource DefaultBrowserBackgroundColor}"/>
+        <!-- Default browser colors -->
+        <Color x:Key="DefaultBrowserBackgroundColor">#282c34</Color> <!-- Dark bluish gray -->
+        <SolidColorBrush x:Key="DefaultBrowserBackgroundBrush" Color="{StaticResource DefaultBrowserBackgroundColor}"/>
 
-        <Color x:Key="DefaultBrowserForegroundColor">#abb2bf</Color> <SolidColorBrush x:Key="DefaultBrowserForegroundBrush" Color="{StaticResource DefaultBrowserForegroundColor}"/>
+        <Color x:Key="DefaultBrowserForegroundColor">#abb2bf</Color> <!-- Light text color -->
+        <SolidColorBrush x:Key="DefaultBrowserForegroundBrush" Color="{StaticResource DefaultBrowserForegroundColor}"/>
 
-        <Color x:Key="GeminiBackgroundColor">#343a40</Color> <SolidColorBrush x:Key="GeminiBackgroundBrush" Color="{StaticResource GeminiBackgroundColor}"/>
+        <!-- Gemini mode colors (example, adjust as needed) -->
+        <Color x:Key="GeminiBackgroundColor">#343a40</Color> <!-- Slightly lighter dark gray -->
+        <SolidColorBrush x:Key="GeminiBackgroundBrush" Color="{StaticResource GeminiBackgroundColor}"/>
 
-        <Color x:Key="GeminiForegroundColor">#e0e6f1</Color> <SolidColorBrush x:Key="GeminiForegroundBrush" Color="{StaticResource GeminiForegroundColor}"/>
+        <Color x:Key="GeminiForegroundColor">#e0e6f1</Color> <!-- Lighter text color -->
+        <SolidColorBrush x:Key="GeminiForegroundBrush" Color="{StaticResource GeminiForegroundColor}"/>
 
+        <!-- Boolean to Visibility Converter -->
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
+        <!-- Base style for all buttons -->
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource DefaultBrowserForegroundColor}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#3a3e47"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#1f2227"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Style for window control buttons (Minimize, Maximize, Close) -->
+        <Style x:Key="WindowControlButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Foreground" Value="{StaticResource DefaultBrowserForegroundColor}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#444a54"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#1f2227"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="WindowCloseButton" TargetType="Button" BasedOn="{StaticResource WindowControlButton}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E74C3C"/> <!-- Red for close button on hover -->
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#C0392B"/> <!-- Darker red on press -->
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Style for TextBox -->
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#1a1a1a"/>
+            <Setter Property="Foreground" Value="{StaticResource DefaultBrowserForegroundColor}"/>
+            <Setter Property="BorderBrush" Value="#333333"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="CaretBrush" Value="{StaticResource DefaultBrowserForegroundColor}"/>
+        </Style>
+
+        <!-- Style for TabItem -->
         <Style x:Key="TabItemStyle" TargetType="{x:Type TabItem}">
             <Setter Property="HeaderTemplate">
                 <Setter.Value>
                     <DataTemplate>
-                        <StackPanel Orientation="Horizontal" ToolTip="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.Url}">
-                            <Image Source="{Binding Favicon}" Width="16" Height="16" Margin="0,0,5,0" />
-                            <TextBlock Text="{Binding Title}" VerticalAlignment="Center" Foreground="{StaticResource DefaultBrowserForegroundBrush}"/>
+                        <StackPanel Orientation="Horizontal" ToolTip="{Binding Url}">
+                            <Image Source="{Binding Favicon}" Width="16" Height="16" Margin="0,0,5,0" Stretch="Uniform"/>
+                            <TextBlock Text="{Binding Title}" VerticalAlignment="Center" Foreground="{StaticResource DefaultBrowserForegroundColor}"/>
                             <Button Content="x" Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabControl}}, Path=DataContext.CloseTabCommand}"
                                     CommandParameter="{Binding}"
-                                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
+                                    Style="{StaticResource {x:Type Button}}"
                                     Margin="5,0,0,0"
                                     Width="16" Height="16"
                                     VerticalAlignment="Center"
-                                    ToolTip="Close tab"/>
+                                    ToolTip="Cerrar pestaña"
+                                    Background="Transparent" BorderBrush="Transparent" Foreground="{StaticResource DefaultBrowserForegroundColor}" Padding="0"/>
                         </StackPanel>
                     </DataTemplate>
                 </Setter.Value>
@@ -51,10 +134,11 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type TabItem}">
                         <Border Name="Border"
+                                Margin="0,0,2,0"
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="1,1,1,0"
-                                CornerRadius="4,4,0,0"
+                                CornerRadius="5,5,0,0"
                                 SnapsToDevicePixels="True">
                             <ContentPresenter x:Name="ContentSite"
                                         VerticalAlignment="Center"
@@ -70,8 +154,8 @@
                                 <Setter Property="Foreground" Value="{StaticResource GeminiForegroundColor}"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="{StaticResource GeminiBackgroundColor}"/>
-                                <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource GeminiBackgroundColor}"/>
+                                <Setter TargetName="Border" Property="Background" Value="#444a54"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#444a54"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -79,58 +163,45 @@
             </Setter>
         </Style>
 
-        <DataTemplate x:Key="TabHeaderTemplate">
-            <StackPanel Orientation="Horizontal" ToolTip="{Binding Url}">
-                <Image Source="{Binding Favicon}" Width="16" Height="16" Margin="0,0,5,0" Stretch="Uniform"/>
-                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" Foreground="{StaticResource DefaultBrowserForegroundColor}"/>
-                <Button Content="✖"
-                        Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabControl}}, Path=DataContext.CloseTabCommand}"
-                        CommandParameter="{Binding}"
-                        Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
-                        Margin="5,0,0,0"
-                        Width="16" Height="16"
-                        VerticalAlignment="Center"
-                        ToolTip="Cerrar pestaña"
-                        Background="Transparent" BorderBrush="Transparent" Foreground="{StaticResource DefaultBrowserForegroundColor}" Padding="0">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                                  SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
-                                                  Content="{TemplateBinding Content}"/>
-                            </Border>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
-            </StackPanel>
-        </DataTemplate>
-
+        <!-- Tab Content Template (for the content displayed inside each tab) -->
         <DataTemplate x:Key="TabContentTemplate">
             <Grid>
-                <wv2:WebView2 Name="WebView" Source="{Binding Url}" />
+                <wv2:WebView2 x:Name="WebViewInstance" Source="{Binding Url}" />
             </Grid>
         </DataTemplate>
 
+        <!-- ContextMenu for the address bar -->
+        <ContextMenu x:Key="AddressBarContextMenu">
+            <MenuItem Header="Cortar" Command="ApplicationCommands.Cut"/>
+            <MenuItem Header="Copiar" Command="ApplicationCommands.Copy"/>
+            <MenuItem Header="Pegar" Command="ApplicationCommands.Paste"/>
+        </ContextMenu>
+
     </Window.Resources>
 
-    <Border Background="{StaticResource DefaultBrowserBackgroundBrush}"
-            CornerRadius="8"
-            BorderThickness="1"
-            BorderBrush="#3a3f4b">
-        <Grid>
+    <!-- Main border to apply CornerRadius to the entire window -->
+    <Border x:Name="MainBorder"
+            Background="{StaticResource DefaultBrowserBackgroundBrush}"
+            CornerRadius="10"
+            BorderBrush="{StaticResource DefaultBrowserForegroundColor}"
+            BorderThickness="1">
+        <Grid x:Name="mainGrid" >
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/> <!-- Custom title bar -->
+                <RowDefinition Height="Auto"/> <!-- Tab Group Management & New Tab Button -->
+                <RowDefinition Height="Auto"/> <!-- Address Bar & Navigation Buttons -->
+                <RowDefinition Height="Auto"/> <!-- Find bar -->
+                <RowDefinition Height="*"/>    <!-- Main browser content (WebView2) -->
+                <RowDefinition Height="Auto"/> <!-- Download progress bar -->
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <Grid Grid.Row="0" Background="{StaticResource DefaultBrowserBackgroundBrush}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+            <!-- Custom title bar -->
+            <Grid Grid.Row="0" x:Name="TitleBarGrid"
+                  Background="{StaticResource DefaultBrowserBackgroundBrush}"
+                  MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -139,23 +210,30 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <Image Source="/Icons/app.ico" Width="16" Height="16" Margin="10,0,0,0" VerticalAlignment="Center" Grid.Column="0"/>
-                <TextBlock Text="{Binding Title}" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Left"
-                           Margin="10,0" Foreground="{StaticResource DefaultBrowserForegroundColor}"/>
+                <Image Source="/Icons/app.ico" Width="16" Height="16" Margin="5,0,0,0" VerticalAlignment="Center" Grid.Column="0"/>
+                <TextBlock x:Name="WindowTitleText"
+                           Text="{Binding SelectedTabItem.Title, FallbackValue='Aurora Browser'}"
+                           Grid.Column="1"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Left"
+                           Margin="5,0,0,0"
+                           Foreground="{StaticResource DefaultBrowserForegroundColor}"
+                           FontWeight="Bold"/>
 
-                <StackPanel Orientation="Horizontal" Grid.Column="2" HorizontalAlignment="Right">
-                    <Button Content="—" Click="MinimizeButton_Click" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
-                            Background="Transparent" BorderBrush="Transparent" Foreground="{StaticResource DefaultBrowserForegroundColor}" Width="30" Height="30"
-                            ToolTip="Minimizar"/>
-                    <Button Content="▢" Click="MaximizeRestoreButton_Click" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
-                            Background="Transparent" BorderBrush="Transparent" Foreground="{StaticResource DefaultBrowserForegroundColor}" Width="30" Height="30"
-                            ToolTip="Maximizar/Restaurar"/>
-                    <Button Content="✕" Click="CloseButton_Click" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
-                            Background="#e81123" Foreground="White" Width="30" Height="30"
-                            ToolTip="Cerrar"/>
+                <!-- Window control buttons -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Grid.Column="4">
+                    <Button x:Name="MinimizeButton" Content="—" Click="MinimizeButton_Click"
+                            ToolTip="Minimizar" Style="{StaticResource WindowControlButton}"/>
+                    <Button x:Name="MaximizeButton" Content="🗖" Click="MaximizeButton_Click"
+                            ToolTip="Maximizar" Style="{StaticResource WindowControlButton}"/>
+                    <Button x:Name="RestoreButton" Content="🗗" Click="RestoreButton_Click"
+                            ToolTip="Restaurar" Style="{StaticResource WindowControlButton}" Visibility="Collapsed"/>
+                    <Button x:Name="CloseButton" Content="✕" Click="CloseButton_Click"
+                            ToolTip="Cerrar" Style="{StaticResource WindowCloseButton}"/>
                 </StackPanel>
             </Grid>
 
+            <!-- Tab Group Management & New Tab Button -->
             <Grid Grid.Row="1" Margin="10,5,10,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -180,8 +258,8 @@
                         Content="+"
                         Width="30" Height="30"
                         Command="{Binding AddNewTabGroupCommand}"
-                        ToolTip="Nueva ventana"
-                        Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
+                        ToolTip="Nueva ventana de grupo"
+                        Style="{StaticResource {x:Type Button}}"
                         Background="{StaticResource GeminiBackgroundColor}"
                         BorderBrush="{StaticResource GeminiBackgroundColor}"
                         Foreground="{StaticResource GeminiForegroundColor}"/>
@@ -191,13 +269,14 @@
                         Content="-"
                         Width="30" Height="30"
                         Command="{Binding RemoveSelectedTabGroupCommand}"
-                        ToolTip="Cerrar ventana"
-                        Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
+                        ToolTip="Cerrar ventana de grupo"
+                        Style="{StaticResource {x:Type Button}}"
                         Background="{StaticResource GeminiBackgroundColor}"
                         BorderBrush="{StaticResource GeminiBackgroundColor}"
                         Foreground="{StaticResource GeminiForegroundColor}"/>
             </Grid>
 
+            <!-- Address Bar & Navigation Buttons -->
             <Grid Grid.Row="2" Margin="10,5,10,5">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -208,138 +287,131 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <Button x:Name="BackButton" Grid.Column="0" Content="&#x2190;"
-                        Command="{Binding GoBackCommand}"
-                        Width="30" Height="30" Margin="0,0,5,0"
-                        ToolTip="Atrás"
-                        Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
-                        Background="{StaticResource GeminiBackgroundColor}"
-                        BorderBrush="{StaticResource GeminiBackgroundColor}"
-                        Foreground="{StaticResource GeminiForegroundColor}"/>
-
-                <Button x:Name="ForwardButton" Grid.Column="1" Content="&#x2192;"
-                        Command="{Binding GoForwardCommand}"
-                        Width="30" Height="30" Margin="0,0,5,0"
-                        ToolTip="Adelante"
-                        Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
-                        Background="{StaticResource GeminiBackgroundColor}"
-                        BorderBrush="{StaticResource GeminiBackgroundColor}"
-                        Foreground="{StaticResource GeminiForegroundColor}"/>
-
-                <Button x:Name="RefreshButton" Grid.Column="2" Content="&#x21BB;"
-                        Command="{Binding RefreshCommand}"
-                        Width="30" Height="30" Margin="0,0,5,0"
-                        ToolTip="Recargar"
-                        Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
-                        Background="{StaticResource GeminiBackgroundColor}"
-                        BorderBrush="{StaticResource GeminiBackgroundColor}"
-                        Foreground="{StaticResource GeminiForegroundColor}"/>
+                <Button x:Name="GoBackButton" Grid.Column="0" ToolTip="Atrás" Command="{Binding GoBackCommand}">
+                    <Image Source="/Icons/back.png" Width="20" Height="20"/>
+                </Button>
+                <Button x:Name="GoForwardButton" Grid.Column="1" ToolTip="Adelante" Command="{Binding GoForwardCommand}">
+                    <Image Source="/Icons/forward.png" Width="20" Height="20"/>
+                </Button>
+                <Button x:Name="RefreshButton" Grid.Column="2" ToolTip="Recargar" Command="{Binding RefreshCommand}">
+                    <Image Source="/Icons/refresh.png" Width="20" Height="20"/>
+                </Button>
 
                 <TextBox x:Name="AddressBar" Grid.Column="3"
-                         Text="{Binding SelectedTabItem.Url, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         Text="{Binding CurrentUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          KeyDown="AddressBar_KeyDown"
                          VerticalContentAlignment="Center"
                          Height="30" Margin="0,0,5,0"
                          Foreground="{StaticResource DefaultBrowserForegroundColor}"
                          Background="{StaticResource GeminiBackgroundColor}"
-                         BorderBrush="{StaticResource GeminiBackgroundColor}"/>
+                         BorderBrush="{StaticResource GeminiBackgroundColor}"
+                         ContextMenu="{StaticResource AddressBarContextMenu}"/>
 
                 <Button x:Name="GoButton" Grid.Column="4" Content="Ir"
                         Command="{Binding NavigateCommand}"
                         CommandParameter="{Binding ElementName=AddressBar, Path=Text}"
                         Width="40" Height="30" Margin="0,0,5,0"
                         ToolTip="Ir a la URL"
-                        Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
+                        Style="{StaticResource {x:Type Button}}"
                         Background="{StaticResource GeminiBackgroundColor}"
                         BorderBrush="{StaticResource GeminiBackgroundColor}"
                         Foreground="{StaticResource GeminiForegroundColor}"/>
 
-                <Button x:Name="NewTabButton" Grid.Column="5" Content="+"
-                        Command="{Binding NewTabCommand}"
-                        Width="30" Height="30" Margin="0,0,5,0"
-                        ToolTip="Nueva pestaña"
-                        Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
-                        Background="{StaticResource GeminiBackgroundColor}"
-                        BorderBrush="{StaticResource GeminiBackgroundColor}"
-                        Foreground="{StaticResource GeminiForegroundColor}"/>
+                <Button x:Name="NewTabButton" Grid.Column="5" ToolTip="Nueva pestaña" Command="{Binding NewTabCommand}">
+                    <Image Source="/Icons/new_tab.png" Width="20" Height="20"/>
+                </Button>
 
-                <Button x:Name="HistoryButton" Grid.Column="6" Content="&#x1F5DA;"
-                        Click="HistoryButton_Click"
-                        Width="30" Height="30" Margin="0,0,5,0"
-                        ToolTip="Historial"
-                        Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
-                        Background="{StaticResource GeminiBackgroundColor}"
-                        BorderBrush="{StaticResource GeminiBackgroundColor}"
-                        Foreground="{StaticResource GeminiForegroundColor}"/>
+                <!-- Botón IA -->
+                <Button x:Name="AIButton" Grid.Column="6" ToolTip="Asistente IA" Command="{Binding ShowAISelectionCommand}">
+                    <Image Source="/Icons/ai.png" Width="20" Height="20"/>
+                </Button>
 
-                <Button x:Name="SettingsButton" Grid.Column="7" Content="&#x2699;"
-                        Click="SettingsButton_Click"
-                        Width="30" Height="30" Margin="0,0,5,0"
-                        ToolTip="Configuración"
-                        Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
-                        Background="{StaticResource GeminiBackgroundColor}"
-                        BorderBrush="{StaticResource GeminiBackgroundColor}"
-                        Foreground="{StaticResource GeminiForegroundColor}"/>
-
-                <Button x:Name="FindButton" Grid.Column="8" Content="&#x1F50D;"
-                        Click="FindButton_Click"
-                        Width="30" Height="30"
-                        ToolTip="Buscar en la página"
-                        Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
-                        Background="{StaticResource GeminiBackgroundColor}"
-                        BorderBrush="{StaticResource GeminiBackgroundColor}"
-                        Foreground="{StaticResource GeminiForegroundColor}"/>
+                <Button x:Name="HistoryButton" Grid.Column="7" ToolTip="Historial" Command="{Binding OpenHistoryCommand}">
+                    <Image Source="/Icons/history.png" Width="20" Height="20"/>
+                </Button>
+                <Button x:Name="BookmarksButton" Grid.Column="8" ToolTip="Marcadores" Command="{Binding OpenBookmarksCommand}">
+                    <Image Source="/Icons/bookmarks.png" Width="20" Height="20"/>
+                </Button>
+                <Button x:Name="PasswordManagerButton" Grid.Column="9" ToolTip="Contraseñas" Command="{Binding OpenPasswordManagerCommand}">
+                    <Image Source="/Icons/password.png" Width="20" Height="20"/>
+                </Button>
+                <Button x:Name="DataExtractionButton" Grid.Column="10" ToolTip="Extracción de Datos" Command="{Binding ExtractDataCommand}">
+                    <Image Source="/Icons/data_extraction.png" Width="20" Height="20"/>
+                </Button>
+                <Button x:Name="ExtensionsButton" Grid.Column="11" ToolTip="Extensiones" Command="{Binding OpenExtensionsCommand}">
+                    <Image Source="/Icons/extensions.png" Width="20" Height="20"/>
+                </Button>
+                <Button x:Name="SettingsButton" Grid.Column="12" ToolTip="Configuración" Command="{Binding OpenSettingsCommand}">
+                    <Image Source="/Icons/settings.png" Width="20" Height="20"/>
+                </Button>
+                <Button x:Name="FindButton" Grid.Column="13" ToolTip="Buscar en la página" Command="{Binding ToggleFindBarCommand}">
+                    <Image Source="/Icons/find.png" Width="20" Height="20"/>
+                </Button>
             </Grid>
 
+            <!-- Find Bar -->
             <Border x:Name="FindBar"
                     Grid.Row="3"
-                    Grid.Column="0"
+                    Grid.ColumnSpan="2"
                     Background="{StaticResource GeminiBackgroundColor}"
                     BorderBrush="{StaticResource DefaultBrowserForegroundColor}"
                     BorderThickness="0,1,0,0"
                     Padding="10"
-                    Visibility="Collapsed"
+                    Visibility="{Binding IsFindBarVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
                     VerticalAlignment="Top"
                     HorizontalAlignment="Stretch">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <TextBlock Text="Buscar:" VerticalAlignment="Center" Margin="0,0,5,0"
+                               Foreground="{StaticResource DefaultBrowserForegroundColor}"/>
                     <TextBox x:Name="FindTextBox"
                              Width="200"
                              Margin="0,0,5,0"
                              VerticalContentAlignment="Center"
+                             Text="{Binding FindSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              KeyDown="FindTextBox_KeyDown"
-                             TextChanged="FindTextBox_TextChanged"
                              Foreground="{StaticResource DefaultBrowserForegroundColor}"
                              Background="{StaticResource DefaultBrowserBackgroundColor}"
                              BorderBrush="{StaticResource DefaultBrowserForegroundColor}"/>
+                    <TextBlock x:Name="FindResultsTextBlock"
+                               Text="{Binding FindResultsText}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"
+                               Foreground="{StaticResource DefaultBrowserForegroundColor}"/>
                     <Button Content="▲"
-                            Click="FindPreviousButton_Click"
-                            Margin="0,0,5,0"
-                            ToolTip="Find previous"/>
+                            Command="{Binding FindPreviousCommand}"
+                            Margin="0,0,2,0"
+                            ToolTip="Buscar anterior"/>
                     <Button Content="▼"
-                            Click="FindNextButton_Click"
+                            Command="{Binding FindNextCommand}"
                             Margin="0,0,5,0"
-                            ToolTip="Find next"/>
+                            ToolTip="Buscar siguiente"/>
                     <Button Content="✖"
-                            Click="CloseFindBarButton_Click"
-                            ToolTip="Close search"/>
+                            Command="{Binding CloseFindBarCommand}"
+                            ToolTip="Cerrar búsqueda"/>
                 </StackPanel>
             </Border>
 
+            <!-- Main Browser Content (Tabs) -->
             <TabControl x:Name="BrowserTabs"
-                        Grid.Row="3" Grid.Column="0"
+                        Grid.Row="4" Grid.Column="0"
                         ItemsSource="{Binding TabGroupManager.SelectedTabGroup.TabsInGroup}"
                         SelectedItem="{Binding SelectedTabItem, Mode=TwoWay}"
                         SelectionChanged="BrowserTabControl_SelectionChanged_Grouped"
                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                        ItemTemplate="{StaticResource TabHeaderTemplate}"
                         ItemContainerStyle="{StaticResource TabItemStyle}"
                         ContentTemplate="{StaticResource TabContentTemplate}">
             </TabControl>
 
-            <ProgressBar Grid.Row="4"
+            <!-- Download progress bar -->
+            <ProgressBar Grid.Row="5"
                          Height="5"
                          Value="{Binding DownloadProgress}"
                          Visibility="{Binding DownloadProgressBarVisibility}"
