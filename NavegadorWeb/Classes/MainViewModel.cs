@@ -10,7 +10,7 @@ using System.Windows.Media.Imaging;
 using Microsoft.Web.WebView2.Core; // Necessary for CoreWebView2 types
 using System.Windows; // Necessary for Visibility, MessageBox, Application
 using NavegadorWeb.Services; // For HistoryManager, SettingsManager, etc.
-using NavegadorWeb.Windows; // For HistoryWindow, BookmarksWindow, etc.
+using NavegadorWeb.Windows; // ¡MUY IMPORTANTE! Asegúrate de que esta línea esté presente.
 using System.Threading.Tasks;
 using System.Net.NetworkInformation;
 using System.Timers;
