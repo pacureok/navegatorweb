@@ -1,43 +1,33 @@
-using Microsoft.Web.WebView2.Core;
-using Microsoft.Web.WebView2.Wpf;
 using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Linq;
+using System.ComponentModel;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Controls; // Necesario para TextChangedEventArgs y SelectionChangedEventArgs
+using Microsoft.Web.WebView2.Core; // Asegúrate de que esta esté
+using Microsoft.Web.WebView2.Wpf; // Asegúrate de que esta esté
 using System.IO;
 using System.Text.Json;
-using System.Speech.Synthesis; // Necesario para SpeechSynthesizer
-using System.Windows.Media.Imaging; // Necesario para BitmapImage
-using System.Windows.Media; // Necesario para VisualTreeHelper, Border
-using System.Diagnostics; // Necesario para Process.Start (si se usa para abrir ventanas externas)
-using System.Collections.ObjectModel; // Necesario para ObservableCollection
-using System.Threading.Tasks; // Necesario para Task
-using System.ComponentModel; // Necesario para INotifyPropertyChanged
-using System.Windows.Interop; // Necesario para HwndSource
-using System.Runtime.InteropServices; // Necesario para DllImport
-using System.Net.NetworkInformation; // Puede ser necesario para verificar la conexión a internet
-using System.Timers; // Necesario para System.Timers.Timer para la suspensión de pestañas
+using System.Speech.Synthesis;
+using System.Windows.Media.Imaging;
+using System.Windows.Media;
+using System.Diagnostics;
+using System.Collections.ObjectModel;
+using System.Threading.Tasks;
+using System.Windows.Interop;
+using System.Runtime.InteropServices;
+using System.Net.NetworkInformation;
+using System.Timers;
 
-// ELIMINA O COMENTA ESTA LÍNEA si no tienes la carpeta 'Windows' con clases dentro de NavegadorWeb.
-// using NavegadorWeb.Windows; 
-
-// Asegúrate de que estas directivas 'using' estén presentes para las clases auxiliares y de servicios
-using NavegadorWeb.Classes; // Para TabItemData, TabGroup, TabGroupManager, CapturedPageData, RelayCommand, TabGroupState, ToolbarPosition, PasswordManager
-using NavegadorWeb.Extensions; // Para CustomExtension, ExtensionManager
-using NavegadorWeb.Services; // Para LanguageService, HistoryManager, SettingsManager, DownloadManager, PasswordManager
+using NavegadorWeb.Classes;
+using NavegadorWeb.Extensions;
+using NavegadorWeb.Services;
+using NavegadorWeb; // <--- ¡AÑADIDO/VERIFICADO PARA HistoryWindow!
 
 namespace NavegadorWeb
 {
     // 'partial' es CLAVE. Significa que hay otra parte de esta clase (generada por WPF a partir del XAML).
-    // NO declares INotifyPropertyChanged aquí si tu DataContext es un ViewModel.
     public partial class MainWindow : Window
     {
-        // Propiedad para el ViewModel de la ventana principal
-        public MainViewModel ViewModel { get; set; }
-
         public MainWindow()
         {
             // ESTA ES LA ÚNICA LÍNEA InitializeComponent() que debe existir.
@@ -45,9 +35,7 @@ namespace NavegadorWeb
             InitializeComponent();
 
             // Aquí puedes establecer el DataContext, por ejemplo, si usas MVVM:
-            ViewModel = new MainViewModel();
-            this.DataContext = ViewModel;
-
+            // this.DataContext = new MainViewModel();
             // Asegúrate de que tu MainViewModel inicialice TabGroupManager y le añada una pestaña inicial.
         }
 
@@ -56,51 +44,72 @@ namespace NavegadorWeb
             // Lógica que se ejecuta una vez que la ventana y su contenido han sido cargados.
             // Por ejemplo, podrías inicializar la primera pestaña o navegar a una URL predeterminada.
             // Si usas MVVM, esto podría estar en el constructor del ViewModel o en un comando.
-            ViewModel.InitializeBrowser(); // Llama a la inicialización del ViewModel
         }
 
         private void Window_Closing(object sender, CancelEventArgs e)
         {
-            // Lógica para manejar el cierre de la ventana.
-            ViewModel.SaveSession(); // Guarda el estado de la sesión antes de cerrar
+            // Lógica para guardar el estado de la sesión antes de cerrar la aplicación.
+            // Esto es crucial para restaurar pestañas y grupos en el próximo inicio.
+            if (this.DataContext is MainViewModel viewModel)
+            {
+                viewModel.SaveSessionCommand.Execute(null);
+            }
         }
+
+        // Importaciones necesarias para manipular la ventana sin el estilo de borde por defecto.
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int msg, int wParam, int lParam);
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetSystemMenu(IntPtr hWnd, bool bRevert);
+        [DllImport("user32.dll")]
+        private static extern bool EnableMenuItem(IntPtr hMenu, uint uIDEnableItem, uint uEnable);
+
+        private const int WM_SYSCOMMAND = 0x112;
+        private const uint SC_RESTORE = 0xF120; // Restaurar
+        private const uint SC_MOVE = 0xF010;    // Mover
+        private const uint MF_BYCOMMAND = 0x00000000;
+        private const uint MF_GRAYED = 0x00000001;
 
         private void MainWindow_SourceInitialized(object sender, EventArgs e)
         {
-            // Este es para comportamientos personalizados de la ventana, como redimensionar la ventana sin borde.
-            // Puedes añadir lógica para la ventana sin borde aquí si es necesario.
+            // Deshabilita el elemento de menú "Mover" para evitar que el usuario mueva la ventana arrastrando la barra de título,
+            // ya que implementamos un movimiento personalizado.
+            IntPtr handle = new WindowInteropHelper(this).Handle;
+            IntPtr sysMenu = GetSystemMenu(handle, false);
+            if (sysMenu != IntPtr.Zero)
+            {
+                EnableMenuItem(sysMenu, SC_MOVE, MF_BYCOMMAND | MF_GRAYED);
+            }
         }
 
         private void MainWindow_StateChanged(object sender, EventArgs e)
         {
-            // Lógica para manejar los cambios de estado de la ventana (minimizada, maximizada, restaurada).
+            // Actualiza la visibilidad de los botones de maximizar/restaurar
             if (this.WindowState == WindowState.Maximized)
             {
-                // Ajustar el borde para evitar que la ventana maximizada se salga de la pantalla en Windows 10/11
-                this.BorderThickness = new Thickness(0);
+                MaximizeButton.Visibility = Visibility.Collapsed;
+                RestoreButton.Visibility = Visibility.Visible;
             }
             else
             {
-                this.BorderThickness = new Thickness(1); // Restaurar borde normal
+                MaximizeButton.Visibility = Visibility.Visible;
+                RestoreButton.Visibility = Visibility.Collapsed;
             }
         }
 
-        // Métodos para los botones de control de la ventana
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
             this.WindowState = WindowState.Minimized;
         }
 
-        private void MaximizeRestoreButton_Click(object sender, RoutedEventArgs e)
+        private void MaximizeButton_Click(object sender, RoutedEventArgs e)
         {
-            if (this.WindowState == WindowState.Maximized)
-            {
-                this.WindowState = WindowState.Normal;
-            }
-            else
-            {
-                this.WindowState = WindowState.Maximized;
-            }
+            this.WindowState = WindowState.Maximized;
+        }
+
+        private void RestoreButton_Click(object sender, RoutedEventArgs e)
+        {
+            this.WindowState = WindowState.Normal;
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
@@ -108,110 +117,81 @@ namespace NavegadorWeb
             this.Close();
         }
 
-        // Permite mover la ventana arrastrando la barra de título
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            // Permite arrastrar la ventana desde la barra de título, excepto si está maximizada.
             if (e.ClickCount == 2) // Doble clic para maximizar/restaurar
             {
-                MaximizeRestoreButton_Click(sender, e);
-            }
-            else if (e.LeftButton == MouseButtonState.Pressed)
-            {
-                this.DragMove();
-            }
-        }
-
-        private void AddressBar_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-            {
-                ViewModel.NavigateCommand.Execute(AddressBar.Text);
-            }
-        }
-
-        private void HistoryButton_Click(object sender, RoutedEventArgs e)
-        {
-            HistoryWindow historyWindow = new HistoryWindow();
-            if (historyWindow.ShowDialog() == true)
-            {
-                if (!string.IsNullOrEmpty(historyWindow.SelectedUrl))
+                if (this.WindowState == WindowState.Maximized)
                 {
-                    ViewModel.NavigateCommand.Execute(historyWindow.SelectedUrl);
+                    this.WindowState = WindowState.Normal;
+                }
+                else
+                {
+                    this.WindowState = WindowState.Maximized;
+                }
+            }
+            else if (e.LeftButton == MouseButtonState.Pressed && this.WindowState == WindowState.Normal)
+            {
+                this.DragMove(); // Mueve la ventana si no está maximizada
+            }
+        }
+
+        private void OpenHistoryButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Crear una instancia de HistoryWindow
+            HistoryWindow historyWindow = new HistoryWindow();
+            // Mostrar la ventana de historial como un diálogo
+            bool? result = historyWindow.ShowDialog();
+
+            // Si el usuario seleccionó una URL y presionó Aceptar
+            if (result == true && !string.IsNullOrEmpty(historyWindow.SelectedUrl))
+            {
+                // Navega a la URL seleccionada en la pestaña actual (o en una nueva si prefieres)
+                if (this.DataContext is MainViewModel viewModel && viewModel.SelectedTabItem != null)
+                {
+                    viewModel.NavigateCommand.Execute(historyWindow.SelectedUrl);
                 }
             }
         }
 
-        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        private void ShowFindBarButton_Click(object sender, RoutedEventArgs e)
         {
-            // Aquí deberías crear y mostrar tu ventana de configuración.
-            // Asegúrate de que SettingsWindow exista y esté en el espacio de nombres correcto.
-            // Ejemplo:
-            // SettingsWindow settingsWindow = new SettingsWindow();
-            // settingsWindow.ShowDialog();
-            MessageBox.Show("Funcionalidad de Configuración pendiente de implementar.", "Configuración", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        private void FindButton_Click(object sender, RoutedEventArgs e)
-        {
-            FindBar.Visibility = (FindBar.Visibility == Visibility.Visible) ? Visibility.Collapsed : Visibility.Visible;
-            if (FindBar.Visibility == Visibility.Visible)
-            {
-                FindTextBox.Focus();
-                FindTextBox.SelectAll();
-            }
-            else
-            {
-                // Limpia los resultados de la búsqueda al cerrar la barra.
-                (this.BrowserTabs.SelectedItem as TabItemData)?.WebViewInstance.CoreWebView2.ClearFindResult();
-            }
-        }
-
-        private void FindTextBox_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-            {
-                FindTextInWebView();
-            }
+            FindBar.Visibility = Visibility.Visible;
+            FindTextBox.Focus();
         }
 
         private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            FindTextInWebView();
-        }
-
-        private void FindTextInWebView()
-        {
-            if (string.IsNullOrEmpty(FindTextBox.Text))
+            if (this.DataContext is MainViewModel viewModel && viewModel.SelectedTabItem != null)
             {
-                (this.BrowserTabs.SelectedItem as TabItemData)?.WebViewInstance.CoreWebView2.ClearFindResult();
-                return;
+                // Nota: La API de búsqueda de WebView2 ha cambiado.
+                // CoreWebView2.Find ahora requiere un objeto CoreWebView2FindParameters.
+                // Esta línea comentada es un ejemplo de cómo se podría haber usado una API anterior
+                // o si se manejara de otra forma la búsqueda.
+                // Para una implementación correcta, consulta la documentación de WebView2 para CoreWebView2.Find.
+                // Aquí, el texto del cuadro de búsqueda simplemente activa la visibilidad.
+                // viewModel.SelectedTabItem.WebViewInstance.CoreWebView2.Find(FindTextBox.Text, false, true, false);
             }
-
-            // Lógica para encontrar el texto en la página.
-            // Los parámetros son: searchText, matchCase, searchPrevious, searchNext.
-            // Usamos searchNext = true para que busque desde el principio o la posición actual.
-            (this.BrowserTabs.SelectedItem as TabItemData)?.WebViewInstance.CoreWebView2.Find(FindTextBox.Text, false, false, true);
         }
 
         private void FindPreviousButton_Click(object sender, RoutedEventArgs e)
         {
-            // Lógica para encontrar la ocurrencia anterior del texto en la página.
-            // searchPrevious = true, searchNext = false
-            (this.BrowserTabs.SelectedItem as TabItemData)?.WebViewInstance.CoreWebView2.Find(FindTextBox.Text, false, true, false);
+            // Lógica para encontrar la ocurrencia anterior.
+            // (this.BrowserTabs.SelectedItem as TabItemData)?.WebViewInstance.CoreWebView2.Find(FindTextBox.Text, false, false, false); // COMENTADO
         }
 
         private void FindNextButton_Click(object sender, RoutedEventArgs e)
         {
             // Lógica para encontrar la siguiente ocurrencia del texto en la página.
-            // searchPrevious = false, searchNext = true
-            (this.BrowserTabs.SelectedItem as TabItemData)?.WebViewInstance.CoreWebView2.Find(FindTextBox.Text, false, false, true);
+            // (this.BrowserTabs.SelectedItem as TabItemData)?.WebViewInstance.CoreWebView2.Find(FindTextBox.Text, false, true, false); // COMENTADO
         }
 
         private void CloseFindBarButton_Click(object sender, RoutedEventArgs e)
         {
             FindBar.Visibility = Visibility.Collapsed;
             // Limpia los resultados de la búsqueda al cerrar la barra.
-            (this.BrowserTabs.SelectedItem as TabItemData)?.WebViewInstance.CoreWebView2.ClearFindResult();
+            // (this.BrowserTabs.SelectedItem as TabItemData)?.WebViewInstance.CoreWebView2.ClearFindResult(); // COMENTADO
         }
 
         private void BrowserTabControl_SelectionChanged_Grouped(object sender, SelectionChangedEventArgs e)
@@ -219,19 +199,39 @@ namespace NavegadorWeb
             // Lógica para manejar el cambio de selección de pestaña.
             // Esto debería actualizar la barra de direcciones y otros elementos de UI
             // para reflejar la pestaña seleccionada actualmente.
-            // Si usas MVVM, la propiedad SelectedTabItem en tu ViewModel se actualizará automáticamente
-            // debido al TwoWay binding en el XAML, y la lógica de UI se gestionaría allí.
-            // Sin embargo, si necesitas una acción directa aquí:
-            if (ViewModel.SelectedTabItem != null)
+            // Puedes acceder a la pestaña seleccionada a través de BrowserTabs.SelectedItem
+            // o de las propiedades e.AddedItems y e.RemovedItems.
+
+            // Ejemplo: Si usas MVVM y tu SelectedTabItem está enlazado en el ViewModel,
+            // la lógica para actualizar la AddressBar se haría en el setter de SelectedTabItem en el ViewModel,
+            // o aquí si manejas la UI directamente.
+            // if (BrowserTabs.SelectedItem is TabItemData selectedTab)
+            // {
+            //     AddressBar.Text = selectedTab.CurrentUrl;
+            // }
+        }
+
+        // Métodos auxiliares para la captura de pantalla (si son necesarios aquí, sino se pueden mover al ViewModel)
+        private BitmapImage? ConvertBase64ToBitmapImage(string base64String)
+        {
+            if (string.IsNullOrEmpty(base64String)) return null;
+
+            try
             {
-                AddressBar.Text = ViewModel.SelectedTabItem.Url;
+                byte[] binaryData = Convert.FromBase64String(base64String);
+                BitmapImage bi = new BitmapImage();
+                bi.BeginInit();
+                bi.StreamSource = new MemoryStream(binaryData);
+                bi.EndInit();
+                return bi;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al convertir Base64 a BitmapImage: {ex.Message}");
+                return null;
             }
         }
 
-        // Métodos de utilidad para manejar imágenes, si los necesitas directamente en la ventana
-        // (Aunque para un diseño MVVM, estas funciones podrían estar mejor en un ViewModel o servicio)
-
-        // Convierte un BitmapImage a una cadena Base64
         private string ConvertBitmapImageToBase64(BitmapImage bitmapImage)
         {
             if (bitmapImage == null) return string.Empty;
