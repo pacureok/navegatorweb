@@ -1,6 +1,3 @@
-// This file defines the TabItemData class, which represents a single browser tab.
-// It holds data related to the tab's state, such as URL, title, favicon, and its associated WebView2 instance.
-
 using Microsoft.Web.WebView2.Wpf;
 using System;
 using System.ComponentModel;
@@ -16,12 +13,13 @@ namespace NavegadorWeb.Classes
     public class TabItemData : INotifyPropertyChanged
     {
         // Private fields for tab properties
-        private string _title = "New Tab";
+        private string _title = "Nueva Pestaña";
         private string _url = "about:blank";
         private BitmapImage? _favicon;
         private bool _isLoading;
         private bool _isReaderMode;
         private bool _isSuspended;
+        private DateTime _lastActivity = DateTime.Now; // New property to track last activity for suspension
 
         // Public properties with change notification
         public string Title
@@ -98,6 +96,19 @@ namespace NavegadorWeb.Classes
                 {
                     _isSuspended = value;
                     OnPropertyChanged(nameof(IsSuspended));
+                }
+            }
+        }
+
+        public DateTime LastActivity // Property for tracking user activity
+        {
+            get => _lastActivity;
+            set
+            {
+                if (_lastActivity != value)
+                {
+                    _lastActivity = value;
+                    OnPropertyChanged(nameof(LastActivity));
                 }
             }
         }
