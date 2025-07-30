@@ -22,18 +22,18 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Archivos .cs a compilar. Añade aquí cualquier otro archivo .cs que tengas. -->
+    <!-- Archivos .cs a compilar. Asegúrate de que estas rutas sean correctas. -->
     <Compile Include="App.xaml.cs" />
     <Compile Include="MainWindow.xaml.cs" />
     <Compile Include="Services\**\*.cs" />
     <Compile Include="Classes\**\*.cs" /> 
     <Compile Include="Extensions\**\*.cs" /> 
-    <Compile Include="Windows\**\*.cs" /> <!-- Incluye todas las clases de ventanas -->
-    <Compile Include="Converters\**\*.cs" /> <!-- Incluye los convertidores -->
+    <Compile Include="Windows\**\*.cs" /> <!-- ¡IMPORTANTE! Esto incluye todos los .cs en la carpeta Windows -->
+    <Compile Include="Converters\**\*.cs" /> <!-- ¡IMPORTANTE! Esto incluye todos los .cs en la carpeta Converters -->
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Archivos .xaml a compilar como "Page". Añade aquí cualquier otra ventana o UserControl .xaml que tengas. -->
+    <!-- Archivos .xaml a compilar como "Page". Asegúrate de que estas rutas sean correctas. -->
     <Page Include="App.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -42,7 +42,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Windows\**\*.xaml"> <!-- Incluye todos los archivos XAML de ventanas -->
+    <Page Include="Windows\**\*.xaml"> <!-- ¡IMPORTANTE! Esto incluye todos los .xaml en la carpeta Windows -->
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
