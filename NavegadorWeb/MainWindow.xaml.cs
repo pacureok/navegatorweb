@@ -2,53 +2,43 @@ using NavegadorWeb.Classes;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Web.WebView2.Wpf;
+using System.ComponentModel;
+using NavegadorWeb.Windows;
 
-namespace NavegadorWeb.Windows
+namespace NavegadorWeb
 {
     public partial class MainWindow : Window
     {
-        private MainViewModel _viewModel;
+        public MainViewModel ViewModel { get; set; }
 
         public MainWindow()
         {
             InitializeComponent();
-            _viewModel = new MainViewModel();
-            DataContext = _viewModel;
+            ViewModel = new MainViewModel();
+            this.DataContext = ViewModel;
+            this.Loaded += MainWindow_Loaded;
+            this.Closing += MainWindow_Closing;
         }
-        
-        // Maneja la creación de una nueva pestaña desde la interfaz de usuario
-        public void AddNewTab_Click(object sender, RoutedEventArgs e)
+
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            var newWebView = new WebView2();
-            var newTabItemData = new TabItemData(newWebView);
+            // Crea la primera pestaña al iniciar
+            ViewModel.NewTabCommand.Execute(null);
+        }
 
-            var newTabItem = new TabItem
+        private void MainWindow_Closing(object sender, CancelEventArgs e)
+        {
+            ViewModel.SaveSessionCommand.Execute(null);
+        }
+
+        private void BrowserTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.AddedItems.Count > 0 && e.AddedItems[0] is TabItem selectedTabItem)
             {
-                Header = newTabItemData.Title,
-                Content = newWebView,
-                DataContext = newTabItemData
-            };
-
-            _viewModel.Tabs.Add(newTabItemData);
-            _viewModel.SelectedTabItem = newTabItemData;
-
-            // Asigna los eventos de navegación aquí
-            newWebView.NavigationCompleted += (s, ev) =>
-            {
-                if (s is WebView2 webView)
+                if (selectedTabItem.DataContext is TabItemData tabData)
                 {
-                    newTabItemData.Title = webView.CoreWebView2.DocumentTitle;
-                    newTabItemData.Url = webView.Source;
+                    ViewModel.SelectedTabItem = tabData;
                 }
-            };
-        }
-
-        // Maneja el cambio de pestaña para actualizar el ViewModel
-        private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (e.AddedItems.Count > 0 && e.AddedItems[0] is TabItem tabItem)
-            {
-                _viewModel.SelectedTabItem = tabItem.DataContext as TabItemData;
             }
         }
     }
