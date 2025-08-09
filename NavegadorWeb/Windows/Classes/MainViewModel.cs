@@ -5,6 +5,7 @@ using NavegadorWeb.Services;
 using NavegadorWeb.Windows;
 using System.Collections.ObjectModel;
 using System.Windows;
+using System.Linq;
 
 namespace NavegadorWeb.Classes
 {
@@ -25,12 +26,19 @@ namespace NavegadorWeb.Classes
 
         public MainViewModel()
         {
-            // El ViewModel no debe crear pestañas al inicio. Esa lógica va en MainWindow.xaml.cs
-            // La primera pestaña se creará cuando la ventana principal se cargue.
+            // El constructor está limpio. La primera pestaña se crea en la vista (MainWindow.xaml.cs).
+        }
+        
+        [RelayCommand]
+        private void AddNewTab()
+        {
+            // La lógica para crear la instancia de WebView2 se maneja en el code-behind de la vista.
+            // Este comando existe para que la UI pueda solicitar una nueva pestaña.
+            // La vista (MainWindow.xaml.cs) se suscribe al evento y maneja la creación de la UI y el objeto TabItemData.
         }
 
         [RelayCommand]
-        public void CloseTab(TabItemData? tabToClose)
+        private void CloseTab(TabItemData? tabToClose)
         {
             if (tabToClose == null) return;
 
@@ -46,7 +54,7 @@ namespace NavegadorWeb.Classes
             {
                 if (index >= Tabs.Count)
                 {
-                    SelectedTabItem = Tabs[^1];
+                    SelectedTabItem = Tabs.Last();
                 }
                 else
                 {
@@ -56,32 +64,32 @@ namespace NavegadorWeb.Classes
         }
 
         [RelayCommand]
-        public void GoBack()
+        private void GoBack()
         {
             SelectedTabItem?.WebViewInstance?.GoBack();
         }
 
         [RelayCommand]
-        public void GoForward()
+        private void GoForward()
         {
             SelectedTabItem?.WebViewInstance?.GoForward();
         }
 
         [RelayCommand]
-        public void Refresh()
+        private void Refresh()
         {
             SelectedTabItem?.WebViewInstance?.Reload();
         }
         
         [RelayCommand]
-        public void Navigate(string? url)
+        private void Navigate(string? url)
         {
             if (string.IsNullOrWhiteSpace(url)) return;
             SelectedTabItem?.WebViewInstance?.CoreWebView2?.Navigate(url);
         }
 
         [RelayCommand]
-        public void OpenHistoryWindow()
+        private void OpenHistoryWindow()
         {
             var historyWindow = new HistoryWindow();
             if (historyWindow.ShowDialog() == true)
@@ -92,5 +100,7 @@ namespace NavegadorWeb.Classes
                 }
             }
         }
+
+        // Puedes añadir más comandos aquí según las funcionalidades que necesites.
     }
 }
