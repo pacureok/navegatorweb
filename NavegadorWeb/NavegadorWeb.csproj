@@ -77,10 +77,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.54" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.51" />
     <PackageReference Include="System.Speech" Version="8.0.0" />
-    <PackageReference Include="System.Text.Json" Version="8.0.3" />
+    <PackageReference Include="System.Text.Json" Version="8.0.4" />
   </ItemGroup>
 
   <ItemGroup>
@@ -88,7 +89,7 @@
     <Compile Include="Windows\**\*.cs" />
     <Compile Include="Converters\**\*.cs" />
     <Compile Include="Extensions\**\*.cs" />
-    
+
     <Compile Include="AdBlocker.cs" />
     <Compile Include="App.xaml.cs" />
     <Compile Include="BookmarkEntry.cs" />
