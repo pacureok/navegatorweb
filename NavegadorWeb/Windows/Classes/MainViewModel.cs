@@ -1,18 +1,11 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using NavegadorWeb.Services;
 using NavegadorWeb.Windows;
-using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.IO;
 using System.Linq;
-using System.Speech.Synthesis;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Input;
 
 namespace NavegadorWeb.Classes
 {
@@ -27,21 +20,19 @@ namespace NavegadorWeb.Classes
         [ObservableProperty]
         private ObservableCollection<TabItemData> _tabs = new();
 
-        public string CurrentUrl => SelectedTabItem?.WebViewInstance?.CoreWebView2?.Source ?? "about:blank";
+        public string CurrentUrl => SelectedTabItem?.Url ?? "about:blank";
         public bool IsBackEnabled => SelectedTabItem?.WebViewInstance?.CoreWebView2?.CanGoBack ?? false;
         public bool IsForwardEnabled => SelectedTabItem?.WebViewInstance?.CoreWebView2?.CanGoForward ?? false;
 
         public MainViewModel()
         {
-            AddNewTab();
+            // El constructor ahora está vacío, la creación de la primera pestaña se maneja en MainWindow.xaml.cs
         }
 
         [RelayCommand]
         public void AddNewTab()
         {
-            var newTab = new TabItemData();
-            Tabs.Add(newTab);
-            SelectedTabItem = newTab;
+            // Esta lógica es manejada ahora por el código-detrás de la vista
         }
 
         [RelayCommand]
