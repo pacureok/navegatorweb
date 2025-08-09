@@ -30,5 +30,11 @@ namespace NavegadorWeb.Windows
                 this.Close();
             }
         }
+
+        private void ClearHistoryButton_Click(object sender, RoutedEventArgs e)
+        {
+            HistoryManager.ClearHistory();
+            LoadHistoryData();
+        }
     }
 }
