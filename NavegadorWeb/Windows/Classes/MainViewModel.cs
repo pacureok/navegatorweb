@@ -1,189 +1,129 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.Web.WebView2.Core;
+using NavegadorWeb.Services;
+using NavegadorWeb.Classes;
+using NavegadorWeb.Windows;
+using System;
 using System.Collections.ObjectModel;
-using System.Windows.Input;
-using System.Windows.Media;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Speech.Synthesis;
 
-namespace NavegadorWeb.Windows.Classes
+namespace NavegadorWeb
 {
-    public class MainViewModel : BaseViewModel
+    public partial class MainViewModel : ObservableObject
     {
-        private ObservableCollection<string> _history;
-        public ObservableCollection<string> History
+        private TabItemData _selectedTabItem;
+        public TabItemData SelectedTabItem
         {
-            get => _history;
-            set => SetProperty(ref _history, value);
+            get => _selectedTabItem;
+            set
+            {
+                if (SetProperty(ref _selectedTabItem, value))
+                {
+                    OnPropertyChanged(nameof(CurrentUrl));
+                    OnPropertyChanged(nameof(IsBackEnabled));
+                    OnPropertyChanged(nameof(IsForwardEnabled));
+                }
+            }
         }
 
-        private ObservableCollection<string> _bookmarks;
-        public ObservableCollection<string> Bookmarks
-        {
-            get => _bookmarks;
-            set => SetProperty(ref _bookmarks, value);
-        }
+        public string CurrentUrl => SelectedTabItem?.WebView?.CoreWebView2?.Source;
+        public bool IsBackEnabled => SelectedTabItem?.WebView?.CoreWebView2?.CanGoBack ?? false;
+        public bool IsForwardEnabled => SelectedTabItem?.WebView?.CoreWebView2?.CanGoForward ?? false;
 
-        private ObservableCollection<string> _downloadHistory;
-        public ObservableCollection<string> DownloadHistory
-        {
-            get => _downloadHistory;
-            set => SetProperty(ref _downloadHistory, value);
-        }
+        public ObservableCollection<TabItemData> Tabs { get; set; } = new ObservableCollection<TabItemData>();
 
-        private string _searchText;
-        public string SearchText
-        {
-            get => _searchText;
-            set => SetProperty(ref _searchText, value);
-        }
-
-        private string _currentPageUrl;
-        public string CurrentPageUrl
-        {
-            get => _currentPageUrl;
-            set => SetProperty(ref _currentPageUrl, value);
-        }
-
-        private bool _isNavigating;
-        public bool IsNavigating
-        {
-            get => _isNavigating;
-            set => SetProperty(ref _isNavigating, value);
-        }
-
-        private string _browserStatus;
-        public string BrowserStatus
-        {
-            get => _browserStatus;
-            set => SetProperty(ref _browserStatus, value);
-        }
-
-        private int _zoomLevel;
-        public int ZoomLevel
-        {
-            get => _zoomLevel;
-            set => SetProperty(ref _zoomLevel, value);
-        }
-
-        private bool _isAdBlockerEnabled;
-        public bool IsAdBlockerEnabled
-        {
-            get => _isAdBlockerEnabled;
-            set => SetProperty(ref _isAdBlockerEnabled, value);
-        }
-
-        private bool _isIncognitoMode;
-        public bool IsIncognitoMode
-        {
-            get => _isIncognitoMode;
-            set => SetProperty(ref _isIncognitoMode, value);
-        }
-
-        private Color _currentPageColor;
-        public Color CurrentPageColor
-        {
-            get => _currentPageColor;
-            set => SetProperty(ref _currentPageColor, value);
-        }
-
-        public ICommand NavigateCommand { get; }
-        public ICommand GoBackCommand { get; }
-        public ICommand GoForwardCommand { get; }
-        public ICommand RefreshCommand { get; }
-        public ICommand AddBookmarkCommand { get; }
-        public ICommand OpenHistoryWindowCommand { get; }
-        public ICommand OpenBookmarksWindowCommand { get; }
-        public ICommand OpenDownloadsWindowCommand { get; }
-        public ICommand OpenSettingsWindowCommand { get; }
+        // Comandos con atributos
+        public IRelayCommand NavigateCommand { get; }
+        public IRelayCommand NewTabCommand { get; }
+        public IRelayCommand CloseTabCommand { get; }
+        public IRelayCommand GoBackCommand { get; }
+        public IRelayCommand GoForwardCommand { get; }
+        public IRelayCommand RefreshCommand { get; }
+        public IRelayCommand OpenHistoryCommand { get; }
+        public IRelayCommand OpenBookmarksCommand { get; }
 
         public MainViewModel()
         {
-            History = new ObservableCollection<string>();
-            Bookmarks = new ObservableCollection<string>();
-            DownloadHistory = new ObservableCollection<string>();
-            CurrentPageUrl = "about:blank";
-            BrowserStatus = "Listo";
-            ZoomLevel = 100;
-
             NavigateCommand = new RelayCommand(url => Navigate(url?.ToString()));
-            GoBackCommand = new RelayCommand(_ => GoBack(), _ => CanGoBack());
-            GoForwardCommand = new RelayCommand(_ => GoForward(), _ => CanGoForward());
-            RefreshCommand = new RelayCommand(_ => Refresh());
-            AddBookmarkCommand = new RelayCommand(_ => AddBookmark());
-            OpenHistoryWindowCommand = new RelayCommand(_ => OpenHistoryWindow());
-            OpenBookmarksWindowCommand = new RelayCommand(_ => OpenBookmarksWindow());
-            OpenDownloadsWindowCommand = new RelayCommand(_ => OpenDownloadsWindow());
-            OpenSettingsWindowCommand = new RelayCommand(_ => OpenSettingsWindow());
+            NewTabCommand = new RelayCommand(AddNewTab);
+            CloseTabCommand = new RelayCommand(tab => CloseTab((TabItemData)tab));
+            GoBackCommand = new RelayCommand(() => GoBack());
+            GoForwardCommand = new RelayCommand(() => GoForward());
+            RefreshCommand = new RelayCommand(() => Refresh());
+            OpenHistoryCommand = new RelayCommand(OpenHistoryWindow);
+            OpenBookmarksCommand = new RelayCommand(OpenBookmarksWindow);
+
+            AddNewTab();
         }
 
-        // Métodos de comando
-        private void Navigate(string? url)
+        private void Navigate(string url)
         {
             if (string.IsNullOrWhiteSpace(url)) return;
-
-            if (!url.StartsWith("http://") && !url.StartsWith("https://"))
-            {
-                url = "http://" + url;
-            }
-
-            CurrentPageUrl = url;
-            IsNavigating = true;
-            BrowserStatus = "Navegando a " + CurrentPageUrl;
-            History.Add(CurrentPageUrl);
+            SelectedTabItem.WebView?.CoreWebView2?.Navigate(url);
         }
 
-        private bool CanGoBack()
+        public void AddNewTab()
         {
-            // Lógica para determinar si se puede ir hacia atrás
-            return History.Count > 1;
+            var newTab = new TabItemData();
+            Tabs.Add(newTab);
+            SelectedTabItem = newTab;
+        }
+
+        private void CloseTab(TabItemData tab)
+        {
+            if (Tabs.Count == 1)
+            {
+                Application.Current.Shutdown();
+                return;
+            }
+            int index = Tabs.IndexOf(tab);
+            Tabs.Remove(tab);
+            if (index > 0)
+            {
+                SelectedTabItem = Tabs[index - 1];
+            }
+            else
+            {
+                SelectedTabItem = Tabs[0];
+            }
         }
 
         private void GoBack()
         {
-            // Lógica para ir a la página anterior
-        }
-
-        private bool CanGoForward()
-        {
-            // Lógica para determinar si se puede ir hacia adelante
-            return false; // Implementación pendiente
+            SelectedTabItem.WebView?.CoreWebView2?.GoBack();
         }
 
         private void GoForward()
         {
-            // Lógica para ir a la página siguiente
+            SelectedTabItem.WebView?.CoreWebView2?.GoForward();
         }
 
         private void Refresh()
         {
-            // Lógica para refrescar la página
-        }
-
-        private void AddBookmark()
-        {
-            // Lógica para añadir un marcador
-            if (!Bookmarks.Contains(CurrentPageUrl))
-            {
-                Bookmarks.Add(CurrentPageUrl);
-                BrowserStatus = "Marcador añadido: " + CurrentPageUrl;
-            }
+            SelectedTabItem.WebView?.CoreWebView2?.Reload();
         }
 
         private void OpenHistoryWindow()
         {
-            // Lógica para abrir la ventana de historial
+            var historyWindow = new HistoryWindow();
+            if (historyWindow.ShowDialog() == true)
+            {
+                if (!string.IsNullOrEmpty(historyWindow.SelectedUrl))
+                {
+                    SelectedTabItem.WebView?.CoreWebView2?.Navigate(historyWindow.SelectedUrl);
+                }
+            }
         }
 
         private void OpenBookmarksWindow()
         {
-            // Lógica para abrir la ventana de marcadores
-        }
-
-        private void OpenDownloadsWindow()
-        {
-            // Lógica para abrir la ventana de descargas
-        }
-
-        private void OpenSettingsWindow()
-        {
-            // Lógica para abrir la ventana de configuración
+            var bookmarksWindow = new BookmarksWindow();
+            bookmarksWindow.ShowDialog();
         }
     }
 }
