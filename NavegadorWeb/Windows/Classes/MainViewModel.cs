@@ -4,7 +4,6 @@ using Microsoft.Web.WebView2.Wpf;
 using NavegadorWeb.Services;
 using NavegadorWeb.Windows;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Windows;
 
 namespace NavegadorWeb.Classes
@@ -26,13 +25,8 @@ namespace NavegadorWeb.Classes
 
         public MainViewModel()
         {
-            // El constructor ahora está vacío, la creación de la primera pestaña se maneja en MainWindow.xaml.cs
-        }
-
-        [RelayCommand]
-        public void AddNewTab()
-        {
-            // Esta lógica es manejada ahora por el código-detrás de la vista
+            // El ViewModel no debe crear pestañas al inicio. Esa lógica va en MainWindow.xaml.cs
+            // La primera pestaña se creará cuando la ventana principal se cargue.
         }
 
         [RelayCommand]
@@ -40,42 +34,50 @@ namespace NavegadorWeb.Classes
         {
             if (tabToClose == null) return;
 
-            if (Tabs.Count == 1)
-            {
-                Application.Current.Shutdown();
-                return;
-            }
-
             int index = Tabs.IndexOf(tabToClose);
             Tabs.Remove(tabToClose);
             tabToClose.Dispose();
 
-            if (index >= Tabs.Count)
+            if (Tabs.Count == 0)
             {
-                SelectedTabItem = Tabs[^1];
+                Application.Current.Shutdown();
             }
             else
             {
-                SelectedTabItem = Tabs[index];
+                if (index >= Tabs.Count)
+                {
+                    SelectedTabItem = Tabs[^1];
+                }
+                else
+                {
+                    SelectedTabItem = Tabs[index];
+                }
             }
         }
-        
+
         [RelayCommand]
         public void GoBack()
         {
-            SelectedTabItem?.WebViewInstance?.CoreWebView2?.GoBack();
+            SelectedTabItem?.WebViewInstance?.GoBack();
         }
 
         [RelayCommand]
         public void GoForward()
         {
-            SelectedTabItem?.WebViewInstance?.CoreWebView2?.GoForward();
+            SelectedTabItem?.WebViewInstance?.GoForward();
         }
 
         [RelayCommand]
         public void Refresh()
         {
-            SelectedTabItem?.WebViewInstance?.CoreWebView2?.Reload();
+            SelectedTabItem?.WebViewInstance?.Reload();
+        }
+        
+        [RelayCommand]
+        public void Navigate(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return;
+            SelectedTabItem?.WebViewInstance?.CoreWebView2?.Navigate(url);
         }
 
         [RelayCommand]
@@ -84,25 +86,11 @@ namespace NavegadorWeb.Classes
             var historyWindow = new HistoryWindow();
             if (historyWindow.ShowDialog() == true)
             {
-                if (!string.IsNullOrEmpty(historyWindow.SelectedUrl) && SelectedTabItem?.WebViewInstance?.CoreWebView2 != null)
+                if (!string.IsNullOrEmpty(historyWindow.SelectedUrl))
                 {
-                    SelectedTabItem.WebViewInstance.CoreWebView2.Navigate(historyWindow.SelectedUrl);
+                    SelectedTabItem?.WebViewInstance?.CoreWebView2?.Navigate(historyWindow.SelectedUrl);
                 }
             }
-        }
-
-        [RelayCommand]
-        public void OpenBookmarksWindow()
-        {
-            var bookmarksWindow = new BookmarksWindow();
-            bookmarksWindow.ShowDialog();
-        }
-
-        [RelayCommand]
-        public void Navigate(string? url)
-        {
-            if (string.IsNullOrWhiteSpace(url)) return;
-            SelectedTabItem?.WebViewInstance?.CoreWebView2?.Navigate(url);
         }
     }
 }
