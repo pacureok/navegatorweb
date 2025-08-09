@@ -6,157 +6,67 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <ApplicationIcon>Icons/app.ico</ApplicationIcon>
+    <ApplicationIcon>Icons\app.ico</ApplicationIcon>
+
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultPageItems>false</EnableDefaultPageItems>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Icons\add_bookmark.png" />
-    <None Remove="Icons\ai.png" />
-    <None Remove="Icons\app.ico" />
-    <None Remove="Icons\audio_playing_icon.png" />
-    <None Remove="Icons\blocked_icon.png" />
-    <None Remove="Icons\bookmarks.png" />
-    <None Remove="Icons\data_extraction.png" />
-    <None Remove="Icons\download.png" />
-    <None Remove="Icons\extension_icon.png" />
-    <None Remove="Icons\extensions.png" />
-    <None Remove="Icons\find.png" />
-    <None Remove="Icons\gemini_icon.ico" />
-    <None Remove="Icons\globe_icon.png" />
-    <None Remove="Icons\history .png" />
-    <None Remove="Icons\home.png" />
-    <None Remove="Icons\incognito.png" />
-    <None Remove="Icons\logo.ico" />
-    <None Remove="Icons\moon.png" />
-    <None Remove="Icons\new_tab.png" />
-    <None Remove="Icons\password.png" />
-    <None Remove="Icons\performance.png" />
-    <None Remove="Icons\permissions.png" />
-    <None Remove="Icons\pip.png" />
-    <None Remove="Icons\read_aloud.png" />
-    <None Remove="Icons\reader.png" />
-    <None Remove="Icons\screenshot.png" />
-    <None Remove="Icons\settings.png" />
-    <None Remove="Icons\split.png" />
-    <None Remove="Icons\tab_manager.png" />
-    <None Remove="Icons\tabs.png" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Resource Include="Icons\add_bookmark.png" />
-    <Resource Include="Icons\ai.png" />
-    <Resource Include="Icons\app.ico" />
-    <Resource Include="Icons\audio_playing_icon.png" />
-    <Resource Include="Icons\blocked_icon.png" />
-    <Resource Include="Icons\bookmarks.png" />
-    <Resource Include="Icons\data_extraction.png" />
-    <Resource Include="Icons\download.png" />
-    <Resource Include="Icons\extension_icon.png" />
-    <Resource Include="Icons\extensions.png" />
-    <Resource Include="Icons\find.png" />
-    <Resource Include="Icons\gemini_icon.ico" />
-    <Resource Include="Icons\globe_icon.png" />
-    <Resource Include="Icons\history .png" />
-    <Resource Include="Icons\home.png" />
-    <Resource Include="Icons\incognito.png" />
-    <Resource Include="Icons\logo.ico" />
-    <Resource Include="Icons\moon.png" />
-    <Resource Include="Icons\new_tab.png" />
-    <Resource Include="Icons\password.png" />
-    <Resource Include="Icons\performance.png" />
-    <Resource Include="Icons\permissions.png" />
-    <Resource Include="Icons\pip.png" />
-    <Resource Include="Icons\read_aloud.png" />
-    <Resource Include="Icons\reader.png" />
-    <Resource Include="Icons\screenshot.png" />
-    <Resource Include="Icons\settings.png" />
-    <Resource Include="Icons\split.png" />
-    <Resource Include="Icons\tab_manager.png" />
-    <Resource Include="Icons\tabs.png" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.54" />
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.51" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
     <PackageReference Include="System.Speech" Version="8.0.0" />
-    <PackageReference Include="System.Text.Json" Version="8.0.4" />
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.61" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="Windows\Classes\**\*.cs" />
-    <Compile Include="Windows\**\*.cs" />
-    <Compile Include="Converters\**\*.cs" />
-    <Compile Include="Extensions\**\*.cs" />
-    
-    <Compile Include="AdBlocker.cs" />
     <Compile Include="App.xaml.cs" />
-    <Compile Include="BookmarkEntry.cs" />
-    <Compile Include="BookmarkManager.cs" />
-    <Compile Include="BrowserTabItem.cs" />
-    <Compile Include="DownloadEntry.cs" />
-    <Compile Include="DownloadManager.cs" />
-    <Compile Include="HistoryEntry.cs" />
-    <Compile Include="HistoryManager.cs" />
-    <Compile Include="MainWindow.xaml.cs" />
-    <Compile Include="PasswordEntry.cs" />
-    <Compile Include="PasswordManager.cs" />
-    <Compile Include="TabInfo.cs" />
-    <Compile Include="TabPerformanceInfo.cs" />
-    <Compile Include="TrackerBlocker.cs" />
-
-    <Page Include="App.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Windows\HistoryWindow.xaml" />
-    <Page Include="Windows\AskGeminiWindow.xaml" />
-    <Page Include="Windows\BookmarksWindow.xaml" />
-    <Page Include="Windows\CrashRecoveryWindow.xaml" />
-    <Page Include="Windows\DataExtractionWindow.xaml" />
-    <Page Include="Windows\DownloadsWindow.xaml" />
-    <Page Include="Windows\ExtensionsWindow.xaml" />
-    <Page Include="Windows\GeminiDataViewerWindow.xaml" />
-    <Page Include="Windows\MainWindow.xaml" />
-    <Page Include="Windows\PasswordManagerWindow.xaml" />
-    <Page Include="Windows\PdfViewerWindow.xaml" />
-    <Page Include="Windows\PerformanceMonitorWindow.xaml" />
-    <Page Include="Windows\PermissionsManagerWindow.xaml" />
-    <Page Include="Windows\PipWindow.xaml" />
-    <Page Include="Windows\SettingsWindow.xaml" />
-    <Page Include="Windows\TabManagerWindow.xaml" />
+    <Compile Include="Windows\**\*.cs" />
+    <Compile Include="Services\**\*.cs" />
+    <Compile Include="Classes\**\*.cs" />
+    <Compile Include="Extensions\**\*.cs" />
+    <Compile Include="Converters\**\*.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="CustomErrorPage.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="DarkMode.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="HighlighterExtension.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="MicrophoneControl.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="MinesweeperGame.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="OfflineGame.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="PageColorExtractor.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="ReaderMode.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="tracker_domains.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="packages.config" />
-    <None Update="App.config" />
+    <Page Include="App.xaml" />
+    <Page Include="Windows\**\*.xaml" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Icons\**\*.ico" />
+    <Resource Include="Icons\**\*.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="CustomErrorPage.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="DarkMode.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="HighlighterExtension.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="MicrophoneControl.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="MinesweeperGame.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="OfflineGame.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="PageColorExtractor.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ReaderMode.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="tracker_domains.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>
