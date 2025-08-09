@@ -3,7 +3,6 @@ using System.Windows;
 
 namespace NavegadorWeb.Windows
 {
-    // Un ViewModel simple para la ventana de configuración
     public partial class SettingsViewModel : ObservableObject
     {
         [ObservableProperty]
@@ -11,7 +10,6 @@ namespace NavegadorWeb.Windows
 
         public SettingsViewModel()
         {
-            // Inicializar las propiedades, por ejemplo, cargando desde un archivo de configuración
             IsDarkModeEnabled = false; 
         }
     }
@@ -21,7 +19,6 @@ namespace NavegadorWeb.Windows
         public SettingsWindow()
         {
             InitializeComponent();
-            // Asigna el ViewModel a la ventana para el enlace de datos
             DataContext = new SettingsViewModel();
         }
     }
