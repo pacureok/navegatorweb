@@ -89,7 +89,7 @@
     <Compile Include="Windows\**\*.cs" />
     <Compile Include="Converters\**\*.cs" />
     <Compile Include="Extensions\**\*.cs" />
-
+    
     <Compile Include="AdBlocker.cs" />
     <Compile Include="App.xaml.cs" />
     <Compile Include="BookmarkEntry.cs" />
