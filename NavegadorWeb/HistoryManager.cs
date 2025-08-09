@@ -13,6 +13,7 @@ namespace NavegadorWeb.Services
 
         static HistoryManager()
         {
+            // El constructor estático carga el historial cuando la clase es accedida por primera vez.
             LoadHistory();
         }
 
@@ -31,7 +32,34 @@ namespace NavegadorWeb.Services
                 }
             }
         }
+        
+        /// <summary>
+        /// Devuelve la lista actual del historial de navegación.
+        /// </summary>
+        public static List<HistoryEntry> GetHistory()
+        {
+            return _history;
+        }
 
+        /// <summary>
+        /// Añade una nueva entrada al historial y guarda los cambios.
+        /// </summary>
+        public static void AddEntry(HistoryEntry entry)
+        {
+            // Evita duplicados recientes
+            var existingEntry = _history.FirstOrDefault(e => e.Url == entry.Url);
+            if (existingEntry != null)
+            {
+                _history.Remove(existingEntry);
+            }
+
+            _history.Add(entry);
+            SaveHistory();
+        }
+
+        /// <summary>
+        /// Guarda el historial actual en el archivo JSON.
+        /// </summary>
         public static void SaveHistory()
         {
             var options = new JsonSerializerOptions { WriteIndented = true };
@@ -39,24 +67,12 @@ namespace NavegadorWeb.Services
             File.WriteAllText(_historyFilePath, json);
         }
 
-        public static List<HistoryEntry> GetHistory()
+        /// <summary>
+        /// Borra todas las entradas del historial y guarda los cambios.
+        /// </summary>
+        public static void ClearHistory()
         {
-            return _history;
-        }
-
-        public static void AddEntry(HistoryEntry entry)
-        {
-            // Evita duplicados recientes
-            if (_history.Any(e => e.Url == entry.Url))
-            {
-                var existingEntry = _history.FirstOrDefault(e => e.Url == entry.Url);
-                if (existingEntry != null)
-                {
-                    _history.Remove(existingEntry);
-                }
-            }
-
-            _history.Add(entry);
+            _history.Clear();
             SaveHistory();
         }
     }
