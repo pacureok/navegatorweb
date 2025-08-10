@@ -6,9 +6,13 @@ using System.Windows.Input;
 
 namespace NavegadorWeb.Windows
 {
+    /// <summary>
+    /// Lógica de interacción para HistoryWindow.xaml
+    /// </summary>
     public partial class HistoryWindow : Window
     {
-        public string? SelectedUrl { get; private set; }
+        // Se inicializa con una cadena vacía para evitar errores de nulidad (CS8618).
+        public string SelectedUrl { get; private set; } = string.Empty;
 
         public HistoryWindow()
         {
@@ -16,13 +20,17 @@ namespace NavegadorWeb.Windows
             LoadHistoryData();
         }
 
+        /// <summary>
+        /// Carga los datos del historial y los muestra en la ListView.
+        /// </summary>
         private void LoadHistoryData()
         {
-            // Usamos GetHistory() para obtener la lista que ya ha sido cargada
-            // al iniciar la aplicación.
             HistoryListView.ItemsSource = HistoryManager.GetHistory();
         }
-        
+
+        /// <summary>
+        /// Maneja el doble clic en un elemento para seleccionar la URL y cerrar la ventana.
+        /// </summary>
         private void HistoryListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             if (HistoryListView.SelectedItem is HistoryEntry selectedEntry)
@@ -32,12 +40,26 @@ namespace NavegadorWeb.Windows
                 this.Close();
             }
         }
-        
+
+        /// <summary>
+        /// Maneja el clic en el botón para borrar todo el historial.
+        /// </summary>
         private void ClearHistoryButton_Click(object sender, RoutedEventArgs e)
         {
-            // Se asume que el método ClearHistory() existe en HistoryManager.
-            HistoryManager.ClearHistory();
-            LoadHistoryData();
+            MessageBoxResult result = MessageBox.Show("¿Estás seguro de que quieres borrar todo el historial de navegación?", "Confirmar Borrado", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (result == MessageBoxResult.Yes)
+            {
+                HistoryManager.ClearHistory();
+                LoadHistoryData();
+            }
+        }
+        
+        /// <summary>
+        /// Maneja el clic en el botón para cerrar la ventana.
+        /// </summary>
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            this.Close();
         }
     }
 }
