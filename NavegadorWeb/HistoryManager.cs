@@ -1,7 +1,6 @@
 using NavegadorWeb.Classes;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.Json;
 
 namespace NavegadorWeb.Services
@@ -13,8 +12,12 @@ namespace NavegadorWeb.Services
 
         static HistoryManager()
         {
-            // El constructor estático carga el historial cuando la clase es accedida por primera vez.
             LoadHistory();
+        }
+
+        public static List<HistoryEntry> GetHistory()
+        {
+            return _history;
         }
 
         public static void LoadHistory()
@@ -32,48 +35,18 @@ namespace NavegadorWeb.Services
                 }
             }
         }
-        
-        /// <summary>
-        /// Devuelve la lista actual del historial de navegación.
-        /// </summary>
-        public static List<HistoryEntry> GetHistory()
-        {
-            return _history;
-        }
 
-        /// <summary>
-        /// Añade una nueva entrada al historial y guarda los cambios.
-        /// </summary>
-        public static void AddEntry(HistoryEntry entry)
+        public static void ClearHistory()
         {
-            // Evita duplicados recientes
-            var existingEntry = _history.FirstOrDefault(e => e.Url == entry.Url);
-            if (existingEntry != null)
-            {
-                _history.Remove(existingEntry);
-            }
-
-            _history.Add(entry);
+            _history.Clear();
             SaveHistory();
         }
 
-        /// <summary>
-        /// Guarda el historial actual en el archivo JSON.
-        /// </summary>
         public static void SaveHistory()
         {
             var options = new JsonSerializerOptions { WriteIndented = true };
             string json = JsonSerializer.Serialize(_history, options);
             File.WriteAllText(_historyFilePath, json);
-        }
-
-        /// <summary>
-        /// Borra todas las entradas del historial y guarda los cambios.
-        /// </summary>
-        public static void ClearHistory()
-        {
-            _history.Clear();
-            SaveHistory();
         }
     }
 }
