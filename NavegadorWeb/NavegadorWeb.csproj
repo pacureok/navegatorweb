@@ -6,67 +6,47 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <ApplicationIcon>Icons\app.ico</ApplicationIcon>
-
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <EnableDefaultPageItems>false</EnableDefaultPageItems>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
-    <PackageReference Include="System.Speech" Version="8.0.0" />
-    <PackageReference Include="System.Text.Json" Version="9.0.0" />
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.61" />
+    <None Remove="Icons\ai.png" />
+    <None Remove="Icons\app.ico" />
+    <None Remove="Icons\back.png" />
+    <None Remove="Icons\bookmarks.png" />
+    <None Remove="Icons\data_extraction.png" />
+    <None Remove="Icons\extensions.png" />
+    <None Remove="Icons\find.png" />
+    <None Remove="Icons\forward.png" />
+    <None Remove="Icons\history.png" />
+    <None Remove="Icons\new_tab.png" />
+    <None Remove="Icons\password.png" />
+    <None Remove="Icons\refresh.png" />
+    <None Remove="Icons\settings.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Icons\app.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Icons\ai.png" />
+    <Resource Include="Icons\back.png" />
+    <Resource Include="Icons\bookmarks.png" />
+    <Resource Include="Icons\data_extraction.png" />
+    <Resource Include="Icons\extensions.png" />
+    <Resource Include="Icons\find.png" />
+    <Resource Include="Icons\forward.png" />
+    <Resource Include="Icons\history.png" />
+    <Resource Include="Icons\new_tab.png" />
+    <Resource Include="Icons\password.png" />
+    <Resource Include="Icons\refresh.png" />
+    <Resource Include="Icons\settings.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="App.xaml.cs" />
-    <Compile Include="Windows\**\*.cs" />
-    <Compile Include="Services\**\*.cs" />
-    <Compile Include="Classes\**\*.cs" />
-    <Compile Include="Extensions\**\*.cs" />
-    <Compile Include="Converters\**\*.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Page Include="App.xaml" />
-    <Page Include="Windows\**\*.xaml" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Resource Include="Icons\**\*.ico" />
-    <Resource Include="Icons\**\*.png" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="CustomErrorPage.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="DarkMode.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="HighlighterExtension.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="MicrophoneControl.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="MinesweeperGame.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="OfflineGame.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="PageColorExtractor.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="ReaderMode.js">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="tracker_domains.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2592.34" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
 </Project>
