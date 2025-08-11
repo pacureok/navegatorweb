@@ -1,49 +1,50 @@
-using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Web.WebView2.Wpf;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System;
-using System.IO;
-using System.Windows.Media.Imaging;
 
 namespace NavegadorWeb.Classes
 {
-    // Ahora hereda de ObservableObject e implementa IDisposable
-    public partial class TabItemData : ObservableObject, IDisposable
+    public class TabItemData : INotifyPropertyChanged, IDisposable
     {
-        [ObservableProperty]
-        private string? _title = "Nueva Pestaña";
-
-        [ObservableProperty]
-        private string? _url = "about:blank";
-
-        [ObservableProperty]
-        private BitmapImage? _favicon;
-
-        [ObservableProperty]
-        private bool _isLoading;
-
-        [ObservableProperty]
-        private bool _isReaderMode;
-
-        [ObservableProperty]
-        private bool _isSuspended;
-
-        [ObservableProperty]
-        private DateTime _lastActivity = DateTime.Now;
-
-        public string? LastSuspendedUrl { get; set; }
-
-        public WebView2 WebViewInstance { get; }
-
-        // El constructor requiere una instancia de WebView2
-        public TabItemData(WebView2 webView)
+        public WebView2 WebViewInstance { get; set; }
+        public string HeaderText { get; set; }
+        private string _url;
+        public string Url
         {
-            WebViewInstance = webView;
+            get => _url;
+            set
+            {
+                if (_url != value)
+                {
+                    _url = value;
+                    OnPropertyChanged();
+                }
+            }
         }
-
-        // Método para liberar los recursos del WebView
+        
+        public TabItemData()
+        {
+            HeaderText = "Nueva pestaña";
+            _url = "about:blank";
+        }
+        
+        // Propiedad y método Dispose
         public void Dispose()
         {
-            WebViewInstance?.Dispose();
+            // Libera los recursos del WebView2 si es necesario
+            if (WebViewInstance != null)
+            {
+                WebViewInstance.Dispose();
+            }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }
+
