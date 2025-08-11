@@ -29,14 +29,18 @@ namespace NavegadorWeb.Classes
             _url = "about:blank";
         }
         
-        // Propiedad y método Dispose
+        /// <summary>
+        /// Libera los recursos asociados a la pestaña.
+        /// </summary>
         public void Dispose()
         {
-            // Libera los recursos del WebView2 si es necesario
+            // Libera los recursos del WebView2 si existe
             if (WebViewInstance != null)
             {
                 WebViewInstance.Dispose();
             }
+            // Suprime la finalización para evitar que se ejecute dos veces.
+            GC.SuppressFinalize(this);
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -47,4 +51,3 @@ namespace NavegadorWeb.Classes
         }
     }
 }
-
