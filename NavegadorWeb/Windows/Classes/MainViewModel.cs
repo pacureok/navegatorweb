@@ -32,15 +32,15 @@ namespace NavegadorWeb.Classes
 
         public MainViewModel()
         {
-            // El constructor está limpio. La primera pestaña se crea en la vista (MainWindow.xaml.cs).
+            // The constructor is clean. The first tab is created in the view (MainWindow.xaml.cs).
         }
         
         [RelayCommand]
         private void AddNewTab()
         {
-            // La lógica para crear la instancia de WebView2 se maneja en el code-behind de la vista.
-            // Este comando existe para que la UI pueda solicitar una nueva pestaña.
-            // La vista (MainWindow.xaml.cs) se suscribe al evento y maneja la creación de la UI y el objeto TabItemData.
+            // The logic to create the WebView2 instance is handled in the view's code-behind.
+            // This command exists so the UI can request a new tab.
+            // The view (MainWindow.xaml.cs) subscribes to the event and handles the creation of the UI and the TabItemData object.
         }
 
         [RelayCommand]
@@ -94,4 +94,4 @@ namespace NavegadorWeb.Classes
             SelectedTabItem?.WebViewInstance?.CoreWebView2?.Navigate(url);
         }
     }
-} 
+}
