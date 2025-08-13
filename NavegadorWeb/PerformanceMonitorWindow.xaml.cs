@@ -27,7 +27,8 @@ namespace NavegadorWeb.Windows
 
         private DispatcherTimer _updateTimer;
 
-        public event PropertyChangedEventHandler? PropertyChanged;
+        // Implementación explícita del evento PropertyChanged para INotifyPropertyChanged
+        public event PropertyChangedEventHandler? PropertyChanged; // Se añadió '?' para nulabilidad
 
         protected void OnPropertyChanged(string propertyName)
         {
@@ -38,7 +39,7 @@ namespace NavegadorWeb.Windows
         {
             InitializeComponent();
             this.DataContext = this;
-            BrowserTabs = tabs;
+            BrowserTabs = tabs; // Asigna la colección de pestañas pasada
 
             _updateTimer = new DispatcherTimer();
             _updateTimer.Interval = TimeSpan.FromSeconds(1);
@@ -46,18 +47,25 @@ namespace NavegadorWeb.Windows
             _updateTimer.Start();
         }
 
-        private void UpdateTimer_Tick(object? sender, EventArgs e)
+        private void UpdateTimer_Tick(object? sender, EventArgs e) // Se añadió '?'
         {
+            // Actualiza la información de rendimiento de cada pestaña
             foreach (var tab in BrowserTabs)
             {
                 if (tab.LeftWebView != null && tab.LeftWebView.CoreWebView2 != null)
                 {
-                    tab.LastActivity = DateTime.Now;
+                    // Ejemplo de cómo podrías obtener y actualizar datos de rendimiento
+                    // Nota: WebView2 no expone directamente el uso de CPU/RAM de forma granular por pestaña.
+                    // Esto es más un placeholder o para mostrar información general.
+                    // Para datos reales, necesitarías monitorear procesos externos o usar APIs más avanzadas.
+                    tab.LastActivity = DateTime.Now; // Simplemente actualiza la hora de actividad
+                    // tab.CpuUsage = GetCpuUsageForWebView(tab.LeftWebView); // Esto requeriría lógica compleja
+                    // tab.MemoryUsage = GetMemoryUsageForWebView(tab.LeftWebView); // Esto requeriría lógica compleja
                 }
             }
         }
 
-        private void Window_Closing(object? sender, CancelEventArgs e)
+        private void Window_Closing(object? sender, CancelEventArgs e) // Se añadió '?'
         {
             _updateTimer.Stop();
         }
