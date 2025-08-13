@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
-using NavegadorWeb.Classes;
+using NavegadorWeb.Classes; // Assuming this is where PasswordManager and PasswordEntry are
 
 namespace NavegadorWeb
 {
@@ -16,28 +16,39 @@ namespace NavegadorWeb
             InitializeComponent();
         }
 
+        /// <summary>
+        /// Se ejecuta cuando la ventana se ha cargado.
+        /// </summary>
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             LoadPasswordsList();
         }
 
+        /// <summary>
+        /// Carga la lista de contraseñas y las muestra en la ListView.
+        /// </summary>
         private void LoadPasswordsList()
         {
+            // Assumed that PasswordManager exists and is correctly implemented
             var passwords = PasswordManager.GetAllPasswords();
+            // Para mostrar la contraseña descifrada en el ToolTip, necesitamos una propiedad auxiliar
             var displayList = new List<PasswordDisplayEntry>();
             foreach (var p in passwords)
             {
                 displayList.Add(new PasswordDisplayEntry
                 {
-                    Url = p.Url ?? string.Empty,
-                    Username = p.Username ?? string.Empty,
-                    DecryptedPassword = PasswordManager.DecryptPassword(p.EncryptedPassword ?? string.Empty) ?? string.Empty,
-                    OriginalEntry = p
+                    Url = p.Url,
+                    Username = p.Username,
+                    DecryptedPassword = PasswordManager.DecryptPassword(p.EncryptedPassword),
+                    OriginalEntry = p // Guardar la referencia a la entrada original para eliminar
                 });
             }
             PasswordsListView.ItemsSource = displayList;
         }
 
+        /// <summary>
+        /// Maneja el clic en el botón de eliminar.
+        /// </summary>
         private void DeleteButton_Click(object sender, RoutedEventArgs e)
         {
             var button = sender as Button;
@@ -55,23 +66,27 @@ namespace NavegadorWeb
                 if (result == MessageBoxResult.Yes)
                 {
                     PasswordManager.DeletePassword(entryToDelete.OriginalEntry);
-                    LoadPasswordsList();
+                    LoadPasswordsList(); // Recargar la lista
                     MessageBox.Show("Contraseña eliminada con éxito.", "Eliminación Exitosa", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
         }
 
+        /// <summary>
+        /// Cierra la ventana.
+        /// </summary>
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             this.Close();
         }
 
+        // Clase auxiliar para la visualización en la ListView (para el ToolTip de la contraseña)
         private class PasswordDisplayEntry
         {
-            public string Url { get; set; } = string.Empty;
-            public string Username { get; set; } = string.Empty;
-            public string DecryptedPassword { get; set; } = string.Empty;
-            public PasswordEntry OriginalEntry { get; set; } = new PasswordEntry();
+            public string Url { get; set; }
+            public string Username { get; set; }
+            public string DecryptedPassword { get; set; } // Contraseña descifrada para el ToolTip
+            public PasswordEntry OriginalEntry { get; set; } // Referencia a la entrada original para eliminar
         }
     }
 }
