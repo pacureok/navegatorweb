@@ -94,4 +94,4 @@ namespace NavegadorWeb.Classes
             SelectedTabItem?.WebViewInstance?.CoreWebView2?.Navigate(url);
         }
     }
-}
+} 
